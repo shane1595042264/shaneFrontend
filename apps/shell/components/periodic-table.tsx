@@ -44,16 +44,16 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-1 sm:gap-2 md:gap-4"
     >
       {grid.map((row, rowIdx) => (
-        <div key={rowIdx} className="flex gap-4">
+        <div key={rowIdx} className="flex gap-1 sm:gap-2 md:gap-4">
           {row.map((element, colIdx) => (
             <motion.div key={colIdx} variants={itemVariants}>
               {element ? (
                 <ElementCard element={element} />
               ) : (
-                <div className="w-24 h-24" />
+                <div className="w-14 h-14 sm:w-18 sm:h-18 md:w-24 md:h-24" />
               )}
             </motion.div>
           ))}

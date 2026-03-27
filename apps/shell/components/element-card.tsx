@@ -18,8 +18,8 @@ export function ElementCard({ element }: ElementCardProps) {
       whileHover={isComingSoon ? {} : { scale: 1.05, y: -4 }}
       whileTap={isComingSoon ? {} : { scale: 0.97 }}
       className={[
-        "relative flex flex-col justify-between p-3 rounded-lg border-2 cursor-pointer select-none",
-        "w-24 h-24 transition-shadow",
+        "relative flex flex-col justify-between p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg border sm:border-2 cursor-pointer select-none",
+        "w-14 h-14 sm:w-18 sm:h-18 md:w-24 md:h-24 transition-shadow",
         styles.bg,
         styles.border,
         isComingSoon ? "opacity-40 cursor-not-allowed" : "hover:shadow-lg hover:shadow-black/40",
@@ -27,21 +27,21 @@ export function ElementCard({ element }: ElementCardProps) {
     >
       {/* External indicator */}
       {element.type === "external" && !isComingSoon && (
-        <span className="absolute top-1.5 right-1.5 text-xs opacity-60">↗</span>
+        <span className="absolute top-0.5 right-0.5 sm:top-1.5 sm:right-1.5 text-[8px] sm:text-xs opacity-60">↗</span>
       )}
 
       {/* Atomic number placeholder (col/row) */}
-      <span className="text-xs opacity-50">
+      <span className="text-[8px] sm:text-[10px] md:text-xs opacity-50">
         {element.rowPos}-{element.colPos}
       </span>
 
       {/* Symbol */}
-      <span className={`text-3xl font-bold text-center leading-none ${styles.text}`}>
+      <span className={`text-lg sm:text-2xl md:text-3xl font-bold text-center leading-none ${styles.text}`}>
         {element.symbol}
       </span>
 
       {/* Name */}
-      <span className="text-xs text-center text-gray-300 truncate">{element.name}</span>
+      <span className="text-[8px] sm:text-[10px] md:text-xs text-center text-gray-300 truncate">{element.name}</span>
     </motion.div>
   );
 
