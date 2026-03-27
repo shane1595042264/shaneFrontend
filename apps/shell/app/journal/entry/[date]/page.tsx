@@ -32,12 +32,12 @@ export default function EntryPage() {
 
     async function load() {
       try {
-        const [entryData, activitiesData] = await Promise.all([
+        const [entryResult, activitiesData] = await Promise.all([
           fetchEntry(date),
           fetchActivities(date).catch(() => []),
         ]);
-        setEntry(entryData);
-        setActivities(activitiesData);
+        setEntry(entryResult.entry);
+        setActivities(entryResult.activities ?? activitiesData);
       } catch {
         setError("Entry not found.");
       } finally {
