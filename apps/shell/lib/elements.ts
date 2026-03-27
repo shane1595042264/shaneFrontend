@@ -112,7 +112,7 @@ export async function fetchElements(): Promise<ElementConfig[]> {
     });
     if (!res.ok) throw new Error(`API returned ${res.status}`);
     const data = await res.json();
-    return data as ElementConfig[];
+    return (data.elements ?? data) as ElementConfig[];
   } catch {
     return getDefaultElements();
   }
