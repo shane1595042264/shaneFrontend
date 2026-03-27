@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import type { DiaryEntry } from "@shane/types";
-import { EntryCard } from "@/components/entry-card";
+import { EntryCard } from "@/components/journal/entry-card";
 
 interface EntryTimelineProps {
   entries: DiaryEntry[];

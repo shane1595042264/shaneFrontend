@@ -1,8 +1,8 @@
 import type { DiaryEntry } from "@shane/types";
-import { fetchEntries } from "@/lib/api";
-import { EntryTimeline } from "@/components/entry-timeline";
+import { fetchEntries } from "@/lib/journal-api";
+import { EntryTimeline } from "@/components/journal/entry-timeline";
 
-export default async function HomePage() {
+export default async function JournalPage() {
   let entries: DiaryEntry[];
   try {
     entries = await fetchEntries();

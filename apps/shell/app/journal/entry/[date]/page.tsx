@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import type { DiaryEntry, NormalizedActivity } from "@shane/types";
-import { fetchEntry, fetchActivities } from "@/lib/api";
-import { ActivityBreakdown } from "@/components/activity-breakdown";
-import { SuggestionChat } from "@/components/suggestion-chat";
+import { fetchEntry, fetchActivities } from "@/lib/journal-api";
+import { ActivityBreakdown } from "@/components/journal/activity-breakdown";
+import { SuggestionChat } from "@/components/journal/suggestion-chat";
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr + "T00:00:00");
@@ -19,7 +20,6 @@ function formatDate(dateStr: string): string {
 
 export default function EntryPage() {
   const params = useParams();
-  const router = useRouter();
   const date = params.date as string;
 
   const [entry, setEntry] = useState<DiaryEntry | null>(null);
@@ -58,12 +58,12 @@ export default function EntryPage() {
     return (
       <div className="text-center py-20">
         <p className="text-gray-400 mb-4">{error || "Entry not found."}</p>
-        <button
-          onClick={() => router.back()}
+        <Link
+          href="/journal"
           className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
         >
-          ← Go back
-        </button>
+          ← Back to timeline
+        </Link>
       </div>
     );
   }
@@ -73,12 +73,12 @@ export default function EntryPage() {
   return (
     <div className="space-y-8">
       <div>
-        <button
-          onClick={() => router.back()}
+        <Link
+          href="/journal"
           className="text-sm text-gray-400 hover:text-white transition-colors mb-4 inline-block"
         >
-          ← Back
-        </button>
+          ← Back to timeline
+        </Link>
         <h1 className="text-2xl font-bold tracking-tight">{formatDate(entry.date)}</h1>
         <p className="text-xs text-gray-500 mt-1">
           Voice profile v{entry.voiceProfileVersion}

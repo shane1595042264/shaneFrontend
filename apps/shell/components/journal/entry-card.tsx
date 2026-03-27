@@ -26,7 +26,7 @@ export function EntryCard({ entry }: EntryCardProps) {
   const truncated = entry.content.length > 200;
 
   return (
-    <Link href={`/entry/${entry.date}`}>
+    <Link href={`/journal/entry/${entry.date}`}>
       <motion.div
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}

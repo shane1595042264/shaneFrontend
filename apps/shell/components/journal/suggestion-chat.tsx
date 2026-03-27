@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { submitSuggestion } from "@/lib/api";
+import { submitSuggestion } from "@/lib/journal-api";
 import type { SuggestionResponse } from "@shane/types";
 
 interface SuggestionChatProps {
