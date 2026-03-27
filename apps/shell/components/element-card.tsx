@@ -9,56 +9,78 @@ interface ElementCardProps {
   element: ElementConfig;
 }
 
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.85 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: "spring", stiffness: 260, damping: 20 },
+  },
+};
+
 export function ElementCard({ element }: ElementCardProps) {
   const styles = CATEGORY_STYLES[element.category] || CATEGORY_STYLES["projects"];
   const isComingSoon = element.status === "coming-soon";
 
   const cardContent = (
     <motion.div
-      whileHover={isComingSoon ? {} : { scale: 1.05, y: -4 }}
-      whileTap={isComingSoon ? {} : { scale: 0.97 }}
+      variants={itemVariants}
+      whileHover={isComingSoon ? {} : { scale: 1.08, y: -2, zIndex: 10 }}
+      whileTap={isComingSoon ? {} : { scale: 0.95 }}
       className={[
-        "relative flex flex-col justify-between p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg border sm:border-2 cursor-pointer select-none",
-        "w-14 h-14 sm:w-18 sm:h-18 md:w-24 md:h-24 transition-shadow",
+        "relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded border cursor-grab active:cursor-grabbing select-none w-full aspect-square transition-shadow",
         styles.bg,
         styles.border,
-        isComingSoon ? "opacity-40 cursor-not-allowed" : "hover:shadow-lg hover:shadow-black/40",
+        isComingSoon ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg hover:shadow-black/40",
       ].join(" ")}
     >
-      {/* External indicator */}
       {element.type === "external" && !isComingSoon && (
-        <span className="absolute top-0.5 right-0.5 sm:top-1.5 sm:right-1.5 text-[8px] sm:text-xs opacity-60">↗</span>
+        <span className="absolute top-0 right-0.5 text-[7px] md:text-[9px] opacity-60">
+          ↗
+        </span>
       )}
 
-      {/* Atomic number placeholder (col/row) */}
-      <span className="text-[8px] sm:text-[10px] md:text-xs opacity-50">
+      <span className="text-[7px] md:text-[9px] opacity-50 self-start leading-none">
         {element.rowPos}-{element.colPos}
       </span>
 
-      {/* Symbol */}
-      <span className={`text-lg sm:text-2xl md:text-3xl font-bold text-center leading-none ${styles.text}`}>
+      <span
+        className={`text-sm md:text-xl font-bold text-center leading-none ${styles.text}`}
+      >
         {element.symbol}
       </span>
 
-      {/* Name */}
-      <span className="text-[8px] sm:text-[10px] md:text-xs text-center text-gray-300 truncate">{element.name}</span>
+      <span className="text-[6px] md:text-[9px] text-center text-gray-300 truncate w-full leading-none">
+        {element.name}
+      </span>
     </motion.div>
   );
 
+  // Wrap in link only when not being dragged (links are handled by click, not drag)
   if (isComingSoon) {
     return cardContent;
   }
 
   if (element.type === "external" && element.url) {
     return (
-      <a href={element.url} target="_blank" rel="noopener noreferrer">
+      <a
+        href={element.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => {
+          // Prevent navigation during drag
+          if (e.defaultPrevented) return;
+        }}
+        draggable={false}
+      >
         {cardContent}
       </a>
     );
   }
 
   return (
-    <Link href={element.route || "/"}>
+    <Link href={element.route || "/"} draggable={false}>
       {cardContent}
     </Link>
   );
