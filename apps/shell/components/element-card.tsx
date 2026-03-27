@@ -10,7 +10,7 @@ interface ElementCardProps {
 }
 
 export function ElementCard({ element }: ElementCardProps) {
-  const styles = CATEGORY_STYLES[element.category];
+  const styles = CATEGORY_STYLES[element.category] || CATEGORY_STYLES["projects"];
   const isComingSoon = element.status === "coming-soon";
 
   const cardContent = (

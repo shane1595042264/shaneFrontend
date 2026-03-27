@@ -1,9 +1,14 @@
 import type { ElementConfig } from "@shane/types";
 
 export const CATEGORY_STYLES: Record<
-  ElementConfig["category"],
+  string,
   { bg: string; border: string; text: string }
 > = {
+  "data-tracking": {
+    bg: "bg-blue-950/40",
+    border: "border-blue-500",
+    text: "text-blue-400",
+  },
   data: {
     bg: "bg-blue-950/40",
     border: "border-blue-500",
