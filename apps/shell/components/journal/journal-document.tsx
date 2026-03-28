@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { DiaryEntry } from "@shane/types";
+import type { DiaryEntry, NormalizedActivity } from "@shane/types";
 import { EntryRenderer } from "@/components/journal/entry-renderer";
 import { JournalSidebar } from "@/components/journal/journal-sidebar";
+import { fetchEntry, submitSuggestion } from "@/lib/journal-api";
 
 interface JournalDocumentProps {
   entries: DiaryEntry[];
@@ -19,6 +20,20 @@ function groupByYear(entries: DiaryEntry[]): Record<number, DiaryEntry[]> {
   return groups;
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  github: "GitHub",
+  strava: "Strava",
+  google_maps: "Location",
+  google_calendar: "Calendar",
+};
+
+const SOURCE_COLORS: Record<string, string> = {
+  github: "text-purple-400",
+  strava: "text-green-400",
+  google_maps: "text-blue-400",
+  google_calendar: "text-orange-400",
+};
+
 export function JournalDocument({ entries }: JournalDocumentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -26,8 +41,28 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     entries.length > 0 ? entries[0].date : null
   );
 
-  // Which entry has the suggestion panel open
-  const [suggestionDate, setSuggestionDate] = useState<string | null>(null);
+  // Activities for the active entry (fetched on demand)
+  const [activeActivities, setActiveActivities] = useState<NormalizedActivity[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+
+  // Suggestion state
+  const [suggestionInput, setSuggestionInput] = useState("");
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const [suggestionResult, setSuggestionResult] = useState<{ correctedContent: string; extractedFacts: string[] } | null>(null);
+
+  // Fetch activities when active date changes
+  useEffect(() => {
+    if (!activeDate) return;
+    setActiveActivities([]);
+    setLoadingActivities(true);
+    setSuggestionInput("");
+    setSuggestionResult(null);
+
+    fetchEntry(activeDate)
+      .then((data) => setActiveActivities(data.activities || []))
+      .catch(() => setActiveActivities([]))
+      .finally(() => setLoadingActivities(false));
+  }, [activeDate]);
 
   const handleSelectDate = useCallback((date: string) => {
     setActiveDate(date);
@@ -53,18 +88,28 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
           setActiveDate(date);
         }
       },
-      {
-        root: null,
-        rootMargin: "-10% 0px -70% 0px",
-        threshold: 0,
-      }
+      { root: null, rootMargin: "-10% 0px -70% 0px", threshold: 0 }
     );
 
     const articles = contentRef.current.querySelectorAll("article[id^='entry-']");
     articles.forEach((el) => observer.observe(el));
-
     return () => observer.disconnect();
   }, [entries]);
+
+  async function handleSuggestionSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!activeDate || !suggestionInput.trim() || suggestionLoading) return;
+    setSuggestionLoading(true);
+    try {
+      const result = await submitSuggestion(activeDate, suggestionInput.trim());
+      setSuggestionResult(result);
+      setSuggestionInput("");
+    } catch (err) {
+      console.error("Suggestion failed:", err);
+    } finally {
+      setSuggestionLoading(false);
+    }
+  }
 
   const dates = entries.map((e) => e.date);
 
@@ -73,31 +118,35 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
       <div className="flex h-full items-center justify-center py-32">
         <div className="text-center">
           <p className="text-gray-500 text-sm">No journal entries yet.</p>
-          <p className="text-gray-600 text-xs mt-1">
-            Entries will appear here once generated.
-          </p>
+          <p className="text-gray-600 text-xs mt-1">Entries will appear here once generated.</p>
         </div>
       </div>
     );
   }
 
   const yearGroups = groupByYear(entries);
-  const years = Object.keys(yearGroups)
-    .map(Number)
-    .sort((a, b) => b - a);
+  const years = Object.keys(yearGroups).map(Number).sort((a, b) => b - a);
+
+  // Group activities by source for the right panel
+  const activitiesBySource: Record<string, NormalizedActivity[]> = {};
+  for (const a of activeActivities) {
+    const src = a.source || "unknown";
+    if (!activitiesBySource[src]) activitiesBySource[src] = [];
+    activitiesBySource[src].push(a);
+  }
+
+  const activeDateFormatted = activeDate
+    ? new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+    : "";
 
   return (
     <div className="flex min-h-0 h-full">
       {/* Left sidebar — navigation */}
-      <div className="w-48 flex-shrink-0 border-r border-white/8 overflow-y-auto">
-        <JournalSidebar
-          dates={dates}
-          activeDate={activeDate}
-          onSelectDate={handleSelectDate}
-        />
+      <div className="w-44 flex-shrink-0 border-r border-white/8 overflow-y-auto">
+        <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={handleSelectDate} />
       </div>
 
-      {/* Center — document content with margins like Google Docs */}
+      {/* Center — document */}
       <div
         ref={contentRef}
         className="flex-1 min-w-0 overflow-y-auto"
@@ -106,51 +155,77 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
         <div className="max-w-2xl mx-auto px-8 py-6">
           {years.map((year) => (
             <div key={year}>
-              {/* Year heading */}
               <div className="flex items-center gap-3 mb-8 mt-2">
-                <span className="text-2xl font-bold text-white/20 tracking-widest select-none">
-                  {year}
-                </span>
+                <span className="text-2xl font-bold text-white/20 tracking-widest select-none">{year}</span>
                 <div className="flex-1 h-px bg-white/8" />
               </div>
-
               {yearGroups[year].map((entry) => (
-                <EntryRenderer
-                  key={entry.id}
-                  entry={entry}
-                  suggestionOpen={suggestionDate === entry.date}
-                  onToggleSuggestion={() =>
-                    setSuggestionDate(
-                      suggestionDate === entry.date ? null : entry.date
-                    )
-                  }
-                />
+                <EntryRenderer key={entry.id} entry={entry} />
               ))}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Right margin — suggestion panel (Google Docs style) */}
-      <div className="w-72 flex-shrink-0 border-l border-white/8 overflow-y-auto">
-        {suggestionDate ? (
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-gray-400">
-                Suggestion for {new Date(suggestionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-              </span>
-              <button
-                onClick={() => setSuggestionDate(null)}
-                className="text-gray-500 hover:text-white text-xs"
-              >
-                Close
-              </button>
+      {/* Right panel — activity feed + suggestion */}
+      <div className="w-72 flex-shrink-0 border-l border-white/8 overflow-y-auto text-xs" style={{ maxHeight: "calc(100vh - 120px)" }}>
+        {activeDate && (
+          <div className="p-3">
+            {/* Date label */}
+            <div className="text-gray-400 font-medium mb-3 pb-2 border-b border-white/8">
+              {activeDateFormatted}
             </div>
-            <SuggestionPanel date={suggestionDate} />
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-600 text-xs p-4 text-center">
-            Click the ✎ icon on an entry to suggest a correction
+
+            {/* Activity feed */}
+            {loadingActivities ? (
+              <div className="text-gray-600 py-4 text-center">Loading...</div>
+            ) : activeActivities.length === 0 ? (
+              <div className="text-gray-600 py-4 text-center">No activity data</div>
+            ) : (
+              <div className="space-y-3 mb-4">
+                {Object.entries(activitiesBySource).map(([source, acts]) => (
+                  <ActivitySourceGroup key={source} source={source} activities={acts} />
+                ))}
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="border-t border-white/8 pt-3 mt-3">
+              <div className="text-gray-400 font-medium mb-2">Suggest a correction</div>
+              <form onSubmit={handleSuggestionSubmit}>
+                <textarea
+                  value={suggestionInput}
+                  onChange={(e) => setSuggestionInput(e.target.value)}
+                  placeholder="e.g., &quot;I wasn't at a restaurant, I was at work.&quot;"
+                  className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none focus:border-blue-500"
+                  rows={3}
+                  disabled={suggestionLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={suggestionLoading || !suggestionInput.trim()}
+                  className="mt-1.5 w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {suggestionLoading ? "Processing..." : "Submit"}
+                </button>
+              </form>
+
+              {suggestionResult && (
+                <div className="mt-3 border-t border-white/10 pt-2">
+                  <p className="text-green-400 mb-1">Entry corrected</p>
+                  {suggestionResult.extractedFacts.length > 0 && (
+                    <div>
+                      <p className="text-gray-400 mb-1">Learned:</p>
+                      <ul className="text-gray-500 list-disc list-inside">
+                        {suggestionResult.extractedFacts.map((fact, i) => (
+                          <li key={i}>{fact}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -158,63 +233,65 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   );
 }
 
-/** Right-panel suggestion form */
-function SuggestionPanel({ date }: { date: string }) {
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<{ correctedContent: string; extractedFacts: string[] } | null>(null);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    setIsLoading(true);
-    try {
-      const { submitSuggestion } = await import("@/lib/journal-api");
-      const response = await submitSuggestion(date, input.trim());
-      setResult(response);
-    } catch (error) {
-      console.error("Suggestion failed:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+/** Collapsible source group in the right panel */
+function ActivitySourceGroup({ source, activities }: { source: string; activities: NormalizedActivity[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const label = SOURCE_LABELS[source] || source;
+  const color = SOURCE_COLORS[source] || "text-gray-400";
 
   return (
     <div>
-      <form onSubmit={handleSubmit}>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder='e.g., "I wasn&#39;t at a restaurant, I was going to work."'
-          className="w-full bg-white/5 border border-white/10 rounded-md p-2 text-sm text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none focus:border-blue-500"
-          rows={4}
-          disabled={isLoading}
-          autoFocus
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !input.trim()}
-          className="mt-2 w-full px-3 py-1.5 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? "Processing..." : "Submit"}
-        </button>
-      </form>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between w-full text-left hover:bg-white/5 rounded px-1.5 py-1 -mx-1.5 transition-colors"
+      >
+        <span className={`font-medium ${color}`}>{label}</span>
+        <span className="text-gray-600">
+          {activities.length} {expanded ? "▴" : "▾"}
+        </span>
+      </button>
 
-      {result && (
-        <div className="mt-4 border-t border-white/10 pt-3">
-          <p className="text-xs text-green-400 mb-2">Entry corrected</p>
-          {result.extractedFacts.length > 0 && (
-            <div>
-              <p className="text-xs text-gray-400 mb-1">Learned facts:</p>
-              <ul className="text-xs text-gray-500 list-disc list-inside">
-                {result.extractedFacts.map((fact, i) => (
-                  <li key={i}>{fact}</li>
-                ))}
-              </ul>
+      {expanded && (
+        <div className="mt-1 space-y-1 pl-1">
+          {activities.slice(0, 20).map((a, i) => (
+            <div key={i} className="bg-white/5 rounded px-2 py-1.5">
+              <div className="text-gray-500 font-mono mb-0.5">{a.type}</div>
+              <div className="text-gray-400 break-all whitespace-pre-wrap">
+                {formatActivityData(a)}
+              </div>
             </div>
+          ))}
+          {activities.length > 20 && (
+            <div className="text-gray-600 text-center py-1">+{activities.length - 20} more</div>
           )}
         </div>
       )}
     </div>
   );
+}
+
+/** Format activity data into a readable one-liner instead of raw JSON */
+function formatActivityData(a: NormalizedActivity): string {
+  const d = a.data as Record<string, unknown>;
+
+  if (a.source === "github" && a.type === "commit") {
+    return `${d.repo}: "${d.message}"`;
+  }
+  if (a.source === "strava") {
+    const km = d.distanceMeters ? ((d.distanceMeters as number) / 1000).toFixed(1) + "km" : "";
+    return `${d.name || a.type} ${km}`.trim();
+  }
+  if (a.source === "google_maps" && d.name) {
+    return `${d.name}${d.durationMinutes ? ` (${d.durationMinutes}min)` : ""}`;
+  }
+  if (a.source === "google_calendar") {
+    return `${d.title || "Event"}${d.startTime ? ` at ${new Date(d.startTime as string).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}`;
+  }
+  if (a.type === "location_ping") {
+    const t = d.timestamp ? new Date(d.timestamp as string).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";
+    return `${(d.latitude as number)?.toFixed(4)}, ${(d.longitude as number)?.toFixed(4)} ${t}`;
+  }
+
+  // Fallback: compact JSON
+  return JSON.stringify(d).slice(0, 100);
 }
