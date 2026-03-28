@@ -2,6 +2,8 @@ import type { DiaryEntry } from "@shane/types";
 import { fetchEntries } from "@/lib/journal-api";
 import { EntryTimeline } from "@/components/journal/entry-timeline";
 
+export const dynamic = "force-dynamic";
+
 export default async function JournalPage() {
   let entries: DiaryEntry[];
   try {
