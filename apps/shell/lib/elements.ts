@@ -80,7 +80,7 @@ export function getDefaultElements(): ElementConfig[] {
       rowPos: 4,
       colPos: 12,
       type: "external",
-      url: "https://github.com/douvle",
+      url: "https://github.com/shane1595042264",
       status: "live",
       description: "Open source projects and code",
     },
