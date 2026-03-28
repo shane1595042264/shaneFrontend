@@ -12,8 +12,8 @@ export default function JournalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+    <div className="flex flex-col h-screen overflow-hidden">
+      <nav className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center gap-3">
           <Link
             href="/"
@@ -27,7 +27,7 @@ export default function JournalLayout({
           <span className="text-xl font-bold tracking-tight">Journal</span>
         </div>
       </nav>
-      <div className="max-w-3xl mx-auto px-6 py-10">
+      <div className="flex-1 overflow-hidden px-6 py-6">
         {children}
       </div>
     </div>
