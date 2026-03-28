@@ -1,0 +1,82 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+export interface EvaluationResult {
+  product_name: string;
+  price: number;
+  generic_category: string;
+  is_entertainment: boolean;
+  avatar_url: string | null;
+  balance: number;
+  last_month_spend: number;
+  remaining_budget: number;
+  threshold: number | null;
+  roll: number | null;
+  result: "approved" | "denied" | "necessity" | "banned" | "too_expensive";
+  banned_until: string | null;
+}
+
+export interface BudgetInfo {
+  connected: boolean;
+  balance: number | null;
+  last_month_spend: number | null;
+  remaining_budget: number | null;
+}
+
+export interface Decision {
+  id: string;
+  url: string | null;
+  productName: string;
+  price: number;
+  genericCategory: string;
+  isEntertainment: boolean;
+  avatarUrl: string | null;
+  threshold: number | null;
+  roll: number | null;
+  result: string;
+  createdAt: string;
+}
+
+export interface Ban {
+  id: number;
+  genericCategory: string;
+  bannedAt: string;
+  expiresAt: string;
+}
+
+export async function evaluateProduct(url: string): Promise<EvaluationResult> {
+  const res = await fetch(`${API_URL}/api/rng/evaluate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Evaluation failed: ${res.status}`); }
+  return res.json();
+}
+
+export async function fetchBudget(): Promise<BudgetInfo> {
+  const res = await fetch(`${API_URL}/api/rng/budget`);
+  if (!res.ok) throw new Error("Failed to fetch budget");
+  return res.json();
+}
+
+export async function fetchHistory(): Promise<Decision[]> {
+  const res = await fetch(`${API_URL}/api/rng/history`);
+  if (!res.ok) throw new Error("Failed to fetch history");
+  const data = await res.json();
+  return data.decisions;
+}
+
+export async function fetchBans(): Promise<Ban[]> {
+  const res = await fetch(`${API_URL}/api/rng/bans`);
+  if (!res.ok) throw new Error("Failed to fetch bans");
+  const data = await res.json();
+  return data.bans;
+}
+
+export async function createPlaidLinkToken(): Promise<string> {
+  const res = await fetch(`${API_URL}/api/rng/plaid/link-token`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to create link token");
+  const data = await res.json();
+  return data.link_token;
+}
+
+export async function exchangePlaidToken(publicToken: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/rng/plaid/exchange`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ public_token: publicToken }) });
+  if (!res.ok) throw new Error("Failed to exchange token");
+}
