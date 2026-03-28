@@ -4,11 +4,23 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 // Journal reads from prod backend even on staging — one AI voice, one diary
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 
-export async function fetchEntries(): Promise<DiaryEntry[]> {
-  const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries`);
+export interface PaginatedEntries {
+  entries: DiaryEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchEntries(
+  opts: { limit?: number; offset?: number } = {}
+): Promise<PaginatedEntries> {
+  const params = new URLSearchParams();
+  if (opts.limit != null) params.set("limit", String(opts.limit));
+  if (opts.offset != null) params.set("offset", String(opts.offset));
+  const qs = params.toString();
+  const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries${qs ? `?${qs}` : ""}`);
   if (!res.ok) throw new Error(`Failed to fetch entries: ${res.status}`);
-  const data = await res.json();
-  return data.entries ?? data;
+  return res.json();
 }
 
 export async function fetchEntry(date: string): Promise<{ entry: DiaryEntry; activities: NormalizedActivity[] }> {
