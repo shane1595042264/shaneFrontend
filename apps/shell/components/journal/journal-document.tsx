@@ -50,6 +50,10 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionResult, setSuggestionResult] = useState<{ correctedContent: string; extractedFacts: string[] } | null>(null);
 
+  // Mobile responsive state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+
   // Fetch activities when active date changes
   useEffect(() => {
     if (!activeDate) return;
@@ -139,92 +143,142 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     ? new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
     : "";
 
-  return (
-    <div className="flex min-h-0 h-full">
-      {/* Left sidebar — navigation */}
-      <div className="w-44 flex-shrink-0 border-r border-white/8 overflow-y-auto">
-        <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={handleSelectDate} />
+  const activityPanelContent = activeDate ? (
+    <div className="p-3">
+      {/* Date label */}
+      <div className="text-gray-400 font-medium mb-3 pb-2 border-b border-white/8">
+        {activeDateFormatted}
       </div>
 
-      {/* Center — document */}
-      <div
-        ref={contentRef}
-        className="flex-1 min-w-0 overflow-y-auto"
-        style={{ maxHeight: "calc(100vh - 120px)" }}
-      >
-        <div className="max-w-2xl mx-auto px-8 py-6">
-          {years.map((year) => (
-            <div key={year}>
-              <div className="flex items-center gap-3 mb-8 mt-2">
-                <span className="text-2xl font-bold text-white/20 tracking-widest select-none">{year}</span>
-                <div className="flex-1 h-px bg-white/8" />
-              </div>
-              {yearGroups[year].map((entry) => (
-                <EntryRenderer key={entry.id} entry={entry} />
-              ))}
-            </div>
+      {/* Activity feed */}
+      {loadingActivities ? (
+        <div className="text-gray-600 py-4 text-center">Loading...</div>
+      ) : activeActivities.length === 0 ? (
+        <div className="text-gray-600 py-4 text-center">No activity data</div>
+      ) : (
+        <div className="space-y-3 mb-4">
+          {Object.entries(activitiesBySource).map(([source, acts]) => (
+            <ActivitySourceGroup key={source} source={source} activities={acts} />
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Right panel — activity feed + suggestion */}
-      <div className="w-72 flex-shrink-0 border-l border-white/8 overflow-y-auto text-xs" style={{ maxHeight: "calc(100vh - 120px)" }}>
-        {activeDate && (
-          <div className="p-3">
-            {/* Date label */}
-            <div className="text-gray-400 font-medium mb-3 pb-2 border-b border-white/8">
-              {activeDateFormatted}
-            </div>
+      {/* Divider */}
+      <div className="border-t border-white/8 pt-3 mt-3">
+        <div className="text-gray-400 font-medium mb-2">Suggest a correction</div>
+        <form onSubmit={handleSuggestionSubmit}>
+          <textarea
+            value={suggestionInput}
+            onChange={(e) => setSuggestionInput(e.target.value)}
+            placeholder="e.g., &quot;I wasn't at a restaurant, I was at work.&quot;"
+            className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none focus:border-blue-500"
+            rows={3}
+            disabled={suggestionLoading}
+          />
+          <button
+            type="submit"
+            disabled={suggestionLoading || !suggestionInput.trim()}
+            className="mt-1.5 w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {suggestionLoading ? "Processing..." : "Submit"}
+          </button>
+        </form>
 
-            {/* Activity feed */}
-            {loadingActivities ? (
-              <div className="text-gray-600 py-4 text-center">Loading...</div>
-            ) : activeActivities.length === 0 ? (
-              <div className="text-gray-600 py-4 text-center">No activity data</div>
-            ) : (
-              <div className="space-y-3 mb-4">
-                {Object.entries(activitiesBySource).map(([source, acts]) => (
-                  <ActivitySourceGroup key={source} source={source} activities={acts} />
-                ))}
+        {suggestionResult && (
+          <div className="mt-3 border-t border-white/10 pt-2">
+            <p className="text-green-400 mb-1">Entry corrected</p>
+            {suggestionResult.extractedFacts.length > 0 && (
+              <div>
+                <p className="text-gray-400 mb-1">Learned:</p>
+                <ul className="text-gray-500 list-disc list-inside">
+                  {suggestionResult.extractedFacts.map((fact, i) => (
+                    <li key={i}>{fact}</li>
+                  ))}
+                </ul>
               </div>
             )}
+          </div>
+        )}
+      </div>
+    </div>
+  ) : null;
 
-            {/* Divider */}
-            <div className="border-t border-white/8 pt-3 mt-3">
-              <div className="text-gray-400 font-medium mb-2">Suggest a correction</div>
-              <form onSubmit={handleSuggestionSubmit}>
-                <textarea
-                  value={suggestionInput}
-                  onChange={(e) => setSuggestionInput(e.target.value)}
-                  placeholder="e.g., &quot;I wasn't at a restaurant, I was at work.&quot;"
-                  className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none focus:border-blue-500"
-                  rows={3}
-                  disabled={suggestionLoading}
-                />
-                <button
-                  type="submit"
-                  disabled={suggestionLoading || !suggestionInput.trim()}
-                  className="mt-1.5 w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {suggestionLoading ? "Processing..." : "Submit"}
-                </button>
-              </form>
+  return (
+    <div className="flex flex-col min-h-0 h-full">
+      {/* Mobile toolbar — visible below lg */}
+      <div className="flex lg:hidden items-center gap-2 pb-3 flex-shrink-0">
+        <button
+          onClick={() => setSidebarOpen((v) => !v)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-white/10 text-gray-400 hover:text-white hover:bg-white/8 transition-colors md:hidden"
+        >
+          <span className="text-sm">☰</span>
+          <span>Dates</span>
+        </button>
+        <button
+          onClick={() => setActivityOpen((v) => !v)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-white/10 text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
+        >
+          <span className="text-sm">◧</span>
+          <span>Activity</span>
+        </button>
+      </div>
 
-              {suggestionResult && (
-                <div className="mt-3 border-t border-white/10 pt-2">
-                  <p className="text-green-400 mb-1">Entry corrected</p>
-                  {suggestionResult.extractedFacts.length > 0 && (
-                    <div>
-                      <p className="text-gray-400 mb-1">Learned:</p>
-                      <ul className="text-gray-500 list-disc list-inside">
-                        {suggestionResult.extractedFacts.map((fact, i) => (
-                          <li key={i}>{fact}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+      <div className="flex min-h-0 flex-1">
+        {/* Mobile sidebar overlay — below md */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-40 md:hidden">
+            <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} />
+            <div className="absolute left-0 top-0 bottom-0 w-56 bg-gray-950 border-r border-white/10 overflow-y-auto z-50">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+                <span className="text-xs font-medium text-gray-400">Navigate</span>
+                <button onClick={() => setSidebarOpen(false)} className="text-gray-500 hover:text-white text-sm">✕</button>
+              </div>
+              <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={(date) => { handleSelectDate(date); setSidebarOpen(false); }} />
+            </div>
+          </div>
+        )}
+
+        {/* Left sidebar — hidden on mobile, visible from md up */}
+        <div className="hidden md:block w-44 flex-shrink-0 border-r border-white/8 overflow-y-auto">
+          <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={handleSelectDate} />
+        </div>
+
+        {/* Center — document */}
+        <div
+          ref={contentRef}
+          className="flex-1 min-w-0 overflow-y-auto"
+          style={{ maxHeight: "calc(100vh - 120px)" }}
+        >
+          <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
+            {years.map((year) => (
+              <div key={year}>
+                <div className="flex items-center gap-3 mb-8 mt-2">
+                  <span className="text-2xl font-bold text-white/20 tracking-widest select-none">{year}</span>
+                  <div className="flex-1 h-px bg-white/8" />
                 </div>
-              )}
+                {yearGroups[year].map((entry) => (
+                  <EntryRenderer key={entry.id} entry={entry} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right panel — desktop: inline, below lg: overlay */}
+        <div className="hidden lg:block w-72 flex-shrink-0 border-l border-white/8 overflow-y-auto text-xs" style={{ maxHeight: "calc(100vh - 120px)" }}>
+          {activityPanelContent}
+        </div>
+
+        {/* Activity overlay — below lg */}
+        {activityOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <div className="absolute inset-0 bg-black/60" onClick={() => setActivityOpen(false)} />
+            <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-gray-950 border-l border-white/10 overflow-y-auto z-50 text-xs">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+                <span className="text-xs font-medium text-gray-400">Activity & Suggestions</span>
+                <button onClick={() => setActivityOpen(false)} className="text-gray-500 hover:text-white text-sm">✕</button>
+              </div>
+              {activityPanelContent}
             </div>
           </div>
         )}
