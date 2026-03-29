@@ -45,6 +45,17 @@ export interface Ban {
 
 export async function evaluateProduct(url: string): Promise<EvaluationResult> {
   const res = await fetch(`${API_URL}/api/rng/evaluate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const error = new Error(err.error || `Evaluation failed: ${res.status}`) as any;
+    error.needsManual = !!err.needs_manual;
+    throw error;
+  }
+  return res.json();
+}
+
+export async function evaluateManual(productName: string, price: number): Promise<EvaluationResult> {
+  const res = await fetch(`${API_URL}/api/rng/evaluate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_name: productName, price }) });
   if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Evaluation failed: ${res.status}`); }
   return res.json();
 }
