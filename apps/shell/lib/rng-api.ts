@@ -30,6 +30,8 @@ export interface Decision {
   genericCategory: string;
   isEntertainment: boolean;
   avatarUrl: string | null;
+  balanceAtTime: number | null;
+  remainingBudget: number | null;
   threshold: number | null;
   roll: number | null;
   result: string;
