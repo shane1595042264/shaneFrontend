@@ -119,6 +119,8 @@ export async function fetchElements(): Promise<ElementConfig[]> {
     const data = await res.json();
     return (data.elements ?? data) as ElementConfig[];
   } catch {
-    return getDefaultElements();
+    // Fall back to local manifest registry — no DB needed
+    const { allElements } = await import("./element-registry");
+    return allElements;
   }
 }

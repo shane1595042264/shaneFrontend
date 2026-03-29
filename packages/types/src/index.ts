@@ -2,7 +2,7 @@ export interface ElementConfig {
   id: string;
   symbol: string;
   name: string;
-  category: "data" | "gaming" | "creative" | "tools" | "projects";
+  category: "data" | "data-tracking" | "gaming" | "creative" | "tools" | "projects" | string;
   rowPos: number;
   colPos: number;
   type: "internal" | "external";
