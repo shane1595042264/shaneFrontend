@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { BudgetBar } from "@/components/rng/budget-bar";
 import { UrlInput } from "@/components/rng/url-input";
 import { ResultCard } from "@/components/rng/result-card";
@@ -17,24 +17,39 @@ export default function RngCapitalistPage() {
   const [error, setError] = useState<string | null>(null);
   const [needsManual, setNeedsManual] = useState(false);
 
+  // Track if user has manually overridden the budget
+  const manualOverride = useRef<{ balance: number; lastMonthSpend: number } | null>(null);
+
   useEffect(() => {
     fetchBudget().then(setBudget).catch(console.error);
     fetchHistory().then(setHistory).catch(console.error);
     fetchBans().then(setBans).catch(console.error);
   }, []);
 
-  function refreshAll() {
+  function refreshAfterEval() {
     fetchHistory().then(setHistory).catch(console.error);
     fetchBans().then(setBans).catch(console.error);
-    fetchBudget().then(setBudget).catch(console.error);
+    // Only refresh budget from Plaid if NOT manually overridden
+    if (!manualOverride.current) {
+      fetchBudget().then(setBudget).catch(console.error);
+    }
+  }
+
+  // Build override params to send to backend
+  function getOverrideParams(): { override_balance?: number; override_last_month_spend?: number } {
+    if (!manualOverride.current) return {};
+    return {
+      override_balance: manualOverride.current.balance,
+      override_last_month_spend: manualOverride.current.lastMonthSpend,
+    };
   }
 
   async function handleEvaluateUrl(url: string) {
     setLoading(true); setError(null); setResult(null); setNeedsManual(false);
     try {
-      const res = await evaluateProduct(url);
+      const res = await evaluateProduct(url, getOverrideParams());
       setResult(res);
-      refreshAll();
+      refreshAfterEval();
     } catch (err: any) {
       if (err.needsManual) {
         setNeedsManual(true);
@@ -48,9 +63,9 @@ export default function RngCapitalistPage() {
   async function handleEvaluateManual(productName: string, price: number) {
     setLoading(true); setError(null); setResult(null); setNeedsManual(false);
     try {
-      const res = await evaluateManual(productName, price);
+      const res = await evaluateManual(productName, price, getOverrideParams());
       setResult(res);
-      refreshAll();
+      refreshAfterEval();
     } catch (err: any) { setError(err.message); } finally { setLoading(false); }
   }
 
@@ -58,10 +73,14 @@ export default function RngCapitalistPage() {
     <div className="space-y-8">
       <BudgetBar
         budget={budget}
-        onRefresh={() => fetchBudget().then(setBudget)}
-        onManualOverride={(balance, lastMonthSpend) =>
-          setBudget({ connected: true, balance, last_month_spend: lastMonthSpend, remaining_budget: balance - lastMonthSpend })
-        }
+        onRefresh={() => {
+          manualOverride.current = null;
+          fetchBudget().then(setBudget);
+        }}
+        onManualOverride={(balance, lastMonthSpend) => {
+          manualOverride.current = { balance, lastMonthSpend };
+          setBudget({ connected: true, balance, last_month_spend: lastMonthSpend, remaining_budget: balance - lastMonthSpend });
+        }}
       />
       <UrlInput
         onSubmitUrl={handleEvaluateUrl}
