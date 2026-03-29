@@ -69,37 +69,109 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 interface BudgetBarProps {
   budget: BudgetInfo | null;
   onRefresh?: () => void;
+  onManualOverride?: (balance: number, lastMonthSpend: number) => void;
 }
 
-export function BudgetBar({ budget, onRefresh }: BudgetBarProps) {
+export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProps) {
+  const [editing, setEditing] = useState(false);
+  const [manualBalance, setManualBalance] = useState("");
+  const [manualSpend, setManualSpend] = useState("");
+
   if (!budget) return <div className="text-gray-600 text-sm">Loading budget...</div>;
 
-  if (!budget.connected) {
+  if (!budget.connected && !editing) {
     return (
-      <div className="bg-white/5 rounded-lg p-6 text-center">
-        <p className="text-gray-400 mb-3">Connect your bank to get started</p>
-        <PlaidConnectButton onConnected={() => onRefresh?.()} />
+      <div className="bg-white/5 rounded-lg p-6 text-center space-y-3">
+        <p className="text-gray-400">Connect your bank or enter manually</p>
+        <div className="flex items-center justify-center gap-3">
+          <PlaidConnectButton onConnected={() => onRefresh?.()} />
+          <button
+            onClick={() => setEditing(true)}
+            className="px-4 py-2 border border-white/20 text-gray-300 rounded-md hover:bg-white/10 text-sm"
+          >
+            Enter Manually
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div className="bg-white/5 rounded-lg p-4">
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">Balance</label>
+            <input
+              type="number"
+              step="0.01"
+              value={manualBalance}
+              onChange={(e) => setManualBalance(e.target.value)}
+              placeholder="2000.00"
+              className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">Last Month Spend</label>
+            <input
+              type="number"
+              step="0.01"
+              value={manualSpend}
+              onChange={(e) => setManualSpend(e.target.value)}
+              placeholder="1000.00"
+              className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+            />
+          </div>
+          <button
+            onClick={() => {
+              const b = parseFloat(manualBalance);
+              const s = parseFloat(manualSpend);
+              if (!isNaN(b) && !isNaN(s)) {
+                onManualOverride?.(b, s);
+                setEditing(false);
+              }
+            }}
+            disabled={!manualBalance || !manualSpend}
+            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm disabled:opacity-50"
+          >
+            Save
+          </button>
+          <button
+            onClick={() => setEditing(false)}
+            className="px-4 py-2 text-gray-400 hover:text-white text-sm"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     );
   }
 
   const remaining = budget.remaining_budget ?? 0;
   return (
-    <div className="grid grid-cols-3 gap-4">
-      <div className="bg-white/5 rounded-lg p-4">
-        <p className="text-xs text-gray-500 uppercase tracking-wider">Balance</p>
-        <p className="text-2xl font-bold text-white mt-1">{formatMoney(budget.balance)}</p>
+    <div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white/5 rounded-lg p-4">
+          <p className="text-xs text-gray-500 uppercase tracking-wider">Balance</p>
+          <p className="text-2xl font-bold text-white mt-1">{formatMoney(budget.balance)}</p>
+        </div>
+        <div className="bg-white/5 rounded-lg p-4">
+          <p className="text-xs text-gray-500 uppercase tracking-wider">Last Month Spend</p>
+          <p className="text-2xl font-bold text-gray-300 mt-1">{formatMoney(budget.last_month_spend)}</p>
+        </div>
+        <div className="bg-white/5 rounded-lg p-4">
+          <p className="text-xs text-gray-500 uppercase tracking-wider">Remaining Budget</p>
+          <p className={`text-2xl font-bold mt-1 ${remaining < 0 ? "text-red-400" : "text-green-400"}`}>
+            {formatMoney(budget.remaining_budget)}
+          </p>
+        </div>
       </div>
-      <div className="bg-white/5 rounded-lg p-4">
-        <p className="text-xs text-gray-500 uppercase tracking-wider">Last Month Spend</p>
-        <p className="text-2xl font-bold text-gray-300 mt-1">{formatMoney(budget.last_month_spend)}</p>
-      </div>
-      <div className="bg-white/5 rounded-lg p-4">
-        <p className="text-xs text-gray-500 uppercase tracking-wider">Remaining Budget</p>
-        <p className={`text-2xl font-bold mt-1 ${remaining < 0 ? "text-red-400" : "text-green-400"}`}>
-          {formatMoney(budget.remaining_budget)}
-        </p>
-      </div>
+      <button
+        onClick={() => setEditing(true)}
+        className="mt-2 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+      >
+        Override manually
+      </button>
     </div>
   );
 }

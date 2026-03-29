@@ -35,7 +35,13 @@ export default function RngCapitalistPage() {
 
   return (
     <div className="space-y-8">
-      <BudgetBar budget={budget} onRefresh={() => fetchBudget().then(setBudget)} />
+      <BudgetBar
+        budget={budget}
+        onRefresh={() => fetchBudget().then(setBudget)}
+        onManualOverride={(balance, lastMonthSpend) =>
+          setBudget({ connected: true, balance, last_month_spend: lastMonthSpend, remaining_budget: balance - lastMonthSpend })
+        }
+      />
       <UrlInput onSubmit={handleEvaluate} loading={loading} />
       {error && <p className="text-red-400 text-sm">{error}</p>}
       {result && <ResultCard result={result} />}
