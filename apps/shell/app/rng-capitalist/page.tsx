@@ -16,14 +16,24 @@ export default function RngCapitalistPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsManual, setNeedsManual] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
 
   // Track if user has manually overridden the budget
   const manualOverride = useRef<{ balance: number; lastMonthSpend: number } | null>(null);
 
   useEffect(() => {
-    fetchBudget().then(setBudget).catch(console.error);
-    fetchHistory().then(setHistory).catch(console.error);
-    fetchBans().then(setBans).catch(console.error);
+    Promise.allSettled([
+      fetchBudget().then(setBudget),
+      fetchHistory().then(setHistory),
+      fetchBans().then(setBans),
+    ]).then((results) => {
+      const failed = results.filter((r) => r.status === "rejected");
+      if (failed.length === results.length) {
+        setInitError("Failed to connect to the backend. The service may be down.");
+      } else if (failed.length > 0) {
+        setInitError("Some data failed to load. Results may be incomplete.");
+      }
+    });
   }, []);
 
   function refreshAfterEval() {
@@ -71,6 +81,11 @@ export default function RngCapitalistPage() {
 
   return (
     <div className="space-y-8">
+      {initError && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+          <span>{initError}</span>
+        </div>
+      )}
       <BudgetBar
         budget={budget}
         onRefresh={() => {
