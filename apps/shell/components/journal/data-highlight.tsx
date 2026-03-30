@@ -77,7 +77,7 @@ function DataTooltip({ marker, anchorRef, onClose }: TooltipProps) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const style = getTypeStyle(marker.type);
 
-  // Close on outside click
+  // Close on outside click or Escape key
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (
@@ -89,15 +89,39 @@ function DataTooltip({ marker, anchorRef, onClose }: TooltipProps) {
         onClose();
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose();
+        anchorRef.current?.focus();
+      }
+    }
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [anchorRef, onClose]);
+
+  // Clamp tooltip position within viewport bounds
+  useEffect(() => {
+    const tooltip = tooltipRef.current;
+    if (!tooltip) return;
+    const rect = tooltip.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+      tooltip.style.left = "auto";
+      tooltip.style.right = "0";
+    }
+    if (rect.left < 0) {
+      tooltip.style.left = "0";
+      tooltip.style.right = "auto";
+    }
+  }, []);
 
   return (
     <div
       ref={tooltipRef}
-      className={`absolute z-50 top-full left-0 mt-1 w-72 rounded-lg border ${style.border} ${style.bg} backdrop-blur-sm shadow-xl p-3 text-xs`}
-      style={{ minWidth: "240px", maxWidth: "320px" }}
+      className={`absolute z-50 top-full left-0 mt-1 max-w-[min(18rem,90vw)] rounded-lg border ${style.border} ${style.bg} backdrop-blur-sm shadow-xl p-3 text-xs`}
     >
       <div className={`flex items-center gap-1.5 mb-2 ${style.text} font-semibold uppercase tracking-wide text-[10px]`}>
         <span>{style.icon}</span>
@@ -144,7 +168,16 @@ function HighlightedMarker({ marker }: { marker: DataMarker }) {
       <span
         ref={anchorRef as React.RefObject<HTMLSpanElement>}
         onClick={() => setOpen((v) => !v)}
-        className={`inline cursor-pointer rounded px-0.5 ${style.bg} ${style.text} border-b border-dashed ${style.border} hover:opacity-80 transition-opacity`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-expanded={open}
+        className={`inline cursor-pointer rounded px-0.5 ${style.bg} ${style.text} border-b border-dashed ${style.border} hover:opacity-80 transition-opacity focus:outline-none focus:ring-1 focus:ring-current`}
         title={`${marker.type}: ${marker.display}`}
       >
         {marker.display}
