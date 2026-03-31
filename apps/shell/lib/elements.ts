@@ -110,6 +110,8 @@ export function getDefaultElements(): ElementConfig[] {
 }
 
 export async function fetchElements(): Promise<ElementConfig[]> {
+  const { allElements } = await import("./element-registry");
+
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
     const res = await fetch(`${apiUrl}/api/elements`, {
@@ -117,10 +119,15 @@ export async function fetchElements(): Promise<ElementConfig[]> {
     });
     if (!res.ok) throw new Error(`API returned ${res.status}`);
     const data = await res.json();
-    return (data.elements ?? data) as ElementConfig[];
+    const dbElements = (data.elements ?? data) as ElementConfig[];
+
+    // Merge: local manifests are the base, DB elements override by symbol
+    const merged = new Map<string, ElementConfig>();
+    for (const el of allElements) merged.set(el.symbol, el);
+    for (const el of dbElements) merged.set(el.symbol, el);
+    return Array.from(merged.values());
   } catch {
-    // Fall back to local manifest registry — no DB needed
-    const { allElements } = await import("./element-registry");
+    // API unavailable — use local manifests only
     return allElements;
   }
 }
