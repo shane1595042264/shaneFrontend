@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { NavBar } from "@/components/nav-bar";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Shane — Periodic Table of Life",
@@ -15,8 +16,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body>
-        <NavBar />
-        <main className="min-h-screen">{children}</main>
+        <Providers>
+          <NavBar />
+          <main className="min-h-screen">{children}</main>
+        </Providers>
       </body>
     </html>
   );

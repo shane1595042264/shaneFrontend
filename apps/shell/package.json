@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.4",
     "@shane/types": "*",
     "@shane/ui": "*",
     "framer-motion": "^11.0.0",

@@ -7,8 +7,17 @@ import { ResultCard } from "@/components/rng/result-card";
 import { HistoryList } from "@/components/rng/history-list";
 import { BanList } from "@/components/rng/ban-list";
 import { fetchBudget, fetchHistory, fetchBans, evaluateProduct, evaluateManual, type BudgetInfo, type EvaluationResult, type Decision, type Ban } from "@/lib/rng-api";
+import { AuthGate } from "@/components/auth-gate";
 
 export default function RngCapitalistPage() {
+  return (
+    <AuthGate>
+      <RngCapitalistContent />
+    </AuthGate>
+  );
+}
+
+function RngCapitalistContent() {
   const [budget, setBudget] = useState<BudgetInfo | null>(null);
   const [result, setResult] = useState<EvaluationResult | null>(null);
   const [history, setHistory] = useState<Decision[]>([]);

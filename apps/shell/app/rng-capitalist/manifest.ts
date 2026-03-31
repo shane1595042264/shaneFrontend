@@ -11,6 +11,7 @@ const manifest: ElementConfig = {
   route: "/rng-capitalist",
   status: "live",
   description: "D20-based spending decision tool",
+  authRequired: true,
 };
 
 export default manifest;

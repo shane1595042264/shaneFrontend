@@ -1,3 +1,5 @@
+import { getAuthHeaders } from "./auth-api";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export interface EvaluationResult {
@@ -51,7 +53,7 @@ interface BudgetOverride {
 }
 
 export async function evaluateProduct(url: string, overrides?: BudgetOverride): Promise<EvaluationResult> {
-  const res = await fetch(`${API_URL}/api/rng/evaluate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, ...overrides }) });
+  const res = await fetch(`${API_URL}/api/rng/evaluate`, { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ url, ...overrides }) });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const error = new Error(err.error || `Evaluation failed: ${res.status}`) as any;
@@ -62,39 +64,39 @@ export async function evaluateProduct(url: string, overrides?: BudgetOverride): 
 }
 
 export async function evaluateManual(productName: string, price: number, overrides?: BudgetOverride): Promise<EvaluationResult> {
-  const res = await fetch(`${API_URL}/api/rng/evaluate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_name: productName, price, ...overrides }) });
+  const res = await fetch(`${API_URL}/api/rng/evaluate`, { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ product_name: productName, price, ...overrides }) });
   if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Evaluation failed: ${res.status}`); }
   return res.json();
 }
 
 export async function fetchBudget(): Promise<BudgetInfo> {
-  const res = await fetch(`${API_URL}/api/rng/budget`);
+  const res = await fetch(`${API_URL}/api/rng/budget`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to fetch budget");
   return res.json();
 }
 
 export async function fetchHistory(): Promise<Decision[]> {
-  const res = await fetch(`${API_URL}/api/rng/history`);
+  const res = await fetch(`${API_URL}/api/rng/history`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to fetch history");
   const data = await res.json();
   return data.decisions;
 }
 
 export async function fetchBans(): Promise<Ban[]> {
-  const res = await fetch(`${API_URL}/api/rng/bans`);
+  const res = await fetch(`${API_URL}/api/rng/bans`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to fetch bans");
   const data = await res.json();
   return data.bans;
 }
 
 export async function createPlaidLinkToken(): Promise<string> {
-  const res = await fetch(`${API_URL}/api/rng/plaid/link-token`, { method: "POST" });
+  const res = await fetch(`${API_URL}/api/rng/plaid/link-token`, { method: "POST", headers: getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to create link token");
   const data = await res.json();
   return data.link_token;
 }
 
 export async function exchangePlaidToken(publicToken: string): Promise<void> {
-  const res = await fetch(`${API_URL}/api/rng/plaid/exchange`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ public_token: publicToken }) });
+  const res = await fetch(`${API_URL}/api/rng/plaid/exchange`, { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ public_token: publicToken }) });
   if (!res.ok) throw new Error("Failed to exchange token");
 }

@@ -10,6 +10,7 @@ export interface ElementConfig {
   url?: string;
   status: "live" | "coming-soon" | "offline";
   description: string;
+  authRequired?: boolean;
 }
 
 export interface DiaryEntry {
