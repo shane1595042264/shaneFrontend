@@ -188,7 +188,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   };
 
   return (
-    <div className="w-full overflow-x-auto pb-4">
+    <div className="w-full pb-4">
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -199,7 +199,6 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
           gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${GRID_ROWS}, auto)`,
           gap: "2px",
-          minWidth: "640px",
           maxWidth: "1100px",
         }}
       >
