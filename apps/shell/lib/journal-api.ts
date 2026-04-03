@@ -23,7 +23,7 @@ export async function fetchEntries(
   return res.json();
 }
 
-export async function fetchEntry(date: string): Promise<{ entry: DiaryEntry; activities: NormalizedActivity[] }> {
+export async function fetchEntry(date: string): Promise<{ entry: DiaryEntry; activities: NormalizedActivity[]; debugNotes?: string[] }> {
   const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${date}`);
   if (!res.ok) throw new Error(`Failed to fetch entry: ${res.status}`);
   return res.json();

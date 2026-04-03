@@ -44,6 +44,7 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   // Activities for the active entry (fetched on demand)
   const [activeActivities, setActiveActivities] = useState<NormalizedActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
+  const [debugNotes, setDebugNotes] = useState<string[]>([]);
 
   // Suggestion state
   const [suggestionInput, setSuggestionInput] = useState("");
@@ -58,13 +59,20 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   useEffect(() => {
     if (!activeDate) return;
     setActiveActivities([]);
+    setDebugNotes([]);
     setLoadingActivities(true);
     setSuggestionInput("");
     setSuggestionResult(null);
 
     fetchEntry(activeDate)
-      .then((data) => setActiveActivities(data.activities || []))
-      .catch(() => setActiveActivities([]))
+      .then((data) => {
+        setActiveActivities(data.activities || []);
+        setDebugNotes(data.debugNotes || []);
+      })
+      .catch(() => {
+        setActiveActivities([]);
+        setDebugNotes([]);
+      })
       .finally(() => setLoadingActivities(false));
   }, [activeDate]);
 
@@ -169,6 +177,11 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
             <ActivitySourceGroup key={source} source={source} activities={acts} />
           ))}
         </div>
+      )}
+
+      {/* Debug notes (only shown when issues exist) */}
+      {debugNotes.length > 0 && (
+        <DebugNotesSection notes={debugNotes} />
       )}
 
       {/* Divider */}
@@ -326,6 +339,35 @@ function ActivitySourceGroup({ source, activities }: { source: string; activitie
           {activities.length > 20 && (
             <div className="text-gray-600 text-center py-1">+{activities.length - 20} more</div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Collapsible debug notes section for data quality issues */
+function DebugNotesSection({ notes }: { notes: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="border-t border-white/8 pt-3 mt-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between w-full text-left hover:bg-white/5 rounded px-1.5 py-1 -mx-1.5 transition-colors"
+      >
+        <span className="font-medium text-yellow-500/70">Debug notes</span>
+        <span className="text-gray-600">
+          {notes.length} {expanded ? "▴" : "▾"}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="mt-1 space-y-1 pl-1">
+          {notes.map((note, i) => (
+            <div key={i} className="bg-yellow-500/5 border border-yellow-500/10 rounded px-2 py-1.5">
+              <div className="text-gray-400">{note}</div>
+            </div>
+          ))}
         </div>
       )}
     </div>
