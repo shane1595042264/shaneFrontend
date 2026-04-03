@@ -12,6 +12,7 @@ import type { ElementConfig } from "@shane/types";
 import journalManifest from "@/app/journal/manifest";
 import rngCapitalistManifest from "@/app/rng-capitalist/manifest";
 import videoDownloaderManifest from "@/app/video-downloader/manifest";
+import vocabularyManifest from "@/app/vocabulary/manifest";
 
 // External links and coming-soon elements that don't have route folders
 const externalElements: ElementConfig[] = [
@@ -78,5 +79,6 @@ export const allElements: ElementConfig[] = [
   journalManifest,
   rngCapitalistManifest,
   videoDownloaderManifest,
+  vocabularyManifest,
   ...externalElements,
 ];
