@@ -12,71 +12,48 @@ import {
   GAP_ROW,
   type ChemicalElement,
 } from "@/lib/periodic-table-data";
+import {
+  type SlotMap,
+  resolveSlots,
+  saveSlotAssignments,
+} from "@/lib/slot-assignments";
 
 interface PeriodicTableProps {
   elements: ElementConfig[];
+  initialAssignments?: SlotMap;
 }
 
-const STORAGE_KEY = "periodic-table-positions";
-
-function loadPositions(): Record<string, { row: number; col: number }> {
-  if (typeof window === "undefined") return {};
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return {};
-}
-
-function savePositions(positions: Record<string, { row: number; col: number }>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
-  } catch {}
-}
-
-export function PeriodicTable({ elements }: PeriodicTableProps) {
-  // Build position overrides from localStorage
-  const [positionOverrides, setPositionOverrides] = useState<
-    Record<string, { row: number; col: number }>
-  >({});
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<string | null>(null);
+export function PeriodicTable({ elements, initialAssignments = {} }: PeriodicTableProps) {
+  const [slotMap, setSlotMap] = useState<SlotMap>(() =>
+    resolveSlots(elements, initialAssignments)
+  );
+  const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<number | null>(null);
 
   useEffect(() => {
-    setPositionOverrides(loadPositions());
-  }, [elements]);
+    setSlotMap(resolveSlots(elements, initialAssignments));
+  }, [elements, initialAssignments]);
 
-  // Apply position overrides to elements
-  const positionedElements = elements.map((el) => {
-    const override = positionOverrides[el.id];
-    if (override) {
-      return { ...el, rowPos: override.row, colPos: override.col };
-    }
-    return el;
-  });
-
-  // Build lookup: "row-col" -> active element
-  const activeMap = new Map<string, ElementConfig>();
-  for (const el of positionedElements) {
-    activeMap.set(`${el.rowPos}-${el.colPos}`, el);
+  const appToSlot = new Map<string, number>();
+  for (const [atomic, appId] of Object.entries(slotMap)) {
+    appToSlot.set(appId, Number(atomic));
   }
 
-  // Build lookup: "row-col" -> chemical element
-  const chemMap = new Map<string, ChemicalElement>();
-  for (const ce of PERIODIC_TABLE_ELEMENTS) {
-    chemMap.set(`${ce.row}-${ce.col}`, ce);
+  const appById = new Map<string, ElementConfig>();
+  for (const el of elements) {
+    appById.set(el.id, el);
   }
 
-  const handleDragStart = useCallback((elementId: string) => {
-    setDraggedId(elementId);
+  const handleDragStart = useCallback((appId: string) => {
+    setDraggedAppId(appId);
   }, []);
 
   const handleDragOver = useCallback(
-    (e: React.DragEvent, cellKey: string) => {
+    (e: React.DragEvent, atomicNumber: number) => {
       e.preventDefault();
-      if (draggedId) setDropTarget(cellKey);
+      if (draggedAppId) setDropTarget(atomicNumber);
     },
-    [draggedId]
+    [draggedAppId]
   );
 
   const handleDragLeave = useCallback(() => {
@@ -84,47 +61,48 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   }, []);
 
   const handleDrop = useCallback(
-    (targetRow: number, targetCol: number) => {
-      if (!draggedId) return;
+    (targetAtomic: number) => {
+      if (!draggedAppId) return;
       setDropTarget(null);
 
-      const draggedEl = positionedElements.find((el) => el.id === draggedId);
-      if (!draggedEl) return;
-
-      // Check if there's an active element at the target
-      const targetKey = `${targetRow}-${targetCol}`;
-      const targetEl = activeMap.get(targetKey);
-
-      const newOverrides = { ...positionOverrides };
-
-      if (targetEl && targetEl.id !== draggedId) {
-        // Swap: move target element to dragged element's old position
-        newOverrides[targetEl.id] = {
-          row: draggedEl.rowPos,
-          col: draggedEl.colPos,
-        };
+      const sourceAtomic = appToSlot.get(draggedAppId);
+      if (sourceAtomic === undefined || sourceAtomic === targetAtomic) {
+        setDraggedAppId(null);
+        return;
       }
 
-      // Move dragged element to target position
-      newOverrides[draggedId] = { row: targetRow, col: targetCol };
+      const targetAppId = slotMap[targetAtomic];
+      const newSlotMap = { ...slotMap };
 
-      setPositionOverrides(newOverrides);
-      savePositions(newOverrides);
-      setDraggedId(null);
+      if (targetAppId) {
+        newSlotMap[sourceAtomic] = targetAppId;
+      } else {
+        delete newSlotMap[sourceAtomic];
+      }
+
+      newSlotMap[targetAtomic] = draggedAppId;
+
+      setSlotMap(newSlotMap);
+      setDraggedAppId(null);
+
+      saveSlotAssignments(newSlotMap).catch(console.error);
     },
-    [draggedId, positionedElements, activeMap, positionOverrides]
+    [draggedAppId, slotMap, appToSlot]
   );
 
   const handleDragEnd = useCallback(() => {
-    setDraggedId(null);
+    setDraggedAppId(null);
     setDropTarget(null);
   }, []);
 
-  // Build grid cells
+  const chemMap = new Map<string, ChemicalElement>();
+  for (const ce of PERIODIC_TABLE_ELEMENTS) {
+    chemMap.set(`${ce.row}-${ce.col}`, ce);
+  }
+
   const cells: React.ReactNode[] = [];
 
   for (let row = 1; row <= GRID_ROWS; row++) {
-    // Gap row — render a half-height spacer
     if (row === GAP_ROW) {
       cells.push(
         <div
@@ -137,45 +115,45 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
 
     for (let col = 1; col <= GRID_COLS; col++) {
       const cellKey = `${row}-${col}`;
-      const activeEl = activeMap.get(cellKey);
       const chemEl = chemMap.get(cellKey);
-      const isDropping = dropTarget === cellKey;
+      if (!chemEl) continue;
 
-      if (activeEl) {
-        // Active life element
+      const assignedAppId = slotMap[chemEl.atomicNumber];
+      const assignedApp = assignedAppId ? appById.get(assignedAppId) : undefined;
+      const isDropping = dropTarget === chemEl.atomicNumber;
+
+      if (assignedApp) {
         cells.push(
           <motion.div
-            key={`active-${activeEl.id}`}
+            key={`active-${assignedApp.id}`}
             layout
-            layoutId={activeEl.id}
+            layoutId={assignedApp.id}
             style={{ gridRow: row, gridColumn: col }}
             className={`relative ${isDropping ? "ring-2 ring-white/50 rounded-md" : ""}`}
             draggable
-            onDragStart={() => handleDragStart(activeEl.id)}
-            onDragOver={(e) => handleDragOver(e as unknown as React.DragEvent, cellKey)}
+            onDragStart={() => handleDragStart(assignedApp.id)}
+            onDragOver={(e) => handleDragOver(e as unknown as React.DragEvent, chemEl.atomicNumber)}
             onDragLeave={handleDragLeave}
-            onDrop={() => handleDrop(row, col)}
+            onDrop={() => handleDrop(chemEl.atomicNumber)}
             onDragEnd={handleDragEnd}
           >
-            <ElementCard element={activeEl} />
+            <ElementCard element={assignedApp} atomicNumber={chemEl.atomicNumber} />
           </motion.div>
         );
-      } else if (chemEl) {
-        // Placeholder chemical element
+      } else {
         cells.push(
           <div
             key={`chem-${chemEl.atomicNumber}`}
             style={{ gridRow: row, gridColumn: col }}
             className={`${isDropping ? "ring-2 ring-white/50 rounded-md" : ""}`}
-            onDragOver={(e) => handleDragOver(e as unknown as React.DragEvent, cellKey)}
+            onDragOver={(e) => handleDragOver(e as unknown as React.DragEvent, chemEl.atomicNumber)}
             onDragLeave={handleDragLeave}
-            onDrop={() => handleDrop(row, col)}
+            onDrop={() => handleDrop(chemEl.atomicNumber)}
           >
             <PlaceholderCard element={chemEl} />
           </div>
         );
       }
-      // Empty cells (no chemical element at this position) — skip, grid handles gaps
     }
   }
 

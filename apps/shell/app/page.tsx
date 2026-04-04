@@ -1,4 +1,5 @@
 import { fetchElements, getDefaultElements } from "@/lib/elements";
+import { fetchSlotAssignments } from "@/lib/slot-assignments";
 import { PeriodicTable } from "@/components/periodic-table";
 
 export default async function HomePage() {
@@ -9,13 +10,20 @@ export default async function HomePage() {
     elements = getDefaultElements();
   }
 
+  let initialAssignments = {};
+  try {
+    initialAssignments = await fetchSlotAssignments();
+  } catch {
+    // No saved assignments — auto-assignment will handle it
+  }
+
   return (
     <div className="flex flex-col items-center justify-center px-2 py-6 sm:px-4 sm:py-10 md:px-6 md:py-16 gap-4 sm:gap-6 md:gap-10">
       <div className="text-center">
         <h1 className="text-xl sm:text-2xl md:text-4xl font-bold tracking-tight mb-1 sm:mb-2">Periodic Table of Life</h1>
         <p className="text-gray-400 text-xs sm:text-sm">Navigate the elements of Shane&apos;s digital world.</p>
       </div>
-      <PeriodicTable elements={elements} />
+      <PeriodicTable elements={elements} initialAssignments={initialAssignments} />
     </div>
   );
 }
