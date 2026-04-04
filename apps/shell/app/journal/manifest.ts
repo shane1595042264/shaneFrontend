@@ -5,8 +5,6 @@ const manifest: ElementConfig = {
   symbol: "Jn",
   name: "Journal",
   category: "data-tracking",
-  rowPos: 1,
-  colPos: 1,
   type: "internal",
   route: "/journal",
   status: "live",

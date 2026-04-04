@@ -5,8 +5,6 @@ const manifest: ElementConfig = {
   symbol: "Vc",
   name: "Vocabulary",
   category: "data-tracking",
-  rowPos: 3,
-  colPos: 2,
   type: "internal",
   route: "/vocabulary",
   status: "live",

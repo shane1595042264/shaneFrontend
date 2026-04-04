@@ -5,8 +5,6 @@ const manifest: ElementConfig = {
   symbol: "Vd",
   name: "Video DL",
   category: "tools",
-  rowPos: 3,
-  colPos: 2,
   type: "external",
   url: "https://videodownloader-production-26b4.up.railway.app",
   status: "live",

@@ -5,8 +5,6 @@ const manifest: ElementConfig = {
   symbol: "Rc",
   name: "RNG Capitalist",
   category: "tools",
-  rowPos: 3,
-  colPos: 1,
   type: "internal",
   route: "/rng-capitalist",
   status: "live",

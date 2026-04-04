@@ -3,8 +3,6 @@ export interface ElementConfig {
   symbol: string;
   name: string;
   category: "data" | "data-tracking" | "gaming" | "creative" | "tools" | "projects" | string;
-  rowPos: number;
-  colPos: number;
   type: "internal" | "external";
   route?: string;
   url?: string;
