@@ -7,6 +7,7 @@ import { CATEGORY_STYLES } from "@/lib/elements";
 
 interface ElementCardProps {
   element: ElementConfig;
+  atomicNumber: number;
 }
 
 const itemVariants = {
@@ -19,7 +20,7 @@ const itemVariants = {
   },
 };
 
-export function ElementCard({ element }: ElementCardProps) {
+export function ElementCard({ element, atomicNumber }: ElementCardProps) {
   const styles = CATEGORY_STYLES[element.category] || CATEGORY_STYLES["projects"];
   const isComingSoon = element.status === "coming-soon";
 
@@ -42,7 +43,7 @@ export function ElementCard({ element }: ElementCardProps) {
       )}
 
       <span className="text-[7px] md:text-[9px] opacity-50 self-start leading-none">
-        {element.rowPos}-{element.colPos}
+        {atomicNumber}
       </span>
 
       <span
@@ -57,7 +58,6 @@ export function ElementCard({ element }: ElementCardProps) {
     </motion.div>
   );
 
-  // Wrap in link only when not being dragged (links are handled by click, not drag)
   if (isComingSoon) {
     return cardContent;
   }
@@ -69,7 +69,6 @@ export function ElementCard({ element }: ElementCardProps) {
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => {
-          // Prevent navigation during drag
           if (e.defaultPrevented) return;
         }}
         draggable={false}
