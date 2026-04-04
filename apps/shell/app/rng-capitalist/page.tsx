@@ -8,6 +8,7 @@ import { HistoryList } from "@/components/rng/history-list";
 import { BanList } from "@/components/rng/ban-list";
 import { fetchBudget, fetchHistory, fetchBans, evaluateProduct, evaluateManual, type BudgetInfo, type EvaluationResult, type Decision, type Ban } from "@/lib/rng-api";
 import { AuthGate } from "@/components/auth-gate";
+import { useAuth } from "@/lib/auth-context";
 
 export default function RngCapitalistPage() {
   return (
@@ -18,6 +19,7 @@ export default function RngCapitalistPage() {
 }
 
 function RngCapitalistContent() {
+  const { user } = useAuth();
   const [budget, setBudget] = useState<BudgetInfo | null>(null);
   const [result, setResult] = useState<EvaluationResult | null>(null);
   const [history, setHistory] = useState<Decision[]>([]);
@@ -30,7 +32,10 @@ function RngCapitalistContent() {
   // Track if user has manually overridden the budget
   const manualOverride = useRef<{ balance: number; lastMonthSpend: number } | null>(null);
 
+  // Re-fetch data when user changes (login/logout)
   useEffect(() => {
+    if (!user) return;
+    setInitError(null);
     Promise.allSettled([
       fetchBudget().then(setBudget),
       fetchHistory().then(setHistory),
@@ -43,7 +48,7 @@ function RngCapitalistContent() {
         setInitError("Some data failed to load. Results may be incomplete.");
       }
     });
-  }, []);
+  }, [user]);
 
   function refreshAfterEval() {
     fetchHistory().then(setHistory).catch(console.error);
