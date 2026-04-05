@@ -3,7 +3,22 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Journal — Shane",
-  description: "Shane's personal journal and daily entries.",
+  description:
+    "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",
+  openGraph: {
+    title: "Journal — Shane",
+    description:
+      "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",
+    url: "https://shanejli.com/journal",
+    siteName: "Shane — Periodic Table of Life",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Journal — Shane",
+    description:
+      "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",
+  },
 };
 
 export default function JournalLayout({

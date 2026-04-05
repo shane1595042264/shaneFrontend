@@ -6,6 +6,18 @@ import { Providers } from "@/components/providers";
 export const metadata: Metadata = {
   title: "Shane — Periodic Table of Life",
   description: "A periodic table of Shane's projects, tools, and creative work.",
+  openGraph: {
+    title: "Shane — Periodic Table of Life",
+    description: "A periodic table of Shane's projects, tools, and creative work.",
+    url: "https://shanejli.com",
+    siteName: "Shane — Periodic Table of Life",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Shane — Periodic Table of Life",
+    description: "A periodic table of Shane's projects, tools, and creative work.",
+  },
 };
 
 export default function RootLayout({
