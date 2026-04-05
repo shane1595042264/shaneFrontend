@@ -16,7 +16,7 @@ export interface DataMarker {
 
 type Segment = string | DataMarker;
 
-const MARKER_REGEX = /\[\[data:([^|]+)\|([^|]+)\|([^\]]+)\]\]/g;
+const MARKER_REGEX = /\[\[data:([^|]+)\|([^|]+)\|([\s\S]+?)\]\]/g;
 
 export function parseDataMarkers(text: string): Segment[] {
   const segments: Segment[] = [];
