@@ -29,6 +29,25 @@ async function fetchEntryServer(date: string) {
   }
 }
 
+async function fetchAllDates(): Promise<string[]> {
+  try {
+    const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries?limit=500`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as { entries: { date: string }[] };
+    // Entries come newest-first; sort chronologically for prev/next logic
+    return data.entries.map((e) => e.date).sort();
+  } catch {
+    return [];
+  }
+}
+
+function formatDateShort(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function stripDataMarkers(text: string): string {
   return text.replace(/\[\[data:[^|]+\|([^|]+)\|[\s\S]+?\]\]/g, "$1");
 }
@@ -87,7 +106,15 @@ export default async function JournalEntryPage({ params }: PageProps) {
     notFound();
   }
 
-  const data = await fetchEntryServer(date);
+  const [data, allDates] = await Promise.all([
+    fetchEntryServer(date),
+    fetchAllDates(),
+  ]);
+
+  // Find prev/next entries
+  const currentIndex = allDates.indexOf(date);
+  const prevDate = currentIndex > 0 ? allDates[currentIndex - 1] : null;
+  const nextDate = currentIndex >= 0 && currentIndex < allDates.length - 1 ? allDates[currentIndex + 1] : null;
 
   if (!data?.entry) {
     return (
@@ -123,6 +150,32 @@ export default async function JournalEntryPage({ params }: PageProps) {
         &larr; All entries
       </Link>
       <EntryRenderer entry={entry} />
+
+      {/* Prev / Next navigation */}
+      <nav className="flex items-center justify-between mt-10 pt-6 border-t border-white/8">
+        {prevDate ? (
+          <Link
+            href={`/journal/${prevDate}`}
+            className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+          >
+            <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
+            <span>{formatDateShort(prevDate)}</span>
+          </Link>
+        ) : (
+          <span />
+        )}
+        {nextDate ? (
+          <Link
+            href={`/journal/${nextDate}`}
+            className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+          >
+            <span>{formatDateShort(nextDate)}</span>
+            <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+          </Link>
+        ) : (
+          <span />
+        )}
+      </nav>
     </div>
   );
 }
