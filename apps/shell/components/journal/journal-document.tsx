@@ -50,6 +50,7 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   const [suggestionInput, setSuggestionInput] = useState("");
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionResult, setSuggestionResult] = useState<{ correctedContent: string; extractedFacts: string[] } | null>(null);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
   // Mobile responsive state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -63,6 +64,7 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     setLoadingActivities(true);
     setSuggestionInput("");
     setSuggestionResult(null);
+    setSuggestionError(null);
 
     fetchEntry(activeDate)
       .then((data) => {
@@ -112,12 +114,15 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     e.preventDefault();
     if (!activeDate || !suggestionInput.trim() || suggestionLoading) return;
     setSuggestionLoading(true);
+    setSuggestionError(null);
     try {
       const result = await submitSuggestion(activeDate, suggestionInput.trim());
       setSuggestionResult(result);
       setSuggestionInput("");
     } catch (err) {
       console.error("Suggestion failed:", err);
+      setSuggestionError("Failed to submit suggestion. Please try again.");
+      setTimeout(() => setSuggestionError(null), 5000);
     } finally {
       setSuggestionLoading(false);
     }
@@ -204,6 +209,10 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
             {suggestionLoading ? "Processing..." : "Submit"}
           </button>
         </form>
+
+        {suggestionError && (
+          <div className="mt-2 text-red-400 text-xs">{suggestionError}</div>
+        )}
 
         {suggestionResult && (
           <div className="mt-3 border-t border-white/10 pt-2">
