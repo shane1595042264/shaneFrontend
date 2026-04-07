@@ -25,6 +25,9 @@ const SOURCE_LABELS: Record<string, string> = {
   strava: "Strava",
   google_maps: "Location",
   google_calendar: "Calendar",
+  wechat: "WeChat",
+  discord: "Discord",
+  twitch: "Twitch",
 };
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -32,6 +35,9 @@ const SOURCE_COLORS: Record<string, string> = {
   strava: "text-green-400",
   google_maps: "text-blue-400",
   google_calendar: "text-orange-400",
+  wechat: "text-emerald-400",
+  discord: "text-indigo-400",
+  twitch: "text-violet-400",
 };
 
 export function JournalDocument({ entries }: JournalDocumentProps) {
@@ -399,6 +405,17 @@ function formatActivityData(a: NormalizedActivity): string {
   }
   if (a.source === "google_calendar") {
     return `${d.title || "Event"}${d.startTime ? ` at ${new Date(d.startTime as string).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}`;
+  }
+  if (a.source === "wechat") {
+    const sender = d.sender === "self" ? "You" : (d.sender as string) || "Unknown";
+    return `${sender} in ${d.chat || "chat"}: ${((d.content as string) || "").slice(0, 80)}`;
+  }
+  if (a.source === "discord") {
+    return `${((d.content as string) || "").slice(0, 80)}${d.hasAttachments ? ` (+${d.attachmentCount} file${(d.attachmentCount as number) > 1 ? "s" : ""})` : ""}`;
+  }
+  if (a.source === "twitch") {
+    const mins = d.durationSeconds ? Math.round((d.durationSeconds as number) / 60) : 0;
+    return `${d.title || "Stream"}${mins ? ` (${mins}min)` : ""}${d.viewCount ? ` — ${d.viewCount} views` : ""}`;
   }
   if (a.type === "location_ping") {
     const t = d.timestamp ? new Date(d.timestamp as string).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";

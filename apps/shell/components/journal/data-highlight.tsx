@@ -46,6 +46,9 @@ const TYPE_STYLES: Record<string, { bg: string; text: string; border: string; ic
   github:   { bg: "bg-purple-900/40", text: "text-purple-300", border: "border-purple-700/50", icon: "⌨" },
   location: { bg: "bg-blue-900/40",   text: "text-blue-300",   border: "border-blue-700/50",   icon: "📍" },
   calendar: { bg: "bg-orange-900/40", text: "text-orange-300", border: "border-orange-700/50", icon: "📅" },
+  wechat:   { bg: "bg-emerald-900/40", text: "text-emerald-300", border: "border-emerald-700/50", icon: "💬" },
+  discord:  { bg: "bg-indigo-900/40",  text: "text-indigo-300",  border: "border-indigo-700/50",  icon: "🎮" },
+  twitch:   { bg: "bg-violet-900/40",  text: "text-violet-300",  border: "border-violet-700/50",  icon: "📺" },
 };
 
 function getTypeStyle(type: string) {
