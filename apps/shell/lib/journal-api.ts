@@ -49,6 +49,17 @@ export async function submitSuggestion(
   return res.json();
 }
 
+export async function regenerateEntry(date: string): Promise<{ content: string; modelUsed: string }> {
+  const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${date}/regenerate`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Regeneration failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function fetchFacts(): Promise<LearnedFact[]> {
   const res = await fetch(`${JOURNAL_API_URL}/api/journal/facts`);
   if (!res.ok) throw new Error(`Failed to fetch facts: ${res.status}`);

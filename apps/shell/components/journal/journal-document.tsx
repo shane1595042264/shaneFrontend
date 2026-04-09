@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { DiaryEntry, NormalizedActivity } from "@shane/types";
 import { EntryRenderer } from "@/components/journal/entry-renderer";
 import { JournalSidebar } from "@/components/journal/journal-sidebar";
-import { fetchEntry, submitSuggestion } from "@/lib/journal-api";
+import { fetchEntry, submitSuggestion, regenerateEntry } from "@/lib/journal-api";
 
 interface JournalDocumentProps {
   entries: DiaryEntry[];
@@ -57,6 +57,13 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionResult, setSuggestionResult] = useState<{ correctedContent: string; extractedFacts: string[] } | null>(null);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+
+  // Entry content overrides (from regeneration or correction)
+  const [contentOverrides, setContentOverrides] = useState<Record<string, string>>({});
+
+  // Regeneration state
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
   // Mobile responsive state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -134,6 +141,21 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     }
   }
 
+  async function handleRegenerate() {
+    if (!activeDate || regenerating) return;
+    setRegenerating(true);
+    setRegenerateError(null);
+    try {
+      const result = await regenerateEntry(activeDate);
+      setContentOverrides((prev) => ({ ...prev, [activeDate]: result.content }));
+    } catch (err) {
+      setRegenerateError(err instanceof Error ? err.message : "Regeneration failed");
+      setTimeout(() => setRegenerateError(null), 5000);
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
   const dates = entries.map((e) => e.date);
 
   if (entries.length === 0) {
@@ -194,6 +216,35 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
       {debugNotes.length > 0 && (
         <DebugNotesSection notes={debugNotes} />
       )}
+
+      {/* Regenerate button for short entries */}
+      {(() => {
+        const activeEntry = entries.find((e) => e.date === activeDate);
+        const content = activeEntry ? (contentOverrides[activeEntry.date] || activeEntry.content) : "";
+        const wordCount = content.split(/\s+/).filter(Boolean).length;
+        if (wordCount >= 100) return null;
+        return (
+          <div className="border-t border-white/8 pt-3 mt-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-medium text-amber-400/80">Short entry</span>
+              <span className="text-gray-600">{wordCount} words</span>
+            </div>
+            <p className="text-gray-500 mb-2">
+              This entry is shorter than usual. Regenerate with Claude for a richer version.
+            </p>
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="w-full px-2 py-1.5 bg-amber-600/80 text-white text-xs rounded hover:bg-amber-500/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {regenerating ? "Regenerating..." : "Regenerate entry"}
+            </button>
+            {regenerateError && (
+              <div className="mt-1.5 text-red-400 text-xs">{regenerateError}</div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Divider */}
       <div className="border-t border-white/8 pt-3 mt-3">
@@ -293,7 +344,12 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
                   <div className="flex-1 h-px bg-white/8" />
                 </div>
                 {yearGroups[year].map((entry) => (
-                  <EntryRenderer key={entry.id} entry={entry} />
+                  <EntryRenderer
+                    key={entry.date}
+                    entry={contentOverrides[entry.date]
+                      ? { ...entry, content: contentOverrides[entry.date] }
+                      : entry}
+                  />
                 ))}
               </div>
             ))}
