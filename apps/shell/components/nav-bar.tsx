@@ -22,6 +22,7 @@ export function NavBar() {
     { href: "/", label: "Table", exact: true },
     { href: "/journal", label: "Journal" },
     { href: "/rng-capitalist", label: "RNG" },
+    { href: "/vocabulary", label: "Vocab" },
   ];
 
   function linkClass(href: string, exact?: boolean) {
