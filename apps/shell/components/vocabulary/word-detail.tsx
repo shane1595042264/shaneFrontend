@@ -37,16 +37,30 @@ export function WordDetail({
   const [showConnectForm, setShowConnectForm] = useState(false);
   const [connectTarget, setConnectTarget] = useState("");
   const [connectType, setConnectType] = useState<string>("related");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadWord();
   }, [wordId]);
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   async function loadWord() {
-    const data = await fetchWord(wordId);
-    setWord(data.word);
-    setConnections(data.connections);
-    setConnectedWords(data.connectedWords);
+    setError(null);
+    try {
+      const data = await fetchWord(wordId);
+      setWord(data.word);
+      setConnections(data.connections);
+      setConnectedWords(data.connectedWords);
+    } catch {
+      setError("Failed to load word details.");
+    }
   }
 
   async function handleEnrich() {
@@ -77,15 +91,45 @@ export function WordDetail({
   }
 
   async function handleDeleteConnection(connId: string) {
-    await deleteConnection(connId);
-    await loadWord();
+    try {
+      await deleteConnection(connId);
+      await loadWord();
+    } catch {
+      setError("Failed to delete connection.");
+    }
   }
 
   if (!word) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-        <div className="bg-gray-900 border border-white/10 rounded-lg p-8">
-          <div className="animate-pulse text-gray-500">Loading...</div>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+        onClick={onClose}
+      >
+        <div
+          className="bg-gray-900 border border-white/10 rounded-lg p-8"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {error ? (
+            <div className="text-center space-y-3">
+              <p className="text-sm text-red-400">{error}</p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={loadWord}
+                  className="px-3 py-1.5 text-xs bg-white/10 hover:bg-white/15 text-white rounded transition-colors"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 text-gray-400 rounded transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="animate-pulse text-gray-500">Loading...</div>
+          )}
         </div>
       </div>
     );
@@ -128,6 +172,12 @@ export function WordDetail({
             &times;
           </button>
         </div>
+
+        {error && (
+          <div className="mb-4 px-3 py-2 rounded bg-red-500/10 border border-red-500/20 text-xs text-red-300">
+            {error}
+          </div>
+        )}
 
         {word.definition && (
           <div className="mb-4">
