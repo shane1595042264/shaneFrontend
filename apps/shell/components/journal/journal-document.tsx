@@ -65,6 +65,9 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Mobile responsive state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -156,7 +159,18 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     }
   }
 
-  const dates = entries.map((e) => e.date);
+  // Filter entries by search query (strip data markers for matching)
+  const filteredEntries = searchQuery.trim()
+    ? entries.filter((e) => {
+        const plain = (contentOverrides[e.date] || e.content)
+          .replace(/\[\[data:\w+\|/g, "")
+          .replace(/\|{[^}]*}\]\]/g, "")
+          .replace(/\]\]/g, "");
+        return plain.toLowerCase().includes(searchQuery.trim().toLowerCase());
+      })
+    : entries;
+
+  const dates = filteredEntries.map((e) => e.date);
 
   if (entries.length === 0) {
     return (
@@ -169,7 +183,7 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     );
   }
 
-  const yearGroups = groupByYear(entries);
+  const yearGroups = groupByYear(filteredEntries);
   const years = Object.keys(yearGroups).map(Number).sort((a, b) => b - a);
 
   // Group activities by source for the right panel
@@ -320,14 +334,14 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
                 <span className="text-xs font-medium text-gray-400">Navigate</span>
                 <button onClick={() => setSidebarOpen(false)} className="text-gray-500 hover:text-white text-sm">✕</button>
               </div>
-              <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={(date) => { handleSelectDate(date); setSidebarOpen(false); }} />
+              <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={(date) => { handleSelectDate(date); setSidebarOpen(false); }} searchQuery={searchQuery} onSearchChange={setSearchQuery} totalCount={entries.length} />
             </div>
           </div>
         )}
 
         {/* Left sidebar — hidden on mobile, visible from md up */}
         <div className="hidden md:block w-44 flex-shrink-0 border-r border-white/8 overflow-y-auto">
-          <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={handleSelectDate} />
+          <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={handleSelectDate} searchQuery={searchQuery} onSearchChange={setSearchQuery} totalCount={entries.length} />
         </div>
 
         {/* Center — document */}

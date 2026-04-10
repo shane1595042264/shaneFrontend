@@ -17,6 +17,9 @@ interface JournalSidebarProps {
   dates: string[]; // YYYY-MM-DD strings, sorted newest-first
   activeDate: string | null;
   onSelectDate: (date: string) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  totalCount: number; // total entries before filtering
 }
 
 type Tree = Record<number, Record<number, number[]>>; // year -> month -> days[]
@@ -32,7 +35,7 @@ function buildTree(dates: string[]): Tree {
   return tree;
 }
 
-export function JournalSidebar({ dates, activeDate, onSelectDate }: JournalSidebarProps) {
+export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, onSearchChange, totalCount }: JournalSidebarProps) {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1; // 1-indexed
@@ -70,7 +73,7 @@ export function JournalSidebar({ dates, activeDate, onSelectDate }: JournalSideb
     .map(Number)
     .sort((a, b) => b - a); // newest first
 
-  if (dates.length === 0) {
+  if (dates.length === 0 && !searchQuery) {
     return (
       <aside className="w-44 flex-shrink-0 text-xs text-gray-500 pt-2 pl-1">
         No entries yet.
@@ -80,9 +83,38 @@ export function JournalSidebar({ dates, activeDate, onSelectDate }: JournalSideb
 
   return (
     <aside className="w-44 flex-shrink-0 text-xs select-none overflow-y-auto">
-      <div className="sticky top-0 space-y-1 py-1">
+      {/* Search input */}
+      <div className="sticky top-0 bg-gray-950 z-10 px-2 pt-2 pb-1">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search entries..."
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-blue-500 pr-6"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange("")}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-sm leading-none"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <div className="text-gray-500 mt-1 px-0.5">
+            {dates.length} of {totalCount} entries
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-1 py-1">
+        {searchQuery && years.length === 0 && (
+          <div className="text-gray-600 text-center py-4 px-2">No matching entries</div>
+        )}
         {years.map((year) => {
-          const yearOpen = expandedYears.has(year);
+          const yearOpen = searchQuery ? true : expandedYears.has(year);
           const months = Object.keys(tree[year])
             .map(Number)
             .sort((a, b) => b - a);
@@ -109,7 +141,7 @@ export function JournalSidebar({ dates, activeDate, onSelectDate }: JournalSideb
                   >
                     {months.map((month) => {
                       const monthKey = `${year}-${month}`;
-                      const monthOpen = expandedMonths.has(monthKey);
+                      const monthOpen = searchQuery ? true : expandedMonths.has(monthKey);
                       const days = tree[year][month].sort((a, b) => b - a);
 
                       return (
