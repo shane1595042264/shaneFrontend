@@ -65,8 +65,14 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
-  // Search state
+  // Search state — input is immediate, filtering uses debounced value
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Mobile responsive state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -159,14 +165,14 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     }
   }
 
-  // Filter entries by search query (strip data markers for matching)
-  const filteredEntries = searchQuery.trim()
+  // Filter entries by debounced search query (strip data markers for matching)
+  const filteredEntries = debouncedQuery.trim()
     ? entries.filter((e) => {
         const plain = (contentOverrides[e.date] || e.content)
           .replace(/\[\[data:\w+\|/g, "")
           .replace(/\|{[^}]*}\]\]/g, "")
           .replace(/\]\]/g, "");
-        return plain.toLowerCase().includes(searchQuery.trim().toLowerCase());
+        return plain.toLowerCase().includes(debouncedQuery.trim().toLowerCase());
       })
     : entries;
 
@@ -351,22 +357,34 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
           style={{ maxHeight: "calc(100vh - 120px)" }}
         >
           <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
-            {years.map((year) => (
-              <div key={year}>
-                <div className="flex items-center gap-3 mb-8 mt-2">
-                  <span className="text-2xl font-bold text-white/20 tracking-widest select-none">{year}</span>
-                  <div className="flex-1 h-px bg-white/8" />
-                </div>
-                {yearGroups[year].map((entry) => (
-                  <EntryRenderer
-                    key={entry.date}
-                    entry={contentOverrides[entry.date]
-                      ? { ...entry, content: contentOverrides[entry.date] }
-                      : entry}
-                  />
-                ))}
+            {filteredEntries.length === 0 && debouncedQuery.trim() ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <p className="text-gray-500 text-sm">No entries match &ldquo;{debouncedQuery.trim()}&rdquo;</p>
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="mt-2 text-blue-400 hover:text-blue-300 text-xs transition-colors"
+                >
+                  Clear search
+                </button>
               </div>
-            ))}
+            ) : (
+              years.map((year) => (
+                <div key={year}>
+                  <div className="flex items-center gap-3 mb-8 mt-2">
+                    <span className="text-2xl font-bold text-white/20 tracking-widest select-none">{year}</span>
+                    <div className="flex-1 h-px bg-white/8" />
+                  </div>
+                  {yearGroups[year].map((entry) => (
+                    <EntryRenderer
+                      key={entry.date}
+                      entry={contentOverrides[entry.date]
+                        ? { ...entry, content: contentOverrides[entry.date] }
+                        : entry}
+                    />
+                  ))}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
