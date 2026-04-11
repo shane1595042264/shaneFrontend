@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import type { ElementConfig } from "@shane/types";
 import { ElementCard } from "./element-card";
@@ -165,23 +165,56 @@ export function PeriodicTable({ elements, initialAssignments = {} }: PeriodicTab
     },
   };
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollIndicators = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollIndicators();
+    const observer = new ResizeObserver(updateScrollIndicators);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [updateScrollIndicators]);
+
   return (
-    <div className="w-full pb-4">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="periodic-grid mx-auto"
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${GRID_ROWS}, auto)`,
-          gap: "2px",
-          maxWidth: "1100px",
-        }}
+    <div className="w-full pb-4 relative">
+      {canScrollLeft && (
+        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black/60 to-transparent z-10 pointer-events-none md:hidden" />
+      )}
+      {canScrollRight && (
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/60 to-transparent z-10 pointer-events-none md:hidden" />
+      )}
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto md:overflow-x-visible scrollbar-hide"
+        onScroll={updateScrollIndicators}
       >
-        {cells}
-      </motion.div>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="periodic-grid mx-auto"
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${GRID_COLS}, minmax(48px, 1fr))`,
+            gridTemplateRows: `repeat(${GRID_ROWS}, auto)`,
+            gap: "2px",
+            maxWidth: "1100px",
+            minWidth: `${GRID_COLS * 50}px`,
+          }}
+        >
+          {cells}
+        </motion.div>
+      </div>
     </div>
   );
 }
