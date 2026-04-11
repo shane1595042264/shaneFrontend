@@ -24,6 +24,11 @@ export default function VocabularyPage() {
   const [adding, setAdding] = useState(false);
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "error" | "success";
+  } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadWords = useCallback(async () => {
     try {
@@ -52,6 +57,11 @@ export default function VocabularyPage() {
     fetchLabels().then(setLabels).catch(() => {});
   }
 
+  function showNotification(message: string, type: "error" | "success") {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  }
+
   async function handleAddWord(data: {
     word: string;
     language: string;
@@ -62,8 +72,9 @@ export default function VocabularyPage() {
       await createWord(data);
       await loadWords();
       refreshMeta();
+      showNotification(`Added "${data.word}"`, "success");
     } catch (err: any) {
-      alert(err.message);
+      showNotification(err.message || "Failed to add word", "error");
     } finally {
       setAdding(false);
     }
@@ -71,13 +82,39 @@ export default function VocabularyPage() {
 
   async function handleDeleteWord(id: string) {
     if (!confirm("Delete this word?")) return;
-    await deleteWord(id);
-    await loadWords();
-    refreshMeta();
+    setDeletingId(id);
+    try {
+      await deleteWord(id);
+      await loadWords();
+      refreshMeta();
+      if (selectedWordId === id) setSelectedWordId(null);
+    } catch (err: any) {
+      showNotification(err.message || "Failed to delete word", "error");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
     <div className="space-y-6">
+      {notification && (
+        <div
+          className={`flex items-center justify-between px-4 py-3 rounded text-sm transition-opacity ${
+            notification.type === "error"
+              ? "bg-red-500/10 border border-red-500/20 text-red-300"
+              : "bg-green-500/10 border border-green-500/20 text-green-300"
+          }`}
+        >
+          {notification.message}
+          <button
+            onClick={() => setNotification(null)}
+            className="ml-3 text-xs opacity-60 hover:opacity-100"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {initError && (
         <div className="flex items-center gap-3 px-4 py-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300">
           {initError}
@@ -117,6 +154,7 @@ export default function VocabularyPage() {
               word={word}
               onClick={(w) => setSelectedWordId(w.id)}
               onDelete={handleDeleteWord}
+              deleting={deletingId === word.id}
             />
           ))}
         </div>

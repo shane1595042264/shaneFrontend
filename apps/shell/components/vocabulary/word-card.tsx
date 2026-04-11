@@ -17,9 +17,10 @@ interface WordCardProps {
   word: VocabWord;
   onClick: (word: VocabWord) => void;
   onDelete: (id: string) => void;
+  deleting?: boolean;
 }
 
-export function WordCard({ word, onClick, onDelete }: WordCardProps) {
+export function WordCard({ word, onClick, onDelete, deleting }: WordCardProps) {
   const langStyle = getLangStyle(word.language);
 
   return (
@@ -30,11 +31,16 @@ export function WordCard({ word, onClick, onDelete }: WordCardProps) {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          onDelete(word.id);
+          if (!deleting) onDelete(word.id);
         }}
-        className="absolute top-2 right-2 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+        disabled={deleting}
+        className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs ${
+          deleting
+            ? "text-gray-600 cursor-not-allowed"
+            : "text-gray-600 hover:text-red-400"
+        }`}
       >
-        &times;
+        {deleting ? "..." : "\u00d7"}
       </button>
 
       <div className="flex items-baseline gap-2 mb-1">

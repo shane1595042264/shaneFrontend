@@ -86,7 +86,7 @@ export function WordDetail({
       setConnectTarget("");
       await loadWord();
     } catch (err: any) {
-      alert(err.message);
+      setError(err.message || "Failed to add connection.");
     }
   }
 
