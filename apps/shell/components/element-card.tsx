@@ -43,6 +43,12 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
         </span>
       )}
 
+      {isComingSoon && (
+        <span className="absolute top-0 right-0 text-[5px] md:text-[7px] opacity-40 font-medium tracking-tight text-gray-400">
+          SOON
+        </span>
+      )}
+
       {element.type === "external" && !isComingSoon && (
         <span className="absolute top-0 right-0.5 text-[7px] md:text-[9px] opacity-60">
           ↗
