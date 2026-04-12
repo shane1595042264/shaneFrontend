@@ -354,7 +354,6 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
         <div
           ref={contentRef}
           className="flex-1 min-w-0 overflow-y-auto"
-          style={{ maxHeight: "calc(100vh - 120px)" }}
         >
           <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
             {filteredEntries.length === 0 && debouncedQuery.trim() ? (
@@ -389,7 +388,7 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
         </div>
 
         {/* Right panel — desktop: inline, below lg: overlay */}
-        <div className="hidden lg:block w-72 flex-shrink-0 border-l border-white/8 overflow-y-auto text-xs" style={{ maxHeight: "calc(100vh - 120px)" }}>
+        <div className="hidden lg:block w-72 flex-shrink-0 border-l border-white/8 overflow-y-auto text-xs">
           {activityPanelContent}
         </div>
 
