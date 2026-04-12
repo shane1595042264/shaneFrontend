@@ -23,6 +23,7 @@ const itemVariants = {
 export function ElementCard({ element, atomicNumber }: ElementCardProps) {
   const styles = CATEGORY_STYLES[element.category] || CATEGORY_STYLES["projects"];
   const isComingSoon = element.status === "coming-soon";
+  const tooltipText = isComingSoon ? "Coming soon" : element.description || null;
 
   const cardContent = (
     <motion.div
@@ -30,12 +31,18 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
       whileHover={isComingSoon ? {} : { scale: 1.08, y: -2, zIndex: 10 }}
       whileTap={isComingSoon ? {} : { scale: 0.95 }}
       className={[
-        "relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded border cursor-grab active:cursor-grabbing select-none w-full aspect-square transition-shadow",
+        "group/card relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded border cursor-grab active:cursor-grabbing select-none w-full aspect-square transition-shadow",
         styles.bg,
         styles.border,
         isComingSoon ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg hover:shadow-black/40",
       ].join(" ")}
     >
+      {tooltipText && (
+        <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden md:block opacity-0 group-hover/card:opacity-100 transition-opacity duration-150 z-50 whitespace-nowrap rounded bg-gray-900 border border-white/10 px-2 py-1 text-[10px] text-gray-200 shadow-lg">
+          {tooltipText}
+        </span>
+      )}
+
       {element.type === "external" && !isComingSoon && (
         <span className="absolute top-0 right-0.5 text-[7px] md:text-[9px] opacity-60">
           ↗
