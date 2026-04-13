@@ -126,7 +126,12 @@ export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, o
                 onClick={() => toggleYear(year)}
                 className="w-full flex items-center justify-between px-2 py-1.5 rounded text-left text-gray-400 hover:text-white hover:bg-white/8 transition-colors font-semibold tracking-wide"
               >
-                <span>{year}</span>
+                <span className="flex items-center gap-1.5">
+                  {year}
+                  <span className="text-[10px] text-gray-600 font-normal">
+                    {Object.values(tree[year]).reduce((sum, days) => sum + days.length, 0)}
+                  </span>
+                </span>
                 <span className="text-gray-600 text-[10px]">{yearOpen ? "▾" : "▸"}</span>
               </button>
 
@@ -151,7 +156,12 @@ export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, o
                             onClick={() => toggleMonth(monthKey)}
                             className="w-full flex items-center justify-between px-2 py-1 rounded text-left text-gray-500 hover:text-gray-300 hover:bg-white/6 transition-colors"
                           >
-                            <span>{MONTH_NAMES[month - 1]}</span>
+                            <span className="flex items-center gap-1.5">
+                              {MONTH_NAMES[month - 1]}
+                              <span className="text-[10px] text-gray-600">
+                                {days.length}
+                              </span>
+                            </span>
                             <span className="text-gray-600 text-[10px]">{monthOpen ? "▾" : "▸"}</span>
                           </button>
 
