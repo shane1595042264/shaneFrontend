@@ -16,7 +16,8 @@ export interface DataMarker {
 
 type Segment = string | DataMarker;
 
-const MARKER_REGEX = /\[\[data:([^|]+)\|([^|]+)\|([\s\S]+?)\]\]/g;
+// Anchor JSON part to {…} to prevent [\s\S]+? matching across markers when JSON contains ]]
+const MARKER_REGEX = /\[\[data:([^|]+)\|([^|]*)\|(\{[\s\S]*?\})\]\]/g;
 
 export function parseDataMarkers(text: string): Segment[] {
   const segments: Segment[] = [];
@@ -30,7 +31,13 @@ export function parseDataMarkers(text: string): Segment[] {
       segments.push(text.slice(lastIndex, start));
     }
 
-    segments.push({ kind: "marker", type, display, rawJson });
+    // Validate JSON — render display as plain text if malformed
+    try {
+      JSON.parse(rawJson);
+      segments.push({ kind: "marker", type, display, rawJson });
+    } catch {
+      segments.push(display);
+    }
     lastIndex = start + fullMatch.length;
   }
 
