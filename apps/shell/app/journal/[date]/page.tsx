@@ -22,7 +22,7 @@ async function fetchEntryServer(date: string) {
     });
     if (!res.ok) return null;
     return res.json() as Promise<{
-      entry: { id: string; date: string; content: string; createdAt: string; updatedAt: string };
+      entry: { id: string; date: string; content: string; voiceProfileVersion: number | null; createdAt: string; updatedAt: string };
     }>;
   } catch {
     return null;
@@ -136,7 +136,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
     id: data.entry.id,
     date: data.entry.date,
     content: data.entry.content,
-    voiceProfileVersion: 0,
+    voiceProfileVersion: data.entry.voiceProfileVersion ?? 0,
     createdAt: data.entry.createdAt,
     updatedAt: data.entry.updatedAt,
   };
