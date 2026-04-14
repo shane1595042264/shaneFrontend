@@ -34,11 +34,14 @@ export async function saveSlotAssignments(assignments: SlotMap): Promise<void> {
     stringKeyed[String(k)] = v;
   }
 
-  await fetch(`${API_URL}/api/slot-assignments`, {
+  const res = await fetch(`${API_URL}/api/slot-assignments`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ assignments: stringKeyed }),
   });
+  if (!res.ok) {
+    throw new Error(`Failed to save slot assignments (${res.status})`);
+  }
 }
 
 // ---- Auto-assignment ----

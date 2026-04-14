@@ -29,6 +29,7 @@ export function PeriodicTable({ elements, initialAssignments = {} }: PeriodicTab
   );
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
+  const [saveToast, setSaveToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     setSlotMap(resolveSlots(elements, initialAssignments));
@@ -73,6 +74,7 @@ export function PeriodicTable({ elements, initialAssignments = {} }: PeriodicTab
 
       const targetAppId = slotMap[targetAtomic];
       const newSlotMap = { ...slotMap };
+      const previousSlotMap = { ...slotMap };
 
       if (targetAppId) {
         newSlotMap[sourceAtomic] = targetAppId;
@@ -85,7 +87,16 @@ export function PeriodicTable({ elements, initialAssignments = {} }: PeriodicTab
       setSlotMap(newSlotMap);
       setDraggedAppId(null);
 
-      saveSlotAssignments(newSlotMap).catch(console.error);
+      saveSlotAssignments(newSlotMap)
+        .then(() => {
+          setSaveToast({ type: "success", message: "Arrangement saved" });
+          setTimeout(() => setSaveToast(null), 2000);
+        })
+        .catch(() => {
+          setSlotMap(previousSlotMap);
+          setSaveToast({ type: "error", message: "Failed to save arrangement" });
+          setTimeout(() => setSaveToast(null), 4000);
+        });
     },
     [draggedAppId, slotMap, appToSlot]
   );
@@ -187,6 +198,17 @@ export function PeriodicTable({ elements, initialAssignments = {} }: PeriodicTab
 
   return (
     <div className="w-full pb-4 relative">
+      {saveToast && (
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm font-medium shadow-lg transition-opacity ${
+            saveToast.type === "success"
+              ? "bg-green-900/90 text-green-100 border border-green-700/50"
+              : "bg-red-900/90 text-red-100 border border-red-700/50"
+          }`}
+        >
+          {saveToast.message}
+        </div>
+      )}
       {canScrollLeft && (
         <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black/60 to-transparent z-10 pointer-events-none md:hidden" />
       )}
