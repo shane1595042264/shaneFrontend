@@ -147,6 +147,10 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
       const result = await submitSuggestion(activeDate, suggestionInput.trim());
       setSuggestionResult(result);
       setSuggestionInput("");
+      // Apply corrected content to the displayed entry immediately
+      if (result.correctedContent) {
+        setContentOverrides((prev) => ({ ...prev, [activeDate]: result.correctedContent }));
+      }
     } catch (err) {
       console.error("Suggestion failed:", err);
       setSuggestionError("Failed to submit suggestion. Please try again.");
