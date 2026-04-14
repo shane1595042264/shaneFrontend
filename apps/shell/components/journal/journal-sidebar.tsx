@@ -39,8 +39,21 @@ export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, o
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1; // 1-indexed
+  const currentDay = today.getDate();
+  const todayStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(currentDay).padStart(2, "0")}`;
+  const hasTodayEntry = dates.includes(todayStr);
 
   const tree = buildTree(dates);
+
+  // Ensure today's date appears in the tree even without an entry
+  if (!searchQuery && !hasTodayEntry) {
+    if (!tree[currentYear]) tree[currentYear] = {};
+    if (!tree[currentYear][currentMonth]) tree[currentYear][currentMonth] = [];
+    if (!tree[currentYear][currentMonth].includes(currentDay)) {
+      tree[currentYear][currentMonth].push(currentDay);
+      tree[currentYear][currentMonth].sort((a, b) => b - a);
+    }
+  }
 
   // Years are collapsed by default except current year
   const [expandedYears, setExpandedYears] = useState<Set<number>>(
@@ -177,18 +190,31 @@ export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, o
                                 {days.map((day) => {
                                   const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                                   const isActive = dateStr === activeDate;
+                                  const isToday = dateStr === todayStr;
+                                  const isPending = isToday && !hasTodayEntry;
 
                                   return (
                                     <button
                                       key={day}
-                                      onClick={() => onSelectDate(dateStr)}
-                                      className={`w-full text-left px-3 py-1 rounded transition-colors ${
+                                      onClick={() => !isPending && onSelectDate(dateStr)}
+                                      disabled={isPending}
+                                      className={`w-full text-left px-3 py-1 rounded transition-colors flex items-center gap-1.5 ${
                                         isActive
                                           ? "bg-blue-600/30 text-blue-300 font-semibold"
-                                          : "text-gray-500 hover:text-gray-200 hover:bg-white/6"
+                                          : isPending
+                                            ? "text-gray-600 cursor-default"
+                                            : isToday
+                                              ? "text-blue-400 hover:text-blue-300 hover:bg-white/6 font-medium"
+                                              : "text-gray-500 hover:text-gray-200 hover:bg-white/6"
                                       }`}
                                     >
-                                      {day}
+                                      {isToday && (
+                                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                                      )}
+                                      <span>{day}</span>
+                                      {isPending && (
+                                        <span className="text-[10px] text-gray-600 ml-auto">pending</span>
+                                      )}
                                     </button>
                                   );
                                 })}

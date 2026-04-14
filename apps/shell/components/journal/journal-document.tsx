@@ -40,8 +40,14 @@ const SOURCE_COLORS: Record<string, string> = {
   twitch: "text-violet-400",
 };
 
+function getTodayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function JournalDocument({ entries }: JournalDocumentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const todayStr = getTodayStr();
 
   const [activeDate, setActiveDate] = useState<string | null>(
     entries.length > 0 ? entries[0].date : null
@@ -367,7 +373,33 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
                 </button>
               </div>
             ) : (
-              years.map((year) => (
+              <>
+              {!debouncedQuery.trim() && !entries.some((e) => e.date === todayStr) && (() => {
+                const todayYear = new Date().getFullYear();
+                const showYearHeading = !years.includes(todayYear);
+                return (
+                  <div className={showYearHeading ? "border-b border-white/8 pb-8 mb-8" : "pb-8 mb-8"}>
+                    {showYearHeading && (
+                      <div className="flex items-center gap-3 mb-8 mt-2">
+                        <span className="text-2xl font-bold text-white/20 tracking-widest select-none">{todayYear}</span>
+                        <div className="flex-1 h-px bg-white/8" />
+                      </div>
+                    )}
+                    <article id={`entry-${todayStr}`}>
+                      <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
+                        {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
+                          Today
+                        </span>
+                      </h2>
+                      <p className="text-gray-500 text-sm italic">
+                        Today&apos;s entry will be generated at 11:00 PM.
+                      </p>
+                    </article>
+                  </div>
+                );
+              })()}
+              {years.map((year) => (
                 <div key={year}>
                   <div className="flex items-center gap-3 mb-8 mt-2">
                     <span className="text-2xl font-bold text-white/20 tracking-widest select-none">{year}</span>
@@ -379,10 +411,12 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
                       entry={contentOverrides[entry.date]
                         ? { ...entry, content: contentOverrides[entry.date] }
                         : entry}
+                      isToday={entry.date === todayStr}
                     />
                   ))}
                 </div>
-              ))
+              ))}
+              </>
             )}
           </div>
         </div>
