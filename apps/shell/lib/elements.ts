@@ -107,7 +107,9 @@ export async function fetchElements(): Promise<ElementConfig[]> {
     });
     if (!res.ok) throw new Error(`API returned ${res.status}`);
     const data = await res.json();
-    const dbElements = (data.elements ?? data) as ElementConfig[];
+    const dbElements = ((data.elements ?? data) as ElementConfig[]).map(
+      (el) => ({ ...el, id: String(el.id) })
+    );
 
     // Merge: local manifests are the base, DB elements override by symbol
     const merged = new Map<string, ElementConfig>();

@@ -28,10 +28,10 @@ export async function fetchSlotAssignments(): Promise<SlotMap> {
 }
 
 export async function saveSlotAssignments(assignments: SlotMap): Promise<void> {
-  // Convert numeric keys to strings for JSON
+  // Convert numeric keys and values to strings for JSON
   const stringKeyed: Record<string, string> = {};
   for (const [k, v] of Object.entries(assignments)) {
-    stringKeyed[String(k)] = v;
+    stringKeyed[String(k)] = String(v);
   }
 
   const res = await fetch(`${API_URL}/api/slot-assignments`, {
