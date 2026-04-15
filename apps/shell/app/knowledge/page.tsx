@@ -25,11 +25,13 @@ export default function KnowledgePage() {
   const [adding, setAdding] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{
     message: string;
     type: "error" | "success";
   } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const loadEntries = useCallback(async () => {
     try {
@@ -40,6 +42,8 @@ export default function KnowledgePage() {
       setEntries(data);
     } catch {
       setInitError("Failed to load entries. Backend may be down.");
+    } finally {
+      setLoading(false);
     }
   }, [selectedCategory, search]);
 
@@ -82,7 +86,6 @@ export default function KnowledgePage() {
   }
 
   async function handleDeleteEntry(id: string) {
-    if (!confirm("Delete this entry?")) return;
     setDeletingId(id);
     try {
       await deleteEntry(id);
@@ -93,7 +96,12 @@ export default function KnowledgePage() {
       showNotification(err.message || "Failed to delete entry", "error");
     } finally {
       setDeletingId(null);
+      setDeleteConfirmId(null);
     }
+  }
+
+  if (loading) {
+    return <KnowledgeSkeleton />;
   }
 
   return (
@@ -158,7 +166,7 @@ export default function KnowledgePage() {
               key={entry.id}
               entry={entry}
               onClick={(e) => setSelectedEntryId(e.id)}
-              onDelete={handleDeleteEntry}
+              onDelete={(id) => setDeleteConfirmId(id)}
               deleting={deletingId === entry.id}
             />
           ))}
@@ -176,6 +184,79 @@ export default function KnowledgePage() {
           }}
         />
       )}
+
+      {deleteConfirmId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setDeleteConfirmId(null)}
+        >
+          <div
+            className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Delete entry?
+            </h3>
+            <p className="text-sm text-gray-400 mb-6">
+              This will permanently remove the entry and all its connections.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 text-gray-400 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteEntry(deleteConfirmId)}
+                disabled={!!deletingId}
+                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
+              >
+                {deletingId ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KnowledgeSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="rounded bg-white/8 animate-pulse h-24 w-full" />
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded bg-white/8 animate-pulse h-8 w-20"
+            />
+          ))}
+        </div>
+        <div className="rounded bg-white/8 animate-pulse h-8 w-40" />
+      </div>
+      <div className="rounded bg-white/8 animate-pulse h-4 w-16" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="p-4 bg-white/5 border border-white/8 rounded-lg space-y-3"
+          >
+            <div className="flex items-baseline gap-2">
+              <div className="rounded bg-white/8 animate-pulse h-6 w-24" />
+              <div className="rounded bg-white/8 animate-pulse h-3 w-12" />
+            </div>
+            <div className="flex gap-2">
+              <div className="rounded bg-white/8 animate-pulse h-5 w-16" />
+              <div className="rounded bg-white/8 animate-pulse h-5 w-14" />
+            </div>
+            <div className="rounded bg-white/8 animate-pulse h-4 w-full" />
+            <div className="rounded bg-white/8 animate-pulse h-4 w-3/4" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
