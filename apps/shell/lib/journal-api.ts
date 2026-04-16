@@ -23,6 +23,23 @@ export async function fetchEntries(
   return res.json();
 }
 
+/** Fetch all journal entries by paging through the API (100 per page). */
+export async function fetchAllEntries(): Promise<DiaryEntry[]> {
+  const PAGE_SIZE = 100;
+  const first = await fetchEntries({ limit: PAGE_SIZE, offset: 0 });
+  const all = [...first.entries];
+
+  let offset = first.entries.length;
+  while (offset < first.total) {
+    const page = await fetchEntries({ limit: PAGE_SIZE, offset });
+    all.push(...page.entries);
+    offset += page.entries.length;
+    if (page.entries.length === 0) break; // safety valve
+  }
+
+  return all;
+}
+
 export async function fetchEntry(date: string): Promise<{ entry: DiaryEntry; activities: NormalizedActivity[]; debugNotes?: string[] }> {
   const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${date}`);
   if (!res.ok) throw new Error(`Failed to fetch entry: ${res.status}`);

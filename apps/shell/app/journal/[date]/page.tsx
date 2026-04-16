@@ -31,13 +31,26 @@ async function fetchEntryServer(date: string) {
 
 async function fetchAllDates(): Promise<string[]> {
   try {
-    const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries?limit=500`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json() as { entries: { date: string }[] };
-    // Entries come newest-first; sort chronologically for prev/next logic
-    return data.entries.map((e) => e.date).sort();
+    const PAGE_SIZE = 100;
+    const all: string[] = [];
+    let offset = 0;
+    let total = Infinity;
+
+    while (offset < total) {
+      const res = await fetch(
+        `${JOURNAL_API_URL}/api/journal/entries?limit=${PAGE_SIZE}&offset=${offset}`,
+        { next: { revalidate: 300 } }
+      );
+      if (!res.ok) return all;
+      const data = await res.json() as { entries: { date: string }[]; total: number };
+      total = data.total;
+      all.push(...data.entries.map((e) => e.date));
+      offset += data.entries.length;
+      if (data.entries.length === 0) break;
+    }
+
+    // Sort chronologically for prev/next logic
+    return all.sort();
   } catch {
     return [];
   }

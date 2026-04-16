@@ -2,10 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import type { DiaryEntry } from "@shane/types";
-import { fetchEntries } from "@/lib/journal-api";
+import { fetchAllEntries } from "@/lib/journal-api";
 import { JournalDocument } from "@/components/journal/journal-document";
-
-const MAX_ENTRIES = 500;
 
 export default function JournalPage() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
@@ -16,8 +14,8 @@ export default function JournalPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchEntries({ limit: MAX_ENTRIES });
-      setEntries(data.entries);
+      const all = await fetchAllEntries();
+      setEntries(all);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load journal entries"
