@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   fetchEntries,
   fetchLabels,
@@ -22,6 +22,7 @@ export default function KnowledgePage() {
   const [labels, setLabels] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [adding, setAdding] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
@@ -32,20 +33,37 @@ export default function KnowledgePage() {
   } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const loadEntries = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setLoading(true);
     try {
       const data = await fetchEntries({
         category: selectedCategory || undefined,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
+        signal: controller.signal,
       });
       setEntries(data);
-    } catch {
+      setInitError(null);
+      hasLoaded.current = true;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setInitError("Failed to load entries. Backend may be down.");
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
-  }, [selectedCategory, search]);
+  }, [selectedCategory, debouncedSearch]);
 
   useEffect(() => {
     loadEntries();
@@ -100,7 +118,7 @@ export default function KnowledgePage() {
     }
   }
 
-  if (loading) {
+  if (loading && !hasLoaded.current) {
     return <KnowledgeSkeleton />;
   }
 
@@ -160,7 +178,7 @@ export default function KnowledgePage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
           {entries.map((entry) => (
             <EntryCard
               key={entry.id}

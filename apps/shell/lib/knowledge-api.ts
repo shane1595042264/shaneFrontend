@@ -45,6 +45,7 @@ export async function fetchEntries(params?: {
   category?: string;
   limit?: number;
   offset?: number;
+  signal?: AbortSignal;
 }): Promise<KnowledgeEntry[]> {
   const query = new URLSearchParams();
   if (params?.language) query.set("language", params.language);
@@ -54,7 +55,9 @@ export async function fetchEntries(params?: {
   if (params?.limit) query.set("limit", String(params.limit));
   if (params?.offset) query.set("offset", String(params.offset));
 
-  const res = await fetch(`${API_URL}/api/knowledge/entries?${query}`);
+  const res = await fetch(`${API_URL}/api/knowledge/entries?${query}`, {
+    signal: params?.signal,
+  });
   if (!res.ok) throw new Error("Failed to fetch entries");
   const data = await res.json();
   return data.entries;
