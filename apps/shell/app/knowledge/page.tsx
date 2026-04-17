@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
-  fetchEntries,
+  fetchAllEntries,
   fetchLabels,
   fetchLanguages,
   fetchCategories,
@@ -47,7 +47,7 @@ export default function KnowledgePage() {
     abortRef.current = controller;
     setLoading(true);
     try {
-      const data = await fetchEntries({
+      const data = await fetchAllEntries({
         category: selectedCategory || undefined,
         search: debouncedSearch || undefined,
         signal: controller.signal,

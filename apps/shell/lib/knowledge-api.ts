@@ -38,6 +38,13 @@ export async function submitNote(text: string): Promise<{ entry: KnowledgeEntry;
   return res.json();
 }
 
+export interface PaginatedKnowledgeEntries {
+  entries: KnowledgeEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export async function fetchEntries(params?: {
   language?: string;
   label?: string;
@@ -46,7 +53,7 @@ export async function fetchEntries(params?: {
   limit?: number;
   offset?: number;
   signal?: AbortSignal;
-}): Promise<KnowledgeEntry[]> {
+}): Promise<PaginatedKnowledgeEntries> {
   const query = new URLSearchParams();
   if (params?.language) query.set("language", params.language);
   if (params?.label) query.set("label", params.label);
@@ -59,8 +66,30 @@ export async function fetchEntries(params?: {
     signal: params?.signal,
   });
   if (!res.ok) throw new Error("Failed to fetch entries");
-  const data = await res.json();
-  return data.entries;
+  return res.json();
+}
+
+/** Fetch all knowledge entries by paging through the API (100 per page). */
+export async function fetchAllEntries(params?: {
+  language?: string;
+  label?: string;
+  search?: string;
+  category?: string;
+  signal?: AbortSignal;
+}): Promise<KnowledgeEntry[]> {
+  const PAGE_SIZE = 100;
+  const first = await fetchEntries({ ...params, limit: PAGE_SIZE, offset: 0 });
+  const all = [...first.entries];
+
+  let offset = first.entries.length;
+  while (offset < first.total) {
+    const page = await fetchEntries({ ...params, limit: PAGE_SIZE, offset });
+    all.push(...page.entries);
+    offset += page.entries.length;
+    if (page.entries.length === 0) break;
+  }
+
+  return all;
 }
 
 export async function fetchEntry(
