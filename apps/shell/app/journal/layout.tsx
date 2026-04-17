@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
+
 export const metadata: Metadata = {
   title: "Journal — Shane",
   description:
     "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",
+  alternates: {
+    types: {
+      "application/atom+xml": `${JOURNAL_API_URL}/api/journal/feed`,
+    },
+  },
   openGraph: {
     title: "Journal — Shane",
     description:
