@@ -78,8 +78,15 @@ export async function regenerateEntry(date: string): Promise<{ content: string; 
 }
 
 export async function fetchFacts(): Promise<LearnedFact[]> {
-  const res = await fetch(`${JOURNAL_API_URL}/api/journal/facts`);
+  const res = await fetch(`${JOURNAL_API_URL}/api/journal/facts?limit=200`);
   if (!res.ok) throw new Error(`Failed to fetch facts: ${res.status}`);
   const data = await res.json();
   return data.facts ?? data;
+}
+
+export async function deleteFact(id: string): Promise<void> {
+  const res = await fetch(`${JOURNAL_API_URL}/api/journal/facts/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`Failed to delete fact: ${res.status}`);
 }

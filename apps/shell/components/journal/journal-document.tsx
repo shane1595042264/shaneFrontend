@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { DiaryEntry, NormalizedActivity } from "@shane/types";
 import { EntryRenderer } from "@/components/journal/entry-renderer";
 import { JournalSidebar } from "@/components/journal/journal-sidebar";
-import { fetchEntry, submitSuggestion, regenerateEntry } from "@/lib/journal-api";
+import { fetchEntry, submitSuggestion, regenerateEntry, fetchFacts, deleteFact } from "@/lib/journal-api";
+import type { LearnedFact } from "@shane/types";
 
 interface JournalDocumentProps {
   entries: DiaryEntry[];
@@ -70,6 +71,30 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   // Regeneration state
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
+
+  // Learned facts state
+  const [facts, setFacts] = useState<LearnedFact[]>([]);
+  const [factsLoading, setFactsLoading] = useState(true);
+  const [deletingFactId, setDeletingFactId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchFacts()
+      .then(setFacts)
+      .catch(() => setFacts([]))
+      .finally(() => setFactsLoading(false));
+  }, []);
+
+  const handleDeleteFact = useCallback(async (id: string) => {
+    setDeletingFactId(id);
+    try {
+      await deleteFact(id);
+      setFacts((prev) => prev.filter((f) => f.id !== id));
+    } catch {
+      // silently fail — fact may already be deleted
+    } finally {
+      setDeletingFactId(null);
+    }
+  }, []);
 
   // Search state — input is immediate, filtering uses debounced value
   const [searchQuery, setSearchQuery] = useState("");
@@ -275,6 +300,14 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
           </div>
         );
       })()}
+
+      {/* Learned Facts */}
+      <LearnedFactsSection
+        facts={facts}
+        loading={factsLoading}
+        deletingId={deletingFactId}
+        onDelete={handleDeleteFact}
+      />
 
       {/* Divider */}
       <div className="border-t border-white/8 pt-3 mt-3">
@@ -506,6 +539,71 @@ function DebugNotesSection({ notes }: { notes: string[] }) {
           {notes.map((note, i) => (
             <div key={i} className="bg-yellow-500/5 border border-yellow-500/10 rounded px-2 py-1.5">
               <div className="text-gray-400">{note}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Collapsible learned facts section */
+function LearnedFactsSection({
+  facts,
+  loading,
+  deletingId,
+  onDelete,
+}: {
+  facts: LearnedFact[];
+  loading: boolean;
+  deletingId: string | null;
+  onDelete: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="border-t border-white/8 pt-3 mt-3">
+        <div className="h-4 w-24 rounded bg-white/8 animate-pulse" />
+      </div>
+    );
+  }
+
+  if (facts.length === 0) return null;
+
+  return (
+    <div className="border-t border-white/8 pt-3 mt-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between w-full text-left hover:bg-white/5 rounded px-1.5 py-1 -mx-1.5 transition-colors"
+      >
+        <span className="font-medium text-cyan-400/80">Learned facts</span>
+        <span className="text-gray-600">
+          {facts.length} {expanded ? "▴" : "▾"}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="mt-1 space-y-1 pl-1">
+          {facts.map((fact) => (
+            <div
+              key={fact.id}
+              className="group/fact bg-white/5 rounded px-2 py-1.5 flex items-start gap-1.5"
+            >
+              <div className="flex-1 text-gray-400 min-w-0">
+                <div className="break-words">{fact.factText}</div>
+                <div className="text-gray-600 text-[10px] mt-0.5">
+                  {new Date(fact.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </div>
+              </div>
+              <button
+                onClick={() => onDelete(fact.id)}
+                disabled={deletingId === fact.id}
+                className="flex-shrink-0 opacity-0 group-hover/fact:opacity-100 text-red-400/70 hover:text-red-400 disabled:opacity-30 transition-opacity text-[10px] mt-0.5"
+                title="Delete this fact"
+              >
+                {deletingId === fact.id ? "..." : "✕"}
+              </button>
             </div>
           ))}
         </div>
