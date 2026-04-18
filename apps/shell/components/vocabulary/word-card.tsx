@@ -34,6 +34,7 @@ export function WordCard({ word, onClick, onDelete, deleting }: WordCardProps) {
           if (!deleting) onDelete(word.id);
         }}
         disabled={deleting}
+        aria-label={deleting ? "Deleting word" : "Delete word"}
         className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs ${
           deleting
             ? "text-gray-600 cursor-not-allowed"

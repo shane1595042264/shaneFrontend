@@ -45,6 +45,7 @@ export function EntryCard({ entry, onClick, onDelete, deleting }: EntryCardProps
           if (!deleting) onDelete(entry.id);
         }}
         disabled={deleting}
+        aria-label={deleting ? "Deleting entry" : "Delete entry"}
         className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs ${
           deleting
             ? "text-gray-600 cursor-not-allowed"

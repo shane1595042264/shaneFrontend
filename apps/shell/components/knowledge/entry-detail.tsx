@@ -170,6 +170,7 @@ export function EntryDetail({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="text-gray-500 hover:text-white text-xl"
           >
             &times;
@@ -300,6 +301,7 @@ export function EntryDetail({
                     </div>
                     <button
                       onClick={() => handleDeleteConnection(conn.id)}
+                      aria-label="Delete connection"
                       className="text-xs text-gray-600 hover:text-red-400"
                     >
                       &times;

@@ -135,6 +135,7 @@ export default function KnowledgePage() {
           {notification.message}
           <button
             onClick={() => setNotification(null)}
+            aria-label="Dismiss notification"
             className="ml-3 text-xs opacity-60 hover:opacity-100"
           >
             &times;
