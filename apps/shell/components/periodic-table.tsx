@@ -200,6 +200,8 @@ export function PeriodicTable({ elements, initialAssignments = {} }: PeriodicTab
     <div className="w-full pb-4 relative">
       {saveToast && (
         <div
+          role={saveToast.type === "success" ? "status" : "alert"}
+          aria-live={saveToast.type === "success" ? "polite" : "assertive"}
           className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm font-medium shadow-lg transition-opacity ${
             saveToast.type === "success"
               ? "bg-green-900/90 text-green-100 border border-green-700/50"
