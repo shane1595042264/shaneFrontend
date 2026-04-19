@@ -6,6 +6,8 @@ import { ShareActions } from "@/components/journal/share-actions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
+const SITE_URL = "https://shanejli.com";
+const OG_IMAGE_URL = `${SITE_URL}/opengraph-image`;
 
 interface PageProps {
   params: Promise<{ date: string }>;
@@ -66,6 +68,16 @@ function stripDataMarkers(text: string): string {
   return text.replace(/\[\[data:[^|]+\|([^|]+)\|[\s\S]+?\]\]/g, "$1");
 }
 
+function buildSnippet(content: string): string {
+  const plain = stripDataMarkers(content);
+  return plain.length > 200 ? plain.slice(0, 200).trimEnd() + "..." : plain;
+}
+
+// Escape `<` so an entry containing "</script>" cannot break out of the JSON-LD tag.
+function jsonLdSafe(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("en-US", {
@@ -87,10 +99,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "Entry Not Found — Journal — Shane" };
   }
 
-  const plainContent = stripDataMarkers(data.entry.content);
-  const snippet = plainContent.length > 200
-    ? plainContent.slice(0, 200).trimEnd() + "..."
-    : plainContent;
+  const snippet = buildSnippet(data.entry.content);
   const title = `${formatDate(date)} — Journal — Shane`;
 
   return {
@@ -102,7 +111,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: "article",
       publishedTime: data.entry.createdAt,
       modifiedTime: data.entry.updatedAt,
-      url: `https://shanejli.com/journal/${date}`,
+      url: `${SITE_URL}/journal/${date}`,
       siteName: "Shane — Periodic Table of Life",
       images: ["/opengraph-image"],
     },
@@ -157,8 +166,33 @@ export default async function JournalEntryPage({ params }: PageProps) {
     updatedAt: data.entry.updatedAt,
   };
 
+  const entryUrl = `${SITE_URL}/journal/${date}`;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: `${formatDate(date)} — Journal — Shane`,
+    description: buildSnippet(data.entry.content),
+    datePublished: data.entry.createdAt,
+    dateModified: data.entry.updatedAt,
+    author: {
+      "@type": "Person",
+      name: "Shane Li",
+      url: SITE_URL,
+    },
+    image: OG_IMAGE_URL,
+    url: entryUrl,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": entryUrl,
+    },
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
+      />
       <Link
         href="/journal"
         className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors"
