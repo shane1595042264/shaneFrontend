@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EntryRenderer } from "@/components/journal/entry-renderer";
+import { ShareActions } from "@/components/journal/share-actions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
@@ -165,6 +166,8 @@ export default async function JournalEntryPage({ params }: PageProps) {
         &larr; All entries
       </Link>
       <EntryRenderer entry={entry} />
+
+      <ShareActions date={entry.date} formattedDate={formatDate(entry.date)} />
 
       {/* Prev / Next navigation */}
       <nav className="flex items-center justify-between mt-10 pt-6 border-t border-white/8">
