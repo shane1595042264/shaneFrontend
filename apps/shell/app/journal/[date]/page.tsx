@@ -105,7 +105,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       siteName: "Shane — Periodic Table of Life",
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description: snippet,
     },

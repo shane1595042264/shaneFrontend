@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Journal — Shane",
     description:
       "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",

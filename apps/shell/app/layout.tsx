@@ -4,6 +4,7 @@ import { NavBar } from "@/components/nav-bar";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://shanejli.com"),
   title: "Shane — Periodic Table of Life",
   description: "A periodic table of Shane's projects, tools, and creative work.",
   openGraph: {
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Shane — Periodic Table of Life",
     description: "A periodic table of Shane's projects, tools, and creative work.",
   },
