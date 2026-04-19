@@ -103,11 +103,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       modifiedTime: data.entry.updatedAt,
       url: `https://shanejli.com/journal/${date}`,
       siteName: "Shane — Periodic Table of Life",
+      images: ["/opengraph-image"],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: snippet,
+      images: ["/opengraph-image"],
     },
   };
 }
