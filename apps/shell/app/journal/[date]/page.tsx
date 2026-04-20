@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EntryRenderer } from "@/components/journal/entry-renderer";
+import { EntryKeyboardNav } from "@/components/journal/entry-keyboard-nav";
 import { ShareActions } from "@/components/journal/share-actions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -192,6 +193,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
         {prevDate ? (
           <Link
             href={`/journal/${prevDate}`}
+            aria-keyshortcuts="ArrowLeft"
             className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
           >
             <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
@@ -203,6 +205,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
         {nextDate ? (
           <Link
             href={`/journal/${nextDate}`}
+            aria-keyshortcuts="ArrowRight"
             className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
           >
             <span>{formatDateShort(nextDate)}</span>
@@ -212,6 +215,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
           <span />
         )}
       </nav>
+      <EntryKeyboardNav prevDate={prevDate} nextDate={nextDate} />
     </div>
   );
 }
