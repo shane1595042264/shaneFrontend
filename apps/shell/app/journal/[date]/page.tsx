@@ -35,14 +35,10 @@ async function fetchEntryServer(date: string) {
 async function fetchNeighbors(date: string): Promise<{ prev: string | null; next: string | null }> {
   const url = `${JOURNAL_API_URL}/api/journal/entries/${date}/neighbors`;
   try {
-    const res = await fetch(url, { next: { revalidate: 300 } });
-    console.log(`[neighbors] ${date} url=${url} status=${res.status}`);
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return { prev: null, next: null };
-    const json = (await res.json()) as { prev: string | null; next: string | null };
-    console.log(`[neighbors] ${date} body=${JSON.stringify(json)}`);
-    return json;
-  } catch (err) {
-    console.error(`[neighbors] ${date} error:`, err);
+    return (await res.json()) as { prev: string | null; next: string | null };
+  } catch {
     return { prev: null, next: null };
   }
 }
