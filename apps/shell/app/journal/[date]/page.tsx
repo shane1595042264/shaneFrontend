@@ -32,30 +32,16 @@ async function fetchEntryServer(date: string) {
   }
 }
 
-async function fetchAllDates(): Promise<string[]> {
+async function fetchNeighbors(date: string): Promise<{ prev: string | null; next: string | null }> {
   try {
-    const PAGE_SIZE = 100;
-    const all: string[] = [];
-    let offset = 0;
-    let total = Infinity;
-
-    while (offset < total) {
-      const res = await fetch(
-        `${JOURNAL_API_URL}/api/journal/entries?limit=${PAGE_SIZE}&offset=${offset}`,
-        { next: { revalidate: 300 } }
-      );
-      if (!res.ok) return all;
-      const data = await res.json() as { entries: { date: string }[]; total: number };
-      total = data.total;
-      all.push(...data.entries.map((e) => e.date));
-      offset += data.entries.length;
-      if (data.entries.length === 0) break;
-    }
-
-    // Sort chronologically for prev/next logic
-    return all.sort();
+    const res = await fetch(
+      `${JOURNAL_API_URL}/api/journal/entries/${date}/neighbors`,
+      { next: { revalidate: 300 } }
+    );
+    if (!res.ok) return { prev: null, next: null };
+    return (await res.json()) as { prev: string | null; next: string | null };
   } catch {
-    return [];
+    return { prev: null, next: null };
   }
 }
 
@@ -131,15 +117,13 @@ export default async function JournalEntryPage({ params }: PageProps) {
     notFound();
   }
 
-  const [data, allDates] = await Promise.all([
+  const [data, neighbors] = await Promise.all([
     fetchEntryServer(date),
-    fetchAllDates(),
+    fetchNeighbors(date),
   ]);
 
-  // Find prev/next entries
-  const currentIndex = allDates.indexOf(date);
-  const prevDate = currentIndex > 0 ? allDates[currentIndex - 1] : null;
-  const nextDate = currentIndex >= 0 && currentIndex < allDates.length - 1 ? allDates[currentIndex + 1] : null;
+  const prevDate = neighbors.prev;
+  const nextDate = neighbors.next;
 
   if (!data?.entry) {
     return (
