@@ -32,14 +32,18 @@ async function fetchEntryServer(date: string) {
   }
 }
 
-async function fetchNeighbors(date: string): Promise<{ prev: string | null; next: string | null }> {
+async function fetchNeighbors(date: string): Promise<{ prev: string | null; next: string | null; _debug?: string }> {
   const url = `${JOURNAL_API_URL}/api/journal/entries/${date}/neighbors`;
   try {
     const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return { prev: null, next: null };
-    return (await res.json()) as { prev: string | null; next: string | null };
-  } catch {
-    return { prev: null, next: null };
+    const bodyText = await res.text();
+    if (!res.ok) {
+      return { prev: null, next: null, _debug: `status=${res.status} url=${url} body=${bodyText.slice(0, 200)}` };
+    }
+    const json = JSON.parse(bodyText) as { prev: string | null; next: string | null };
+    return { ...json, _debug: `ok url=${url} body=${bodyText.slice(0, 200)}` };
+  } catch (err) {
+    return { prev: null, next: null, _debug: `exception url=${url} err=${(err as Error).message}` };
   }
 }
 
@@ -210,6 +214,10 @@ export default async function JournalEntryPage({ params }: PageProps) {
           <span />
         )}
       </nav>
+      {/* TEMP debug — remove after diagnosis */}
+      <div style={{ fontSize: 10, color: "#666", marginTop: 20, wordBreak: "break-all" }} data-debug-neighbors>
+        DEBUG: {neighbors._debug ?? "no debug info"}
+      </div>
     </div>
   );
 }
