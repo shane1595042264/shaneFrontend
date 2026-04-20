@@ -88,17 +88,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const snippet = buildSnippet(data.entry.content);
   const title = `${formatDate(date)} — Journal — Shane`;
+  const canonicalUrl = `${SITE_URL}/journal/${date}`;
 
   return {
     title,
     description: snippet,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title,
       description: snippet,
       type: "article",
       publishedTime: data.entry.createdAt,
       modifiedTime: data.entry.updatedAt,
-      url: `${SITE_URL}/journal/${date}`,
+      url: canonicalUrl,
       siteName: "Shane — Periodic Table of Life",
       images: ["/opengraph-image"],
     },

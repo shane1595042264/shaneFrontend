@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   description:
     "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",
   alternates: {
+    canonical: "https://shanejli.com/journal",
     types: {
       "application/atom+xml": `${JOURNAL_API_URL}/api/journal/feed`,
     },
