@@ -20,6 +20,8 @@ interface JournalSidebarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   totalCount: number; // total entries before filtering
+  inputRef?: React.Ref<HTMLInputElement>;
+  showKbdHint?: boolean; // render "/" kbd badge when query empty; only on desktop sidebar
 }
 
 type Tree = Record<number, Record<number, number[]>>; // year -> month -> days[]
@@ -35,7 +37,7 @@ function buildTree(dates: string[]): Tree {
   return tree;
 }
 
-export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, onSearchChange, totalCount }: JournalSidebarProps) {
+export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, onSearchChange, totalCount, inputRef, showKbdHint }: JournalSidebarProps) {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1; // 1-indexed
@@ -100,20 +102,37 @@ export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, o
       <div className="sticky top-0 bg-gray-950 z-10 px-2 pt-2 pb-1">
         <div className="relative">
           <input
+            ref={inputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                if (searchQuery) onSearchChange("");
+                e.currentTarget.blur();
+              }
+            }}
             placeholder="Search entries..."
+            aria-keyshortcuts="/"
             className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-blue-500 pr-6"
           />
-          {searchQuery && (
+          {searchQuery ? (
             <button
               onClick={() => onSearchChange("")}
               className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-sm leading-none"
+              aria-label="Clear search"
             >
               ✕
             </button>
-          )}
+          ) : showKbdHint ? (
+            <kbd
+              aria-hidden
+              className="hidden md:inline-flex absolute right-1.5 top-1/2 -translate-y-1/2 items-center justify-center h-4 min-w-4 px-1 rounded border border-white/15 bg-white/5 text-[10px] leading-none text-gray-500 font-mono pointer-events-none"
+            >
+              /
+            </kbd>
+          ) : null}
         </div>
         {searchQuery && (
           <div className="text-gray-500 mt-1 px-0.5">

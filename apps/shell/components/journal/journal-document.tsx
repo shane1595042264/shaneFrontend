@@ -48,6 +48,7 @@ function getTodayStr(): string {
 
 export function JournalDocument({ entries }: JournalDocumentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const todayStr = getTodayStr();
 
   const [activeDate, setActiveDate] = useState<string | null>(
@@ -104,6 +105,25 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // "/" anywhere on the page focuses the sidebar search input (skip when already typing).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable) return;
+      }
+      const input = searchInputRef.current;
+      if (!input || input.offsetParent === null) return; // not mounted / hidden (mobile)
+      e.preventDefault();
+      input.focus();
+      input.select();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // Mobile responsive state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -390,7 +410,7 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
 
         {/* Left sidebar — hidden on mobile, visible from md up */}
         <div className="hidden md:block w-44 flex-shrink-0 border-r border-white/8 overflow-y-auto">
-          <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={handleSelectDate} searchQuery={searchQuery} onSearchChange={setSearchQuery} totalCount={entries.length} />
+          <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={handleSelectDate} searchQuery={searchQuery} onSearchChange={setSearchQuery} totalCount={entries.length} inputRef={searchInputRef} showKbdHint />
         </div>
 
         {/* Center — document */}
