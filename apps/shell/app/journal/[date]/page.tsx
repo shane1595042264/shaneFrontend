@@ -8,7 +8,6 @@ import { ShareActions } from "@/components/journal/share-actions";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 const SITE_URL = "https://shanejli.com";
-const OG_IMAGE_URL = `${SITE_URL}/opengraph-image`;
 
 interface PageProps {
   params: Promise<{ date: string }>;
@@ -89,6 +88,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const snippet = buildSnippet(data.entry.content);
   const title = `${formatDate(date)} — Journal — Shane`;
   const canonicalUrl = `${SITE_URL}/journal/${date}`;
+  const ogImagePath = `/journal/${date}/opengraph-image`;
 
   return {
     title,
@@ -104,13 +104,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       modifiedTime: data.entry.updatedAt,
       url: canonicalUrl,
       siteName: "Shane — Periodic Table of Life",
-      images: ["/opengraph-image"],
+      images: [ogImagePath],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: snippet,
-      images: ["/opengraph-image"],
+      images: [ogImagePath],
     },
   };
 }
@@ -168,7 +168,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
       name: "Shane Li",
       url: SITE_URL,
     },
-    image: OG_IMAGE_URL,
+    image: `${SITE_URL}/journal/${date}/opengraph-image`,
     url: entryUrl,
     mainEntityOfPage: {
       "@type": "WebPage",
