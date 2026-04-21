@@ -37,17 +37,20 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
       variants={itemVariants}
       whileHover={isComingSoon ? {} : { scale: 1.08, y: -2, zIndex: 10 }}
       whileTap={isComingSoon ? {} : { scale: 0.95 }}
+      tabIndex={isComingSoon ? 0 : undefined}
       className={[
-        "group/card relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded border cursor-grab active:cursor-grabbing select-none w-full aspect-square transition-shadow",
+        "group/card relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded border select-none w-full aspect-square transition-shadow",
         styles.bg,
         styles.border,
-        isComingSoon ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg hover:shadow-black/40",
+        isComingSoon
+          ? "opacity-50 cursor-not-allowed outline-none focus-visible:opacity-80 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:z-10"
+          : "cursor-grab active:cursor-grabbing hover:shadow-lg hover:shadow-black/40",
       ].join(" ")}
     >
       {tooltipText && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden md:block opacity-0 group-hover/card:opacity-100 transition-opacity duration-150 z-50 whitespace-nowrap rounded bg-gray-900 border border-white/10 px-2 py-1 text-[10px] text-gray-200 shadow-lg"
+          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/card:opacity-100 group-focus/card:opacity-100 group-active/card:opacity-100 transition-opacity duration-150 z-50 whitespace-nowrap rounded bg-gray-900 border border-white/10 px-2 py-1 text-[10px] text-gray-200 shadow-lg"
         >
           {tooltipText}
         </span>
@@ -56,9 +59,9 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
       {isComingSoon && (
         <span
           aria-hidden="true"
-          className="absolute top-0 right-0 text-[5px] md:text-[7px] opacity-40 font-medium tracking-tight text-gray-400"
+          className="absolute top-0.5 right-0.5 text-[6px] md:text-[8px] px-1 py-px rounded-sm bg-white/10 text-gray-200 font-medium tracking-wide leading-none"
         >
-          SOON
+          Soon
         </span>
       )}
 
