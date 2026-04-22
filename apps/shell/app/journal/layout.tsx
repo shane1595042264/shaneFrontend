@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
-
 export const metadata: Metadata = {
   title: "Journal — Shane",
   description:
@@ -10,7 +7,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://shanejli.com/journal",
     types: {
-      "application/atom+xml": `${JOURNAL_API_URL}/api/journal/feed`,
+      "application/rss+xml": "/journal/feed.xml",
     },
   },
   openGraph: {
