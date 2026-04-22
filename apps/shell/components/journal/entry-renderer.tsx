@@ -2,6 +2,7 @@
 
 import type { DiaryEntry } from "@shane/types";
 import { DataHighlight } from "@/components/journal/data-highlight";
+import { readingTimeMinutes } from "@/lib/journal-text";
 
 function formatDateHeader(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
@@ -22,6 +23,7 @@ interface EntryRendererProps {
 
 export function EntryRenderer({ entry, isToday, highlightQuery }: EntryRendererProps) {
   const paragraphs = entry.content.split("\n").filter((p) => p.trim().length > 0);
+  const readMinutes = readingTimeMinutes(entry.content);
 
   return (
     <article
@@ -33,6 +35,14 @@ export function EntryRenderer({ entry, isToday, highlightQuery }: EntryRendererP
         {isToday && (
           <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
             Today
+          </span>
+        )}
+        {readMinutes > 0 && (
+          <span
+            className="text-[11px] font-normal text-gray-500"
+            aria-label={`${readMinutes} minute read`}
+          >
+            · {readMinutes} min read
           </span>
         )}
       </h2>

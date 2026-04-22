@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { EntryRenderer } from "@/components/journal/entry-renderer";
 import { EntryKeyboardNav } from "@/components/journal/entry-keyboard-nav";
 import { ShareActions } from "@/components/journal/share-actions";
+import { stripDataMarkers } from "@/lib/journal-text";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
@@ -48,10 +49,6 @@ async function fetchNeighbors(date: string): Promise<{ prev: string | null; next
 function formatDateShort(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function stripDataMarkers(text: string): string {
-  return text.replace(/\[\[data:[^|]+\|([^|]+)\|[\s\S]+?\]\]/g, "$1");
 }
 
 function buildSnippet(content: string): string {
