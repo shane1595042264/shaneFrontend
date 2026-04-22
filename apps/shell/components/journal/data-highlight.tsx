@@ -146,20 +146,71 @@ function DataTooltip({ marker, anchorRef, onClose }: TooltipProps) {
 
 interface DataHighlightProps {
   text: string;
+  /** Case-insensitive substring to visually highlight in plain-text segments. */
+  highlightQuery?: string;
 }
 
-export function DataHighlight({ text }: DataHighlightProps) {
+// Only highlight when the trimmed query has at least 2 chars (noise otherwise).
+const MIN_HIGHLIGHT_LEN = 2;
+
+/** Escape a string for safe use inside a RegExp. */
+export function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Split `text` into alternating non-match / match chunks for a
+ * case-insensitive search `query`. Returns an array of `{ text, match }`.
+ * If the query is too short, returns the whole text as a single non-match.
+ */
+export function splitByMatch(
+  text: string,
+  query: string
+): { text: string; match: boolean }[] {
+  const q = query.trim();
+  if (q.length < MIN_HIGHLIGHT_LEN) {
+    return [{ text, match: false }];
+  }
+  const parts: { text: string; match: boolean }[] = [];
+  const re = new RegExp(escapeRegExp(q), "gi");
+  let lastIndex = 0;
+  for (const m of text.matchAll(re)) {
+    const start = m.index!;
+    if (start > lastIndex) parts.push({ text: text.slice(lastIndex, start), match: false });
+    parts.push({ text: m[0], match: true });
+    lastIndex = start + m[0].length;
+  }
+  if (lastIndex < text.length) parts.push({ text: text.slice(lastIndex), match: false });
+  return parts.length > 0 ? parts : [{ text, match: false }];
+}
+
+function renderWithHighlight(text: string, query: string | undefined): React.ReactNode {
+  if (!query || query.trim().length < MIN_HIGHLIGHT_LEN) return text;
+  const parts = splitByMatch(text, query);
+  if (parts.length === 1 && !parts[0].match) return text;
+  return parts.map((p, i) =>
+    p.match ? (
+      <mark key={i} className="bg-yellow-400/80 text-black rounded-sm px-0.5">
+        {p.text}
+      </mark>
+    ) : (
+      <span key={i}>{p.text}</span>
+    )
+  );
+}
+
+export function DataHighlight({ text, highlightQuery }: DataHighlightProps) {
   const segments = parseDataMarkers(text);
-  // If no markers, just return plain text
+  // If no markers, just return plain text (possibly with highlighting).
   if (segments.every((s) => typeof s === "string")) {
-    return <>{text}</>;
+    return <>{renderWithHighlight(text, highlightQuery)}</>;
   }
 
   return (
     <>
       {segments.map((seg, i) =>
         typeof seg === "string" ? (
-          <span key={i}>{seg}</span>
+          <span key={i}>{renderWithHighlight(seg, highlightQuery)}</span>
         ) : (
           <HighlightedMarker key={i} marker={seg} />
         )

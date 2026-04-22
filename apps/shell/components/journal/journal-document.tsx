@@ -469,6 +469,7 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
                         ? { ...entry, content: contentOverrides[entry.date] }
                         : entry}
                       isToday={entry.date === todayStr}
+                      highlightQuery={debouncedQuery}
                     />
                   ))}
                 </div>

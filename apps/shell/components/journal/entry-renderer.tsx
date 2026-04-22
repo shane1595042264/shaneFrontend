@@ -16,9 +16,11 @@ function formatDateHeader(dateStr: string): string {
 interface EntryRendererProps {
   entry: DiaryEntry;
   isToday?: boolean;
+  /** Search query whose case-insensitive matches should be highlighted in body text. */
+  highlightQuery?: string;
 }
 
-export function EntryRenderer({ entry, isToday }: EntryRendererProps) {
+export function EntryRenderer({ entry, isToday, highlightQuery }: EntryRendererProps) {
   const paragraphs = entry.content.split("\n").filter((p) => p.trim().length > 0);
 
   return (
@@ -38,7 +40,7 @@ export function EntryRenderer({ entry, isToday }: EntryRendererProps) {
       <div className="space-y-3">
         {paragraphs.map((para, i) => (
           <p key={i} className="text-gray-300 leading-relaxed text-sm">
-            <DataHighlight text={para} />
+            <DataHighlight text={para} highlightQuery={highlightQuery} />
           </p>
         ))}
       </div>
