@@ -19,6 +19,12 @@ function isValidDate(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(Date.parse(date));
 }
 
+// UTC day — matches backend cron's getTodayDate() so "today" means the same
+// thing on both sides of the API and the nightly-generation boundary.
+function getTodayUtcStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 async function fetchEntryServer(date: string) {
   try {
     const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${date}`, {
@@ -79,6 +85,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const data = await fetchEntryServer(date);
   if (!data?.entry) {
+    if (date === getTodayUtcStr()) {
+      return {
+        title: "Today — Journal — Shane",
+        robots: { index: false, follow: true },
+      };
+    }
     return { title: "Entry Not Found — Journal — Shane" };
   }
 
@@ -129,8 +141,32 @@ export default async function JournalEntryPage({ params }: PageProps) {
 
   const prevDate = neighbors.prev;
   const nextDate = neighbors.next;
+  const isToday = date === getTodayUtcStr();
 
   if (!data?.entry) {
+    if (isToday) {
+      return (
+        <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
+          <Link
+            href="/journal"
+            className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            &larr; All entries
+          </Link>
+          <article className="pb-8">
+            <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
+              {formatDate(date)}
+              <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
+                Today
+              </span>
+            </h2>
+            <p className="text-gray-500 text-sm italic">
+              Today&apos;s entry will be generated at 11:00 PM.
+            </p>
+          </article>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <p className="text-gray-400 text-sm">
@@ -188,7 +224,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
       >
         &larr; All entries
       </Link>
-      <EntryRenderer entry={entry} />
+      <EntryRenderer entry={entry} isToday={isToday} />
 
       <ShareActions date={entry.date} formattedDate={formatDate(entry.date)} />
 
