@@ -38,7 +38,7 @@ export function ShareActions({ date, formattedDate }: ShareActionsProps) {
         : "";
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mt-10 pt-4 border-t border-white/8">
+    <div className="flex flex-wrap items-center gap-2 mt-10 pt-4 border-t border-white/8 print:hidden">
       <span className="text-[10px] uppercase tracking-wider text-gray-600 mr-1">
         Share
       </span>

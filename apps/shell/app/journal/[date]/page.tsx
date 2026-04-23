@@ -220,7 +220,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
       />
       <Link
         href="/journal"
-        className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+        className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors print:hidden"
       >
         &larr; All entries
       </Link>
@@ -228,8 +228,13 @@ export default async function JournalEntryPage({ params }: PageProps) {
 
       <ShareActions date={entry.date} formattedDate={formatDate(entry.date)} />
 
+      {/* Print-only canonical URL footer (so a printed/PDF page is self-attributing) */}
+      <p className="hidden print:block mt-8 pt-4 border-t border-gray-300 text-xs text-gray-600">
+        {entryUrl}
+      </p>
+
       {/* Prev / Next navigation */}
-      <nav className="flex items-center justify-between mt-10 pt-6 border-t border-white/8">
+      <nav className="flex items-center justify-between mt-10 pt-6 border-t border-white/8 print:hidden">
         {prevDate ? (
           <Link
             href={`/journal/${prevDate}`}

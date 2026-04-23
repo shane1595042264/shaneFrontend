@@ -238,7 +238,7 @@ function HighlightedMarker({ marker }: { marker: DataMarker }) {
         tabIndex={0}
         role="button"
         aria-expanded={open}
-        className={`inline cursor-pointer rounded px-0.5 ${style.bg} ${style.text} border-b border-dashed ${style.border} hover:opacity-80 transition-opacity focus:outline-none focus:ring-1 focus:ring-current`}
+        className={`inline cursor-pointer rounded px-0.5 ${style.bg} ${style.text} border-b border-dashed ${style.border} hover:opacity-80 transition-opacity focus:outline-none focus:ring-1 focus:ring-current print:bg-transparent print:text-black print:border-0 print:cursor-auto`}
         title={`${marker.type}: ${marker.display}`}
       >
         {marker.display}

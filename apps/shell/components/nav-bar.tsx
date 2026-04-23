@@ -31,7 +31,7 @@ export function NavBar() {
   }
 
   return (
-    <nav className="relative flex items-center justify-between px-4 md:px-6 py-4 border-b border-white/10">
+    <nav className="relative flex items-center justify-between px-4 md:px-6 py-4 border-b border-white/10 print:hidden">
       <Link
         href="/"
         className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity"
