@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const MONTH_NAMES = [
@@ -84,6 +84,51 @@ export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, o
     });
   }, []);
 
+  // Keep the active date visible in the sidebar as the user scrolls the main
+  // document. Auto-expand its year/month (never collapse), then scroll its row
+  // into view. Skipped during search — everything is already expanded.
+  const asideRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!activeDate || searchQuery) return;
+    const { year, month } = getYearMonthDay(activeDate);
+    const monthKey = `${year}-${month}`;
+    setExpandedYears((prev) => {
+      if (prev.has(year)) return prev;
+      const next = new Set(prev);
+      next.add(year);
+      return next;
+    });
+    setExpandedMonths((prev) => {
+      if (prev.has(monthKey)) return prev;
+      const next = new Set(prev);
+      next.add(monthKey);
+      return next;
+    });
+  }, [activeDate, searchQuery]);
+
+  useEffect(() => {
+    if (!activeDate || searchQuery) return;
+    // Wait a frame so any just-triggered expansion has painted before we measure.
+    const raf = requestAnimationFrame(() => {
+      const container = asideRef.current;
+      const row = container?.querySelector<HTMLElement>(
+        `[data-date="${activeDate}"]`
+      );
+      if (!container || !row) return;
+      const rowRect = row.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const PAD = 8;
+      // Scroll only the aside itself — no propagation to ancestor scrollers
+      // (main content column would jump otherwise).
+      if (rowRect.top < containerRect.top + PAD) {
+        container.scrollBy({ top: rowRect.top - containerRect.top - PAD, behavior: "smooth" });
+      } else if (rowRect.bottom > containerRect.bottom - PAD) {
+        container.scrollBy({ top: rowRect.bottom - containerRect.bottom + PAD, behavior: "smooth" });
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [activeDate, searchQuery, expandedYears, expandedMonths]);
+
   const years = Object.keys(tree)
     .map(Number)
     .sort((a, b) => b - a); // newest first
@@ -97,7 +142,7 @@ export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, o
   }
 
   return (
-    <aside className="w-44 flex-shrink-0 text-xs select-none overflow-y-auto">
+    <aside ref={asideRef} className="w-44 flex-shrink-0 text-xs select-none overflow-y-auto">
       {/* Search input */}
       <div className="sticky top-0 bg-gray-950 z-10 px-2 pt-2 pb-1">
         <div className="relative">
@@ -215,6 +260,7 @@ export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, o
                                   return (
                                     <button
                                       key={day}
+                                      data-date={dateStr}
                                       onClick={() => !isPending && onSelectDate(dateStr)}
                                       disabled={isPending}
                                       className={`w-full text-left px-3 py-1 rounded transition-colors flex items-center gap-1.5 ${
