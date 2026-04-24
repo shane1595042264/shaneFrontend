@@ -5,6 +5,7 @@ import type { DiaryEntry, NormalizedActivity } from "@shane/types";
 import { EntryRenderer } from "@/components/journal/entry-renderer";
 import { JournalSidebar } from "@/components/journal/journal-sidebar";
 import { fetchEntry, submitSuggestion, regenerateEntry, fetchFacts, deleteFact } from "@/lib/journal-api";
+import { stripDataMarkers } from "@/lib/journal-text";
 import type { LearnedFact } from "@shane/types";
 
 interface JournalDocumentProps {
@@ -220,13 +221,11 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     }
   }
 
-  // Filter entries by debounced search query (strip data markers for matching)
+  // Filter entries by debounced search query (strip data markers so searches
+  // match only human-visible prose, not the underlying JSON payload).
   const filteredEntries = debouncedQuery.trim()
     ? entries.filter((e) => {
-        const plain = (contentOverrides[e.date] || e.content)
-          .replace(/\[\[data:\w+\|/g, "")
-          .replace(/\|{[^}]*}\]\]/g, "")
-          .replace(/\]\]/g, "");
+        const plain = stripDataMarkers(contentOverrides[e.date] || e.content);
         return plain.toLowerCase().includes(debouncedQuery.trim().toLowerCase());
       })
     : entries;
