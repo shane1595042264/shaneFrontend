@@ -59,7 +59,7 @@ function HistoryItem({ decision }: { decision: Decision }) {
         <span className={`text-xs px-2 py-0.5 rounded font-medium flex-shrink-0 ${RESULT_BADGE[decision.result] || ""}`}>
           {RESULT_LABELS[decision.result] || decision.result}
         </span>
-        <span className="text-xs text-gray-600 flex-shrink-0">
+        <span className="hidden sm:inline text-xs text-gray-600 flex-shrink-0">
           {new Date(decision.createdAt).toLocaleDateString()}
         </span>
         <span className="text-gray-600 text-xs flex-shrink-0">{expanded ? "▴" : "▾"}</span>
@@ -125,6 +125,11 @@ function HistoryItem({ decision }: { decision: Decision }) {
                     </div>
                   </>
                 )}
+              </div>
+
+              {/* Date (shown inline above on >=sm, here on mobile) */}
+              <div className="sm:hidden text-gray-500">
+                {new Date(decision.createdAt).toLocaleString()}
               </div>
 
               {/* Verdict explanation */}

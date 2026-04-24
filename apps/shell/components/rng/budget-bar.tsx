@@ -99,7 +99,7 @@ export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProp
   if (editing) {
     return (
       <div className="bg-white/5 rounded-lg p-4">
-        <div className="flex items-end gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
           <div className="flex-1">
             <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">Balance</label>
             <input
@@ -122,26 +122,28 @@ export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProp
               className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
             />
           </div>
-          <button
-            onClick={() => {
-              const b = parseFloat(manualBalance);
-              const s = parseFloat(manualSpend);
-              if (!isNaN(b) && !isNaN(s)) {
-                onManualOverride?.(b, s);
-                setEditing(false);
-              }
-            }}
-            disabled={!manualBalance || !manualSpend}
-            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm disabled:opacity-50"
-          >
-            Save
-          </button>
-          <button
-            onClick={() => setEditing(false)}
-            className="px-4 py-2 text-gray-400 hover:text-white text-sm"
-          >
-            Cancel
-          </button>
+          <div className="flex gap-2 sm:contents">
+            <button
+              onClick={() => {
+                const b = parseFloat(manualBalance);
+                const s = parseFloat(manualSpend);
+                if (!isNaN(b) && !isNaN(s)) {
+                  onManualOverride?.(b, s);
+                  setEditing(false);
+                }
+              }}
+              disabled={!manualBalance || !manualSpend}
+              className="flex-1 sm:flex-none px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm disabled:opacity-50"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="flex-1 sm:flex-none px-4 py-2 text-gray-400 hover:text-white text-sm"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -150,7 +152,7 @@ export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProp
   const remaining = budget.remaining_budget ?? 0;
   return (
     <div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white/5 rounded-lg p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider">Balance</p>
           <p className="text-2xl font-bold text-white mt-1">{formatMoney(budget.balance)}</p>

@@ -30,7 +30,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
           }}
           className="flex flex-col gap-2"
         >
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               value={productName}
@@ -39,22 +39,24 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500"
               disabled={loading}
             />
-            <input
-              type="number"
-              step="0.01"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="Price"
-              className="w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500"
-              disabled={loading}
-            />
-            <button
-              type="submit"
-              disabled={loading || !productName.trim() || !price}
-              className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {loading ? "Rolling..." : "Evaluate"}
-            </button>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="Price"
+                className="flex-1 sm:flex-none sm:w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500"
+                disabled={loading}
+              />
+              <button
+                type="submit"
+                disabled={loading || !productName.trim() || !price}
+                className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {loading ? "Rolling..." : "Evaluate"}
+              </button>
+            </div>
           </div>
           <button
             type="button"
