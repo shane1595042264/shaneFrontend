@@ -17,12 +17,14 @@ export const metadata: Metadata = {
     url: "https://shanejli.com/journal",
     siteName: "Shane — Periodic Table of Life",
     type: "website",
+    images: ["/journal/opengraph-image"],
   },
   twitter: {
     card: "summary_large_image",
     title: "Journal — Shane",
     description:
       "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",
+    images: ["/journal/opengraph-image"],
   },
 };
 
