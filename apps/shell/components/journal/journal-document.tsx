@@ -259,6 +259,8 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     ? new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
     : "";
 
+  const activeEntryExists = activeDate ? entries.some((e) => e.date === activeDate) : false;
+
   const activityPanelContent = activeDate ? (
     <div className="p-3">
       {/* Date label */}
@@ -293,7 +295,7 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
       )}
 
       {/* Regenerate button for short entries */}
-      {(() => {
+      {activeEntryExists && (() => {
         const activeEntry = entries.find((e) => e.date === activeDate);
         const content = activeEntry ? (contentOverrides[activeEntry.date] || activeEntry.content) : "";
         const wordCount = content.split(/\s+/).filter(Boolean).length;
@@ -330,46 +332,55 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
       />
 
       {/* Divider */}
-      <div className="border-t border-white/8 pt-3 mt-3">
-        <div className="text-gray-400 font-medium mb-2">Suggest a correction</div>
-        <form onSubmit={handleSuggestionSubmit}>
-          <textarea
-            value={suggestionInput}
-            onChange={(e) => setSuggestionInput(e.target.value)}
-            placeholder="e.g., &quot;I wasn't at a restaurant, I was at work.&quot;"
-            className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none focus:border-blue-500"
-            rows={3}
-            disabled={suggestionLoading}
-          />
-          <button
-            type="submit"
-            disabled={suggestionLoading || !suggestionInput.trim()}
-            className="mt-1.5 w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            {suggestionLoading ? "Processing..." : "Submit"}
-          </button>
-        </form>
+      {activeEntryExists ? (
+        <div className="border-t border-white/8 pt-3 mt-3">
+          <div className="text-gray-400 font-medium mb-2">Suggest a correction</div>
+          <form onSubmit={handleSuggestionSubmit}>
+            <textarea
+              value={suggestionInput}
+              onChange={(e) => setSuggestionInput(e.target.value)}
+              placeholder="e.g., &quot;I wasn't at a restaurant, I was at work.&quot;"
+              className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none focus:border-blue-500"
+              rows={3}
+              disabled={suggestionLoading}
+            />
+            <button
+              type="submit"
+              disabled={suggestionLoading || !suggestionInput.trim()}
+              className="mt-1.5 w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {suggestionLoading ? "Processing..." : "Submit"}
+            </button>
+          </form>
 
-        {suggestionError && (
-          <div className="mt-2 text-red-400 text-xs">{suggestionError}</div>
-        )}
+          {suggestionError && (
+            <div className="mt-2 text-red-400 text-xs">{suggestionError}</div>
+          )}
 
-        {suggestionResult && (
-          <div className="mt-3 border-t border-white/10 pt-2">
-            <p className="text-green-400 mb-1">Entry corrected</p>
-            {suggestionResult.extractedFacts.length > 0 && (
-              <div>
-                <p className="text-gray-400 mb-1">Learned:</p>
-                <ul className="text-gray-500 list-disc list-inside">
-                  {suggestionResult.extractedFacts.map((fact, i) => (
-                    <li key={i}>{fact}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          {suggestionResult && (
+            <div className="mt-3 border-t border-white/10 pt-2">
+              <p className="text-green-400 mb-1">Entry corrected</p>
+              {suggestionResult.extractedFacts.length > 0 && (
+                <div>
+                  <p className="text-gray-400 mb-1">Learned:</p>
+                  <ul className="text-gray-500 list-disc list-inside">
+                    {suggestionResult.extractedFacts.map((fact, i) => (
+                      <li key={i}>{fact}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="border-t border-white/8 pt-3 mt-3">
+          <div className="text-gray-400 font-medium mb-1">No entry yet</div>
+          <p className="text-gray-500">
+            Today&apos;s entry is generated at 11:00 PM. Regeneration and suggestions will be available once it exists.
+          </p>
+        </div>
+      )}
     </div>
   ) : null;
 
