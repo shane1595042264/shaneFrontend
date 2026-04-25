@@ -158,6 +158,27 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `#entry-${date}`);
+    }
+  }, []);
+
+  // On first mount, honor #entry-YYYY-MM-DD in the URL so shared/bookmarked
+  // links scroll to the targeted entry instead of dropping the user at the top.
+  // The skeleton renders before entries exist, so the browser's native hash
+  // resolution misses — we re-resolve here once articles are in the DOM.
+  useEffect(() => {
+    if (typeof window === "undefined" || entries.length === 0) return;
+    const match = /^#entry-(\d{4}-\d{2}-\d{2})$/.exec(window.location.hash);
+    if (!match) return;
+    const targetDate = match[1];
+    if (!entries.some((e) => e.date === targetDate)) return;
+    setActiveDate(targetDate);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`entry-${targetDate}`);
+      if (el) el.scrollIntoView({ behavior: "auto", block: "start" });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // IntersectionObserver: update active date as user scrolls
@@ -174,6 +195,9 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
           const id = visible[0].target.id;
           const date = id.replace("entry-", "");
           setActiveDate(date);
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, "", `#entry-${date}`);
+          }
         }
       },
       { root: null, rootMargin: "-10% 0px -70% 0px", threshold: 0 }
