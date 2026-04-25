@@ -238,7 +238,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
         {prevDate ? (
           <Link
             href={`/journal/${prevDate}`}
-            aria-keyshortcuts="ArrowLeft"
+            aria-keyshortcuts="ArrowLeft j"
             className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
           >
             <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
@@ -250,7 +250,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
         {nextDate ? (
           <Link
             href={`/journal/${nextDate}`}
-            aria-keyshortcuts="ArrowRight"
+            aria-keyshortcuts="ArrowRight k"
             className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
           >
             <span>{formatDateShort(nextDate)}</span>

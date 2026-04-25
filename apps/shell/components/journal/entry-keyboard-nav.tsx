@@ -22,10 +22,10 @@ export function EntryKeyboardNav({ prevDate, nextDate }: EntryKeyboardNavProps) 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
       if (isEditableTarget(e.target)) return;
-      if (e.key === "ArrowLeft" && prevDate) {
+      if ((e.key === "ArrowLeft" || e.key === "j") && prevDate) {
         e.preventDefault();
         router.push(`/journal/${prevDate}`);
-      } else if (e.key === "ArrowRight" && nextDate) {
+      } else if ((e.key === "ArrowRight" || e.key === "k") && nextDate) {
         e.preventDefault();
         router.push(`/journal/${nextDate}`);
       }
