@@ -126,6 +126,35 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  // j/k navigate between entries in the visible (filtered) list. The ref keeps
+  // the listener attached once across the parent's frequent re-renders (e.g.
+  // typing in the suggestion textarea) while still reading current values.
+  const navRef = useRef<{
+    dates: string[];
+    activeDate: string | null;
+    selectDate: (date: string) => void;
+  }>({ dates: [], activeDate: null, selectDate: () => {} });
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.key !== "j" && e.key !== "k") || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable) return;
+      }
+      const { dates, activeDate, selectDate } = navRef.current;
+      if (dates.length === 0 || !activeDate) return;
+      const idx = dates.indexOf(activeDate);
+      if (idx === -1) return;
+      const nextIdx = e.key === "j" ? idx + 1 : idx - 1;
+      if (nextIdx < 0 || nextIdx >= dates.length) return;
+      e.preventDefault();
+      selectDate(dates[nextIdx]);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   // Mobile responsive state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -255,6 +284,8 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
     : entries;
 
   const dates = filteredEntries.map((e) => e.date);
+
+  navRef.current = { dates, activeDate, selectDate: handleSelectDate };
 
   if (entries.length === 0) {
     return (
