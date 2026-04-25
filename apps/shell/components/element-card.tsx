@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import type { ElementConfig } from "@shane/types";
 import { CATEGORY_STYLES } from "@/lib/elements";
@@ -25,6 +26,45 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
   const isComingSoon = element.status === "coming-soon";
   const isExternal = element.type === "external";
   const tooltipText = isComingSoon ? "Coming soon" : element.description || null;
+  const tooltipRef = useRef<HTMLSpanElement | null>(null);
+
+  // Clamp tooltip horizontally so it never clips off the viewport — happens on
+  // narrow screens with long descriptions or when the card is near a viewport
+  // edge (column 1 / column 18, or after the user has horizontally scrolled
+  // the periodic table on mobile).
+  useEffect(() => {
+    if (!tooltipText) return;
+    const el = tooltipRef.current;
+    if (!el) return;
+
+    const PAD = 8;
+    let raf: number | null = null;
+    const measure = () => {
+      raf = null;
+      el.style.transform = "translateX(-50%)";
+      const rect = el.getBoundingClientRect();
+      if (rect.left < PAD) {
+        el.style.transform = `translateX(calc(-50% + ${Math.ceil(PAD - rect.left)}px))`;
+      } else if (rect.right > window.innerWidth - PAD) {
+        el.style.transform = `translateX(calc(-50% - ${Math.ceil(rect.right - window.innerWidth + PAD)}px))`;
+      }
+    };
+    const schedule = () => {
+      if (raf !== null) return;
+      raf = requestAnimationFrame(measure);
+    };
+
+    measure();
+    window.addEventListener("resize", schedule, { passive: true });
+    // capture: true catches scroll events from the periodic-table's
+    // overflow-x-auto container, which don't bubble to window otherwise.
+    window.addEventListener("scroll", schedule, { passive: true, capture: true });
+    return () => {
+      if (raf !== null) cancelAnimationFrame(raf);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, { capture: true });
+    };
+  }, [tooltipText]);
 
   const ariaLabel = isComingSoon
     ? `${element.name} (${element.symbol}) — coming soon`
@@ -49,8 +89,9 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
     >
       {tooltipText && (
         <span
+          ref={tooltipRef}
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/card:opacity-100 group-focus/card:opacity-100 group-active/card:opacity-100 transition-opacity duration-150 z-50 whitespace-nowrap rounded bg-gray-900 border border-white/10 px-2 py-1 text-[10px] text-gray-200 shadow-lg"
+          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/card:opacity-100 group-focus/card:opacity-100 group-active/card:opacity-100 transition-opacity duration-150 z-50 whitespace-normal text-center break-words max-w-[12rem] rounded bg-gray-900 border border-white/10 px-2 py-1 text-[10px] leading-snug text-gray-200 shadow-lg"
         >
           {tooltipText}
         </span>
