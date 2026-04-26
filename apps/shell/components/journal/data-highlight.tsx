@@ -19,6 +19,28 @@ type Segment = string | DataMarker;
 // Anchor JSON part to {…} to prevent [\s\S]+? matching across markers when JSON contains ]]
 const MARKER_REGEX = /\[\[data:([^|]+)\|([^|]*)\|(\{[\s\S]*?\})\]\]/g;
 
+// A marker is "hollow" when its JSON describes nothing the reader can inspect
+// (e.g. count=0 commits, blank calendar title). Rendering these as clickable
+// links tricks the reader into clicking on a tooltip that just shows {"count":0}.
+function isHollowMarkerData(type: string, data: unknown): boolean {
+  if (data === null || typeof data !== "object") return false;
+  const d = data as Record<string, unknown>;
+  const blankString = (v: unknown) => typeof v !== "string" || v.trim() === "";
+  switch (type.toLowerCase()) {
+    case "strava":
+    case "github":
+      // Quantifier types: hollow when there were zero events.
+      return d.count === 0 || d.count === undefined || d.count === null;
+    case "calendar":
+      // Event types: hollow when there is no title (some payloads use `summary`).
+      return blankString(d.title) && blankString(d.summary);
+    case "location":
+      return blankString(d.name);
+    default:
+      return false;
+  }
+}
+
 export function parseDataMarkers(text: string): Segment[] {
   const segments: Segment[] = [];
   let lastIndex = 0;
@@ -31,10 +53,14 @@ export function parseDataMarkers(text: string): Segment[] {
       segments.push(text.slice(lastIndex, start));
     }
 
-    // Validate JSON — render display as plain text if malformed
+    // Validate JSON — render display as plain text if malformed or hollow
     try {
-      JSON.parse(rawJson);
-      segments.push({ kind: "marker", type, display, rawJson });
+      const parsed = JSON.parse(rawJson);
+      if (isHollowMarkerData(type, parsed)) {
+        segments.push(display);
+      } else {
+        segments.push({ kind: "marker", type, display, rawJson });
+      }
     } catch {
       segments.push(display);
     }
