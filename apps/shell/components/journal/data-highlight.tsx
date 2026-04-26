@@ -227,9 +227,11 @@ function renderWithHighlight(text: string, query: string | undefined): React.Rea
 
 export function DataHighlight({ text, highlightQuery }: DataHighlightProps) {
   const segments = parseDataMarkers(text);
-  // If no markers, just return plain text (possibly with highlighting).
+  // If no marker objects survive, render the joined segments — not the
+  // original text. Hollow markers are dropped to display-only strings here,
+  // so passing `text` would leak the raw `[[data:...]]` markup into the DOM.
   if (segments.every((s) => typeof s === "string")) {
-    return <>{renderWithHighlight(text, highlightQuery)}</>;
+    return <>{renderWithHighlight(segments.join(""), highlightQuery)}</>;
   }
 
   return (
