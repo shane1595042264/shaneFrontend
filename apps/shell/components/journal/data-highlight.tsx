@@ -34,8 +34,16 @@ function isHollowMarkerData(type: string, data: unknown): boolean {
     case "calendar":
       // Event types: hollow when there is no title (some payloads use `summary`).
       return blankString(d.title) && blankString(d.summary);
-    case "location":
-      return blankString(d.name);
+    case "location": {
+      // The LLM emits at least two payload shapes for locations: the prompt
+      // example {name, duration_min} and an alternate {duration_min, locations:[]}
+      // it falls back to when there were no real stops. A NAMED location is
+      // still hollow when both quantitative fields explicitly say "nothing".
+      if (blankString(d.name)) return true;
+      const dur = typeof d.duration_min === "number" ? d.duration_min : null;
+      const locs = Array.isArray(d.locations) ? d.locations : null;
+      return dur === 0 && locs !== null && locs.length === 0;
+    }
     default:
       return false;
   }
