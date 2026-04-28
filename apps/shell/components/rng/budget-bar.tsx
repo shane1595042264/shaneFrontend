@@ -13,14 +13,17 @@ function formatMoney(n: number | null): string {
 function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleGetToken() {
     setLoading(true);
+    setError(null);
     try {
       const token = await createPlaidLinkToken();
       setLinkToken(token);
     } catch (err) {
       console.error("Failed to create link token:", err);
+      setError(err instanceof Error ? err.message : "Failed to start bank connect");
     } finally {
       setLoading(false);
     }
@@ -28,11 +31,13 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 
   const onSuccess = useCallback(
     async (publicToken: string) => {
+      setError(null);
       try {
         await exchangePlaidToken(publicToken);
         onConnected();
       } catch (err) {
         console.error("Failed to exchange token:", err);
+        setError(err instanceof Error ? err.message : "Failed to link bank account");
       }
     },
     [onConnected]
@@ -43,19 +48,15 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
     onSuccess,
   });
 
-  if (!linkToken) {
-    return (
-      <button
-        onClick={handleGetToken}
-        disabled={loading}
-        className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm disabled:opacity-50"
-      >
-        {loading ? "Loading..." : "Connect Bank"}
-      </button>
-    );
-  }
-
-  return (
+  const button = !linkToken ? (
+    <button
+      onClick={handleGetToken}
+      disabled={loading}
+      className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm disabled:opacity-50"
+    >
+      {loading ? "Loading..." : "Connect Bank"}
+    </button>
+  ) : (
     <button
       onClick={() => open()}
       disabled={!ready}
@@ -63,6 +64,15 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
     >
       {ready ? "Connect Bank" : "Loading..."}
     </button>
+  );
+
+  if (!error) return button;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {button}
+      <p className="text-xs text-red-400">{error}</p>
+    </div>
   );
 }
 
