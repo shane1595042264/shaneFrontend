@@ -204,7 +204,12 @@ export default async function JournalEntryPage({ params }: PageProps) {
       name: "Shane Li",
       url: SITE_URL,
     },
-    image: `${SITE_URL}/journal/${date}/opengraph-image`,
+    image: {
+      "@type": "ImageObject",
+      url: `${SITE_URL}/journal/${date}/opengraph-image`,
+      width: 1200,
+      height: 630,
+    },
     url: entryUrl,
     mainEntityOfPage: {
       "@type": "WebPage",
