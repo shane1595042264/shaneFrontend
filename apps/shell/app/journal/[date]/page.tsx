@@ -218,6 +218,14 @@ export default async function JournalEntryPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
       />
+      {/* rel=prev/next hint search engines and reader-mode tools to the entry sequence.
+          React 19 hoists <link> tags rendered here into <head>. */}
+      {prevDate ? (
+        <link rel="prev" href={`${SITE_URL}/journal/${prevDate}`} />
+      ) : null}
+      {nextDate ? (
+        <link rel="next" href={`${SITE_URL}/journal/${nextDate}`} />
+      ) : null}
       <Link
         href="/journal"
         className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors print:hidden"
