@@ -8,10 +8,10 @@ export default function NotFound() {
           ?
         </div>
         <h2 className="text-lg font-semibold text-gray-100">
-          Element not found
+          Page not found
         </h2>
         <p className="text-sm text-gray-400">
-          This element doesn&apos;t exist in the periodic table yet.
+          This page doesn&apos;t exist.
         </p>
         <Link
           href="/"
