@@ -91,7 +91,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         robots: { index: false, follow: true },
       };
     }
-    return { title: "Entry Not Found — Journal — Shane" };
+    // Soft-404 for valid-format dates with no entry: keep the friendly fallback UI
+    // but tell crawlers not to index this empty page (still let them follow links back).
+    return {
+      title: "Entry Not Found — Journal — Shane",
+      robots: { index: false, follow: true },
+    };
   }
 
   const snippet = buildSnippet(data.entry.content);
