@@ -14,7 +14,15 @@ const SITE_URL = "https://shanejli.com";
 // fetchEntryServer / fetchNeighbors revalidate so outer-page and upstream-API
 // caches stay aligned. Past entries are de-facto immutable; today's placeholder
 // is cheap to cache. Saves SSR work on every crawl/visit.
+//
+// generateStaticParams returning [] is what flips Next.js 15 from "force-dynamic"
+// to ISR for dynamic-param routes — without it, `revalidate` alone is ignored
+// and Cache-Control stays private, no-cache. dynamicParams defaults to true so
+// any /journal/<yyyy-mm-dd> is still rendered on demand and cached for 300s.
 export const revalidate = 300;
+export async function generateStaticParams() {
+  return [];
+}
 
 interface PageProps {
   params: Promise<{ date: string }>;
