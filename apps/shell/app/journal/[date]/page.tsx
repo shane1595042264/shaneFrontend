@@ -221,12 +221,25 @@ export default async function JournalEntryPage({ params }: PageProps) {
       "@id": entryUrl,
     },
   };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Shane", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Journal", item: `${SITE_URL}/journal` },
+      { "@type": "ListItem", position: 3, name: formatDate(date), item: entryUrl },
+    ],
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdSafe(breadcrumbJsonLd) }}
       />
       {/* rel=prev/next hint search engines and reader-mode tools to the entry sequence.
           React 19 hoists <link> tags rendered here into <head>. */}
