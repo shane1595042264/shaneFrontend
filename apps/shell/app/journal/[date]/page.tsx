@@ -10,6 +10,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 const SITE_URL = "https://shanejli.com";
 
+// ISR: cache the rendered HTML at the edge for 5 min, matching the inner
+// fetchEntryServer / fetchNeighbors revalidate so outer-page and upstream-API
+// caches stay aligned. Past entries are de-facto immutable; today's placeholder
+// is cheap to cache. Saves SSR work on every crawl/visit.
+export const revalidate = 300;
+
 interface PageProps {
   params: Promise<{ date: string }>;
 }
