@@ -171,13 +171,16 @@ export default function KnowledgePage() {
       </div>
 
       {entries.length === 0 && !initError ? (
-        <div className="text-center py-16 text-gray-600">
-          <p className="text-lg mb-2">No knowledge entries yet</p>
-          <p className="text-sm">
-            Type anything you learned above. AI will classify it into the right
-            category automatically.
-          </p>
-        </div>
+        <EmptyState
+          search={debouncedSearch}
+          category={selectedCategory}
+          onClearSearch={() => setSearch("")}
+          onClearCategory={() => setSelectedCategory("")}
+          onClearAll={() => {
+            setSearch("");
+            setSelectedCategory("");
+          }}
+        />
       ) : (
         <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
           {entries.map((entry) => (
@@ -237,6 +240,78 @@ export default function KnowledgePage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+interface EmptyStateProps {
+  search: string;
+  category: string;
+  onClearSearch: () => void;
+  onClearCategory: () => void;
+  onClearAll: () => void;
+}
+
+function EmptyState({
+  search,
+  category,
+  onClearSearch,
+  onClearCategory,
+  onClearAll,
+}: EmptyStateProps) {
+  const hasSearch = search.length > 0;
+  const hasCategory = category.length > 0;
+
+  if (!hasSearch && !hasCategory) {
+    return (
+      <div className="text-center py-16 text-gray-600">
+        <p className="text-lg mb-2">No knowledge entries yet</p>
+        <p className="text-sm">
+          Type anything you learned above. AI will classify it into the right
+          category automatically.
+        </p>
+      </div>
+    );
+  }
+
+  let heading: string;
+  if (hasSearch && hasCategory) {
+    heading = `No entries in ${category} match your search`;
+  } else if (hasSearch) {
+    heading = "No entries match your search";
+  } else {
+    heading = `No entries in ${category} yet`;
+  }
+
+  return (
+    <div className="text-center py-16 text-gray-600">
+      <p className="text-lg mb-4 capitalize">{heading}</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        {hasSearch && hasCategory && (
+          <button
+            onClick={onClearAll}
+            className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-300 transition-colors"
+          >
+            Clear all filters
+          </button>
+        )}
+        {hasSearch && !hasCategory && (
+          <button
+            onClick={onClearSearch}
+            className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-300 transition-colors"
+          >
+            Clear search
+          </button>
+        )}
+        {hasCategory && !hasSearch && (
+          <button
+            onClick={onClearCategory}
+            className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-300 transition-colors"
+          >
+            See all entries
+          </button>
+        )}
+      </div>
     </div>
   );
 }
