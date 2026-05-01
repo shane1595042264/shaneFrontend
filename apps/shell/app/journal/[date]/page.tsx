@@ -211,18 +211,21 @@ export default async function JournalEntryPage({ params }: PageProps) {
   };
 
   const entryUrl = `${SITE_URL}/journal/${date}`;
+  const personEntity = {
+    "@type": "Person" as const,
+    name: "Shane Li",
+    url: SITE_URL,
+  };
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: `${formatDate(date)} — Journal — Shane`,
     description: buildSnippet(data.entry.content),
+    inLanguage: "en-US",
     datePublished: data.entry.createdAt,
     dateModified: data.entry.updatedAt,
-    author: {
-      "@type": "Person",
-      name: "Shane Li",
-      url: SITE_URL,
-    },
+    author: personEntity,
+    publisher: personEntity,
     image: {
       "@type": "ImageObject",
       url: `${SITE_URL}/journal/${date}/opengraph-image`,
