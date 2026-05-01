@@ -509,7 +509,9 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
                     )}
                     <article id={`entry-${todayStr}`}>
                       <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
-                        {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                        <time dateTime={todayStr}>
+                          {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                        </time>
                         <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
                           Today
                         </span>

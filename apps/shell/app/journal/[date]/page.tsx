@@ -174,7 +174,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
           </Link>
           <article className="pb-8">
             <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
-              {formatDate(date)}
+              <time dateTime={date}>{formatDate(date)}</time>
               <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
                 Today
               </span>
