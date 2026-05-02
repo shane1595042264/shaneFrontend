@@ -30,8 +30,16 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body>
         <Providers>
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-zinc-950 focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-zinc-950"
+          >
+            Skip to main content
+          </a>
           <NavBar />
-          <main className="min-h-screen">{children}</main>
+          <main id="main-content" tabIndex={-1} className="min-h-screen focus:outline-none">
+            {children}
+          </main>
         </Providers>
       </body>
     </html>
