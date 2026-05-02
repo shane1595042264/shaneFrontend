@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -15,11 +15,16 @@ export default function EditEntryPage() {
   const isNew = search.get("new") === "1";
   const { user, loading: authLoading } = useAuth();
   const [content, setContent] = useState("");
+  const [initialContent, setInitialContent] = useState("");
   const [versionNum, setVersionNum] = useState<number | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
+  // Set right before router.push on a successful save so the beforeunload
+  // listener doesn't fire during the in-app navigation that follows.
+  const skipPromptRef = useRef(false);
+  const dirty = content !== initialContent;
 
   useEffect(() => {
     if (isNew) return;
@@ -27,12 +32,24 @@ export default function EditEntryPage() {
       .then((r: EntryDetail | null) => {
         if (r) {
           setContent(r.content);
+          setInitialContent(r.content);
           setVersionNum(r.currentVersionNum);
           setAuthorId(r.entry.authorId);
         }
       })
       .finally(() => setLoading(false));
   }, [date, isNew]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      if (skipPromptRef.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   if (authLoading || loading) {
     return <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
@@ -73,6 +90,7 @@ export default function EditEntryPage() {
       } else {
         throw new Error("No version number — cannot edit");
       }
+      skipPromptRef.current = true;
       router.push(`/journal/${date}`);
     } catch (err: any) {
       if (err.message === "ENTRY_EXISTS") {
@@ -113,7 +131,11 @@ export default function EditEntryPage() {
           {saving ? "Saving…" : isNew ? "Publish" : "Save new version"}
         </button>
         <button
-          onClick={() => router.push(`/journal/${date}`)}
+          onClick={() => {
+            if (dirty && !window.confirm("Discard unsaved changes?")) return;
+            skipPromptRef.current = true;
+            router.push(`/journal/${date}`);
+          }}
           className="rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5"
         >
           Cancel
