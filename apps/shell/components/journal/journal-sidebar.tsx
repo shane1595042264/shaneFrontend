@@ -22,6 +22,7 @@ interface JournalSidebarProps {
   totalCount: number; // total entries before filtering
   inputRef?: React.Ref<HTMLInputElement>;
   showKbdHint?: boolean; // render "/" kbd badge when query empty; only on desktop sidebar
+  onShowShortcuts?: () => void; // opens the keyboard shortcuts help dialog
 }
 
 type Tree = Record<number, Record<number, number[]>>; // year -> month -> days[]
@@ -37,7 +38,7 @@ function buildTree(dates: string[]): Tree {
   return tree;
 }
 
-export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, onSearchChange, totalCount, inputRef, showKbdHint }: JournalSidebarProps) {
+export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, onSearchChange, totalCount, inputRef, showKbdHint, onShowShortcuts }: JournalSidebarProps) {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1; // 1-indexed
@@ -183,6 +184,19 @@ export function JournalSidebar({ dates, activeDate, onSelectDate, searchQuery, o
           <div className="text-gray-500 mt-1 px-0.5">
             {dates.length} of {totalCount} entries
           </div>
+        )}
+        {!searchQuery && showKbdHint && onShowShortcuts && (
+          <button
+            type="button"
+            onClick={onShowShortcuts}
+            className="mt-1.5 text-[10px] text-gray-600 hover:text-gray-400 transition-colors px-0.5 flex items-center gap-1"
+          >
+            <span>Press</span>
+            <kbd className="inline-flex items-center justify-center h-3.5 min-w-3.5 px-1 rounded border border-white/15 bg-white/5 text-[10px] leading-none text-gray-500 font-mono">
+              ?
+            </kbd>
+            <span>for shortcuts</span>
+          </button>
         )}
       </div>
 

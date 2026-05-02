@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { DiaryEntry, NormalizedActivity } from "@shane/types";
 import { EntryRenderer } from "@/components/journal/entry-renderer";
 import { JournalSidebar } from "@/components/journal/journal-sidebar";
+import { KeyboardShortcutsDialog } from "@/components/journal/keyboard-shortcuts-dialog";
 import { fetchEntry, submitSuggestion, regenerateEntry, fetchFacts, deleteFact } from "@/lib/journal-api";
 import { stripDataMarkers } from "@/lib/journal-text";
 import type { LearnedFact } from "@shane/types";
@@ -158,6 +159,24 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
   // Mobile responsive state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+
+  // Keyboard shortcuts help dialog. "?" (Shift+/) toggles. Skipped while
+  // typing in inputs so it doesn't fire when the user types a literal ?.
+  const [helpOpen, setHelpOpen] = useState(false);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "?" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable) return;
+      }
+      e.preventDefault();
+      setHelpOpen((v) => !v);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // Fetch activities when active date changes
   useEffect(() => {
@@ -456,7 +475,15 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
           <span className="text-sm">◧</span>
           <span>Activity</span>
         </button>
+        <button
+          onClick={() => setHelpOpen(true)}
+          aria-label="Show keyboard shortcuts"
+          className="ml-auto flex items-center justify-center w-7 h-7 text-xs rounded border border-white/10 text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
+        >
+          ?
+        </button>
       </div>
+      <KeyboardShortcutsDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
 
       <div className="flex min-h-0 flex-1">
         {/* Mobile sidebar overlay — below md */}
@@ -475,7 +502,7 @@ export function JournalDocument({ entries }: JournalDocumentProps) {
 
         {/* Left sidebar — hidden on mobile, visible from md up */}
         <div className="hidden md:block w-44 flex-shrink-0 border-r border-white/8 overflow-y-auto">
-          <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={handleSelectDate} searchQuery={searchQuery} onSearchChange={setSearchQuery} totalCount={entries.length} inputRef={searchInputRef} showKbdHint />
+          <JournalSidebar dates={dates} activeDate={activeDate} onSelectDate={handleSelectDate} searchQuery={searchQuery} onSearchChange={setSearchQuery} totalCount={entries.length} inputRef={searchInputRef} showKbdHint onShowShortcuts={() => setHelpOpen(true)} />
         </div>
 
         {/* Center — document */}
