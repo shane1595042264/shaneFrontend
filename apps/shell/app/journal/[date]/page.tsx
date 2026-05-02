@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EntryRenderer } from "@/components/journal/entry-renderer";
+import { EntryBody } from "@/components/journal/entry-body";
+import { EntryActions } from "@/components/journal/entry-actions";
 import { EntryKeyboardNav } from "@/components/journal/entry-keyboard-nav";
 import { ShareActions } from "@/components/journal/share-actions";
-import { stripDataMarkers } from "@/lib/journal-text";
+import { readingTimeMinutes } from "@/lib/journal-text";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
@@ -46,7 +47,19 @@ async function fetchEntryServer(date: string) {
     });
     if (!res.ok) return null;
     return res.json() as Promise<{
-      entry: { id: string; date: string; content: string; voiceProfileVersion: number | null; createdAt: string; updatedAt: string };
+      entry: {
+        id: string;
+        date: string;
+        authorId: string;
+        status: string;
+        editCount: number;
+        pendingSuggestionCount: number;
+        currentVersionId: string | null;
+        createdAt: string;
+        updatedAt: string;
+      };
+      content: string;
+      currentVersionNum: number;
     }>;
   } catch {
     return null;
@@ -72,7 +85,7 @@ function formatDateShort(dateStr: string): string {
 }
 
 function buildSnippet(content: string): string {
-  const plain = stripDataMarkers(content);
+  const plain = content.replace(/\[\[data:[^|]+\|([^|]+)\|[\s\S]+?\]\]/g, "$1");
   return plain.length > 200 ? plain.slice(0, 200).trimEnd() + "..." : plain;
 }
 
@@ -113,7 +126,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const snippet = buildSnippet(data.entry.content);
+  const snippet = buildSnippet(data.content);
   const title = `${formatDate(date)} — Journal — Shane`;
   const canonicalUrl = `${SITE_URL}/journal/${date}`;
   const ogImagePath = `/journal/${date}/opengraph-image`;
@@ -180,7 +193,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
               </span>
             </h2>
             <p className="text-gray-500 text-sm italic">
-              Today&apos;s entry will be generated at 11:00 PM.
+              No entry yet for today. Sign in to write one.
             </p>
           </article>
         </div>
@@ -201,15 +214,6 @@ export default async function JournalEntryPage({ params }: PageProps) {
     );
   }
 
-  const entry = {
-    id: data.entry.id,
-    date: data.entry.date,
-    content: data.entry.content,
-    voiceProfileVersion: data.entry.voiceProfileVersion ?? 0,
-    createdAt: data.entry.createdAt,
-    updatedAt: data.entry.updatedAt,
-  };
-
   const entryUrl = `${SITE_URL}/journal/${date}`;
   const personEntity = {
     "@type": "Person" as const,
@@ -220,7 +224,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: `${formatDate(date)} — Journal — Shane`,
-    description: buildSnippet(data.entry.content),
+    description: buildSnippet(data.content),
     inLanguage: "en-US",
     datePublished: data.entry.createdAt,
     dateModified: data.entry.updatedAt,
@@ -272,9 +276,26 @@ export default async function JournalEntryPage({ params }: PageProps) {
       >
         &larr; All entries
       </Link>
-      <EntryRenderer entry={entry} isToday={isToday} />
 
-      <ShareActions date={entry.date} formattedDate={formatDate(entry.date)} />
+      <article className="pb-8">
+        <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
+          <time dateTime={data.entry.date}>{formatDate(data.entry.date)}</time>
+          {isToday && (
+            <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
+              Today
+            </span>
+          )}
+          <span className="ml-auto text-xs font-normal text-gray-500">
+            {readingTimeMinutes(data.content)} min read
+          </span>
+        </h2>
+        <EntryActions date={data.entry.date} authorId={data.entry.authorId} />
+        <div className="mt-4">
+          <EntryBody content={data.content} />
+        </div>
+      </article>
+
+      <ShareActions date={data.entry.date} formattedDate={formatDate(data.entry.date)} />
 
       {/* Print-only canonical URL footer (so a printed/PDF page is self-attributing) */}
       <p className="hidden print:block mt-8 pt-4 border-t border-gray-300 text-xs text-gray-600">
