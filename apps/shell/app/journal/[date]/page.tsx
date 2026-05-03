@@ -36,7 +36,7 @@ function getTodayUtcStr(): string {
 async function fetchEntryServer(date: string) {
   try {
     const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${date}`, {
-      next: { revalidate: 300 },
+      cache: "no-store",
     });
     if (!res.ok) return null;
     return res.json() as Promise<{
@@ -63,7 +63,7 @@ async function fetchNeighbors(date: string): Promise<{ prev: string | null; next
   try {
     const res = await fetch(
       `${JOURNAL_API_URL}/api/journal/entries/${date}/neighbors`,
-      { next: { revalidate: 300 } }
+      { cache: "no-store" }
     );
     if (!res.ok) return { prev: null, next: null };
     return (await res.json()) as { prev: string | null; next: string | null };
