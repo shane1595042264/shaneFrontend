@@ -11,19 +11,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 const SITE_URL = "https://shanejli.com";
 
-// ISR: cache the rendered HTML at the edge for 5 min, matching the inner
-// fetchEntryServer / fetchNeighbors revalidate so outer-page and upstream-API
-// caches stay aligned. Past entries are de-facto immutable; today's placeholder
-// is cheap to cache. Saves SSR work on every crawl/visit.
-//
-// generateStaticParams returning [] is what flips Next.js 15 from "force-dynamic"
-// to ISR for dynamic-param routes — without it, `revalidate` alone is ignored
-// and Cache-Control stays private, no-cache. dynamicParams defaults to true so
-// any /journal/<yyyy-mm-dd> is still rendered on demand and cached for 300s.
-export const revalidate = 300;
-export async function generateStaticParams() {
-  return [];
-}
+// Force-dynamic during the journal pivot: writes (create / edit / revert)
+// must be instantly visible to the author. ISR with revalidate=300 caused
+// stale "no entry yet" pages to be served from Vercel's edge cache for up
+// to 5 minutes after a write. Re-add ISR + revalidatePath('/journal/[date]')
+// from a server action when wiring suggestions in Phase 3 / 4.
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ date: string }>;
