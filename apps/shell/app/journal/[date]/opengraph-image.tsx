@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { toPlainExcerpt } from "@/lib/journal-text";
 
 export const alt = "Journal entry — Shane";
 export const size = { width: 1200, height: 630 };
@@ -6,6 +7,8 @@ export const contentType = "image/png";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
+const FALLBACK_BODY =
+  "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.";
 
 interface Props {
   params: Promise<{ date: string }>;
@@ -25,23 +28,14 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function stripDataMarkers(text: string): string {
-  return text.replace(/\[\[data:[^|]+\|([^|]+)\|[\s\S]+?\]\]/g, "$1");
-}
-
-function buildSnippet(content: string, maxLen = 200): string {
-  const plain = stripDataMarkers(content).replace(/\s+/g, " ").trim();
-  return plain.length > maxLen ? plain.slice(0, maxLen).trimEnd() + "…" : plain;
-}
-
 async function fetchEntry(date: string): Promise<string | null> {
   try {
     const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${date}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { entry?: { content?: string } };
-    return data.entry?.content ?? null;
+    const data = (await res.json()) as { entry?: { content?: string }; content?: string };
+    return data.content ?? data.entry?.content ?? null;
   } catch {
     return null;
   }
@@ -52,9 +46,7 @@ export default async function Image({ params }: Props) {
   const validDate = isValidDate(date);
   const content = validDate ? await fetchEntry(date) : null;
   const dateHeading = validDate ? formatDate(date) : "Journal — Shane";
-  const body = content
-    ? buildSnippet(content)
-    : "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.";
+  const body = content ? toPlainExcerpt(content, 200, "…") : FALLBACK_BODY;
 
   return new ImageResponse(
     (

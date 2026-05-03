@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Shane's Journal — AI-generated daily entries";
+export const alt = "Shane's Journal — daily entries";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -78,8 +78,8 @@ export default async function Image() {
             maxWidth: 960,
           }}
         >
-          AI-generated daily entries from my life — workouts, code, travel, and
-          everything in between.
+          Workouts, code, travel, and the texture of ordinary days — written
+          daily, kept honest.
         </div>
 
         <div

@@ -1,7 +1,11 @@
+import { toPlainExcerpt } from "@/lib/journal-text";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 const SITE_URL = "https://shanejli.com";
 const FEED_URL = `${SITE_URL}/journal/feed.xml`;
+const FEED_DESCRIPTION =
+  "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.";
 const MAX_ENTRIES = 50;
 const EXCERPT_LEN = 400;
 
@@ -10,12 +14,6 @@ type EntryRow = {
   content: string;
   updatedAt: string;
 };
-
-// Legacy data-marker strip — harmless on plain markdown post-pivot.
-function stripDataMarkers(text: string): string {
-  if (!text) return "";
-  return text.replace(/\[\[data:[^|]+\|([^|]+)\|[\s\S]*?\]\]/g, "$1");
-}
 
 function escapeXml(text: string): string {
   return text
@@ -35,13 +33,6 @@ function formatTitle(date: string): string {
     day: "numeric",
     timeZone: "UTC",
   });
-}
-
-function buildExcerpt(content: string): string {
-  const plain = stripDataMarkers(content).replace(/\s+/g, " ").trim();
-  return plain.length > EXCERPT_LEN
-    ? plain.slice(0, EXCERPT_LEN).trimEnd() + "..."
-    : plain;
 }
 
 async function fetchEntries(): Promise<EntryRow[]> {
@@ -90,7 +81,7 @@ export async function GET() {
   const items = entries.map((entry) => {
     const title = formatTitle(entry.date);
     const link = `${SITE_URL}/journal/${entry.date}`;
-    const excerpt = buildExcerpt(entry.content);
+    const excerpt = toPlainExcerpt(entry.content, EXCERPT_LEN);
     const pubDate = new Date(entry.updatedAt).toUTCString();
     return `    <item>
       <title>${escapeXml(title)}</title>
@@ -106,7 +97,7 @@ export async function GET() {
   <channel>
     <title>Shane's Journal</title>
     <link>${SITE_URL}/journal</link>
-    <description>AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.</description>
+    <description>${escapeXml(FEED_DESCRIPTION)}</description>
     <language>en-us</language>
     <lastBuildDate>${lastBuildDate}</lastBuildDate>
     <atom:link href="${FEED_URL}" rel="self" type="application/rss+xml"/>

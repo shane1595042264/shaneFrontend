@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Journal — Shane",
   description:
-    "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",
+    "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.",
   alternates: {
     canonical: "https://shanejli.com/journal",
     types: {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Journal — Shane",
     description:
-      "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",
+      "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.",
     url: "https://shanejli.com/journal",
     siteName: "Shane — Periodic Table of Life",
     type: "website",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Journal — Shane",
     description:
-      "AI-generated daily journal entries from Shane's life — workouts, code, travel, and more.",
+      "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.",
     images: ["/journal/opengraph-image"],
   },
 };
