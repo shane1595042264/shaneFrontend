@@ -68,13 +68,7 @@ export default function EditEntryPage() {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
         <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
-        <p className="mt-4">Only the entry author can edit directly. Try suggesting an edit instead.</p>
-        <Link
-          href={`/journal/${date}/suggest`}
-          className="mt-3 inline-block rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500"
-        >
-          Suggest edit
-        </Link>
+        <p className="mt-4">Only the entry author can edit directly.</p>
       </div>
     );
   }

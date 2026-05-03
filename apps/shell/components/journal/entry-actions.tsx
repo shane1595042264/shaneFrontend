@@ -28,14 +28,6 @@ export function EntryActions({ date, authorId }: Props) {
           Edit
         </Link>
       )}
-      {!loading && user && user.id !== authorId && (
-        <Link
-          href={`/journal/${date}/suggest`}
-          className="text-gray-500 hover:text-gray-300 transition-colors"
-        >
-          Suggest edit
-        </Link>
-      )}
     </div>
   );
 }
