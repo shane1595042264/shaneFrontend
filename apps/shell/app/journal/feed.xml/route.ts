@@ -11,8 +11,9 @@ type EntryRow = {
   updatedAt: string;
 };
 
-// Keep in sync with backend /api/journal/feed
+// Legacy data-marker strip — harmless on plain markdown post-pivot.
 function stripDataMarkers(text: string): string {
+  if (!text) return "";
   return text.replace(/\[\[data:[^|]+\|([^|]+)\|[\s\S]*?\]\]/g, "$1");
 }
 
@@ -45,13 +46,32 @@ function buildExcerpt(content: string): string {
 
 async function fetchEntries(): Promise<EntryRow[]> {
   try {
+    // Post-pivot: list endpoint returns metadata only ({entries, nextCursor});
+    // content lives on the per-date GET. Fetch list, then hydrate content per entry.
     const res = await fetch(
-      `${JOURNAL_API_URL}/api/journal/entries?limit=${MAX_ENTRIES}&offset=0`,
+      `${JOURNAL_API_URL}/api/journal/entries?limit=${MAX_ENTRIES}`,
       { next: { revalidate: 3600 } }
     );
     if (!res.ok) return [];
-    const data = (await res.json()) as { entries: EntryRow[] };
-    return data.entries ?? [];
+    const list = (await res.json()) as { entries: Array<{ date: string; updatedAt: string }> };
+    const meta = list.entries ?? [];
+    if (meta.length === 0) return [];
+
+    const detailed = await Promise.all(
+      meta.map(async (m) => {
+        try {
+          const r = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${m.date}`, {
+            next: { revalidate: 3600 },
+          });
+          if (!r.ok) return null;
+          const d = (await r.json()) as { entry: { updatedAt: string }; content: string };
+          return { date: m.date, content: d.content ?? "", updatedAt: d.entry.updatedAt ?? m.updatedAt };
+        } catch {
+          return null;
+        }
+      })
+    );
+    return detailed.filter((e): e is EntryRow => e !== null);
   } catch {
     return [];
   }
