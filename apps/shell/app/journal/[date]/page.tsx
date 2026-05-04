@@ -8,7 +8,7 @@ import { ShareActions } from "@/components/journal/share-actions";
 import { CommentsThread } from "@/components/journal/comments-thread";
 import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
 import { ActivitySidebar } from "@/components/journal/activity-sidebar";
-import { readingTimeMinutes } from "@/lib/journal-text";
+import { readingTimeMinutes, toPlainExcerpt } from "@/lib/journal-text";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
@@ -80,9 +80,12 @@ function formatDateShort(dateStr: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Plain-text snippet for meta description / OG / Twitter / JSON-LD. 155 chars
+// fits Google's SERP description target; stripping markdown + collapsing
+// newlines is required because Next.js drops description fields with raw \n.
+const META_DESCRIPTION_LEN = 155;
 function buildSnippet(content: string): string {
-  const plain = content.replace(/\[\[data:[^|]+\|([^|]+)\|[\s\S]+?\]\]/g, "$1");
-  return plain.length > 200 ? plain.slice(0, 200).trimEnd() + "..." : plain;
+  return toPlainExcerpt(content, META_DESCRIPTION_LEN);
 }
 
 // Escape `<` so an entry containing "</script>" cannot break out of the JSON-LD tag.
