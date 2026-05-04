@@ -75,7 +75,7 @@ export default function SuggestionDetailPage() {
     setBusy(true);
     setError(null);
     try {
-      await approveSuggestion(id, currentNum);
+      await approveSuggestion(id, currentNum, date);
       router.push(`/journal/${date}`);
     } catch (e: any) {
       if (e.message === "VERSION_CONFLICT") {
@@ -99,7 +99,7 @@ export default function SuggestionDetailPage() {
     setBusy(true);
     setError(null);
     try {
-      await rejectSuggestion(id, reason);
+      await rejectSuggestion(id, reason, date);
       router.push(`/journal/${date}/suggestions`);
     } catch (e: any) {
       setError(e.message ?? "Reject failed");
@@ -113,7 +113,7 @@ export default function SuggestionDetailPage() {
     setBusy(true);
     setError(null);
     try {
-      await withdrawSuggestion(id);
+      await withdrawSuggestion(id, date);
       router.push(`/journal/${date}/suggestions`);
     } catch (e: any) {
       setError(e.message ?? "Withdraw failed");

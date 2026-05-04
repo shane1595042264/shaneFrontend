@@ -14,12 +14,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 const SITE_URL = "https://shanejli.com";
 
-// Force-dynamic during the journal pivot: writes (create / edit / revert)
-// must be instantly visible to the author. ISR with revalidate=300 caused
-// stale "no entry yet" pages to be served from Vercel's edge cache for up
-// to 5 minutes after a write. Re-add ISR + revalidatePath('/journal/[date]')
-// from a server action when wiring suggestions in Phase 3 / 4.
-export const dynamic = "force-dynamic";
+// ISR with explicit revalidation: cache the rendered detail HTML at the edge for
+// 5 min for crawlers/idle traffic, but every mutation (create/edit/revert and
+// suggestion approve/reject/withdraw) calls revalidateJournalEntry, which fires
+// revalidatePath for both this page and the /journal index — so authors see
+// their writes instantly without waiting for the 5 min window to elapse.
+export const revalidate = 300;
 
 interface PageProps {
   params: Promise<{ date: string }>;
@@ -39,7 +39,7 @@ function getTodayUtcStr(): string {
 async function fetchEntryServer(date: string) {
   try {
     const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${date}`, {
-      cache: "no-store",
+      next: { revalidate: 300 },
     });
     if (!res.ok) return null;
     return res.json() as Promise<{
@@ -66,7 +66,7 @@ async function fetchNeighbors(date: string): Promise<{ prev: string | null; next
   try {
     const res = await fetch(
       `${JOURNAL_API_URL}/api/journal/entries/${date}/neighbors`,
-      { cache: "no-store" }
+      { next: { revalidate: 300 } }
     );
     if (!res.ok) return { prev: null, next: null };
     return (await res.json()) as { prev: string | null; next: string | null };

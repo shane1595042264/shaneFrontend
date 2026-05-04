@@ -1,5 +1,6 @@
 // apps/shell/lib/api/journal.ts
 import { getAuthHeaders } from "@/lib/auth-api";
+import { revalidateJournalEntry } from "@/lib/journal-revalidate";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -58,7 +59,9 @@ export async function createEntry(date: string, content: string): Promise<{ entr
   });
   if (res.status === 409) throw new Error("ENTRY_EXISTS");
   if (!res.ok) throw new Error("Failed to create entry");
-  return res.json();
+  const json = await res.json();
+  await revalidateJournalEntry(date).catch(() => {});
+  return json;
 }
 
 export async function editEntry(date: string, content: string, ifMatch: number) {
@@ -74,7 +77,9 @@ export async function editEntry(date: string, content: string, ifMatch: number) 
     throw e;
   }
   if (!res.ok) throw new Error("Failed to edit entry");
-  return res.json() as Promise<{ versionNum: number; versionId: string }>;
+  const json = (await res.json()) as { versionNum: number; versionId: string };
+  await revalidateJournalEntry(date).catch(() => {});
+  return json;
 }
 
 export async function deleteEntry(date: string): Promise<void> {
@@ -110,5 +115,7 @@ export async function revertEntry(date: string, targetVersionNum: number, ifMatc
     throw e;
   }
   if (!res.ok) throw new Error("Failed to revert");
-  return res.json() as Promise<{ versionNum: number; versionId: string }>;
+  const json = (await res.json()) as { versionNum: number; versionId: string };
+  await revalidateJournalEntry(date).catch(() => {});
+  return json;
 }

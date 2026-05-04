@@ -1,5 +1,6 @@
 // apps/shell/lib/api/suggestions.ts
 import { getAuthHeaders } from "@/lib/auth-api";
+import { revalidateJournalEntry } from "@/lib/journal-revalidate";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -56,7 +57,7 @@ export async function getSuggestion(id: string): Promise<Suggestion> {
   return (await res.json()).suggestion;
 }
 
-export async function approveSuggestion(id: string, ifMatch: number) {
+export async function approveSuggestion(id: string, ifMatch: number, date: string) {
   const res = await fetch(`${API_URL}/api/journal/suggestions/${id}/approve`, {
     method: "PATCH",
     headers: { ...getAuthHeaders(), "If-Match": String(ifMatch) },
@@ -68,26 +69,32 @@ export async function approveSuggestion(id: string, ifMatch: number) {
     throw e;
   }
   if (!res.ok) throw new Error("Failed to approve");
-  return res.json() as Promise<{ versionNum: number; versionId: string }>;
+  const json = (await res.json()) as { versionNum: number; versionId: string };
+  await revalidateJournalEntry(date).catch(() => {});
+  return json;
 }
 
-export async function rejectSuggestion(id: string, reason?: string) {
+export async function rejectSuggestion(id: string, reason: string | undefined, date: string) {
   const res = await fetch(`${API_URL}/api/journal/suggestions/${id}/reject`, {
     method: "PATCH",
     headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ reason }),
   });
   if (!res.ok) throw new Error("Failed to reject");
-  return (await res.json()).suggestion as Suggestion;
+  const suggestion = (await res.json()).suggestion as Suggestion;
+  await revalidateJournalEntry(date).catch(() => {});
+  return suggestion;
 }
 
-export async function withdrawSuggestion(id: string) {
+export async function withdrawSuggestion(id: string, date: string) {
   const res = await fetch(`${API_URL}/api/journal/suggestions/${id}/withdraw`, {
     method: "PATCH",
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Failed to withdraw");
-  return (await res.json()).suggestion as Suggestion;
+  const suggestion = (await res.json()).suggestion as Suggestion;
+  await revalidateJournalEntry(date).catch(() => {});
+  return suggestion;
 }
 
 export async function fetchInbox(): Promise<InboxItem[]> {
