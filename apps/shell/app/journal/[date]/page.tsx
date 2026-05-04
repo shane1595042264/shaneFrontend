@@ -5,6 +5,9 @@ import { EntryBody } from "@/components/journal/entry-body";
 import { EntryActions } from "@/components/journal/entry-actions";
 import { EntryKeyboardNav } from "@/components/journal/entry-keyboard-nav";
 import { ShareActions } from "@/components/journal/share-actions";
+import { CommentsThread } from "@/components/journal/comments-thread";
+import { ReactionBar } from "@/components/journal/reaction-bar";
+import { toggleEntryReaction } from "@/lib/api/reactions";
 import { readingTimeMinutes } from "@/lib/journal-text";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -288,6 +291,14 @@ export default async function JournalEntryPage({ params }: PageProps) {
         </div>
       </article>
 
+      <div className="mt-6">
+        <ReactionBar
+          onToggle={async (e) => {
+            await toggleEntryReaction(data.entry.date, e);
+          }}
+        />
+      </div>
+
       <ShareActions date={data.entry.date} formattedDate={formatDate(data.entry.date)} />
 
       {/* Print-only canonical URL footer (so a printed/PDF page is self-attributing) */}
@@ -323,6 +334,8 @@ export default async function JournalEntryPage({ params }: PageProps) {
         )}
       </nav>
       <EntryKeyboardNav prevDate={prevDate} nextDate={nextDate} />
+
+      <CommentsThread date={data.entry.date} entryAuthorId={data.entry.authorId} />
     </div>
   );
 }
