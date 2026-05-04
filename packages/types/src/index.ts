@@ -11,44 +11,6 @@ export interface ElementConfig {
   authRequired?: boolean;
 }
 
-export interface DiaryEntry {
-  id: string;
-  date: string;
-  content: string;
-  voiceProfileVersion: number;
-  generationMetadata?: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface NormalizedActivity {
-  id: string;
-  date: string;
-  source: string;
-  type: string;
-  data: Record<string, unknown>;
-}
-
-export interface Correction {
-  id: string;
-  entryId: string;
-  suggestionText: string;
-  originalContent: string;
-  correctedContent: string;
-  extractedFacts: string[];
-  createdAt: string;
-}
-
-export interface LearnedFact {
-  id: string;
-  factText: string;
-  createdAt: string;
-}
-
-export interface SuggestionResponse {
-  correctedContent: string;
-  extractedFacts: string[];
-}
 
 export const CATEGORY_COLORS: Record<ElementConfig["category"], string> = {
   data: "text-element-data border-element-data",

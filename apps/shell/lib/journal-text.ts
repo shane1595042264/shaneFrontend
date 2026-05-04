@@ -1,6 +1,6 @@
 const DATA_MARKER_RE = /\[\[data:[^|]+\|([^|]+)\|[\s\S]+?\]\]/g;
 
-export function stripDataMarkers(text: string): string {
+function stripDataMarkers(text: string): string {
   return text.replace(DATA_MARKER_RE, "$1");
 }
 
