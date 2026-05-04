@@ -6,8 +6,7 @@ import { EntryActions } from "@/components/journal/entry-actions";
 import { EntryKeyboardNav } from "@/components/journal/entry-keyboard-nav";
 import { ShareActions } from "@/components/journal/share-actions";
 import { CommentsThread } from "@/components/journal/comments-thread";
-import { ReactionBar } from "@/components/journal/reaction-bar";
-import { toggleEntryReaction } from "@/lib/api/reactions";
+import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
 import { readingTimeMinutes } from "@/lib/journal-text";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -292,11 +291,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
       </article>
 
       <div className="mt-6">
-        <ReactionBar
-          onToggle={async (e) => {
-            await toggleEntryReaction(data.entry.date, e);
-          }}
-        />
+        <EntryReactionBar date={data.entry.date} />
       </div>
 
       <ShareActions date={data.entry.date} formattedDate={formatDate(data.entry.date)} />
