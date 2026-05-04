@@ -7,6 +7,7 @@ import { EntryKeyboardNav } from "@/components/journal/entry-keyboard-nav";
 import { ShareActions } from "@/components/journal/share-actions";
 import { CommentsThread } from "@/components/journal/comments-thread";
 import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
+import { ActivitySidebar } from "@/components/journal/activity-sidebar";
 import { readingTimeMinutes } from "@/lib/journal-text";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -248,7 +249,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
+    <div className="mx-auto max-w-6xl px-4 md:px-8 py-6">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
@@ -265,6 +266,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
       {nextDate ? (
         <link rel="next" href={`${SITE_URL}/journal/${nextDate}`} />
       ) : null}
+
       <Link
         href="/journal"
         className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors print:hidden"
@@ -272,65 +274,70 @@ export default async function JournalEntryPage({ params }: PageProps) {
         &larr; All entries
       </Link>
 
-      <article className="pb-8">
-        <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
-          <time dateTime={data.entry.date}>{formatDate(data.entry.date)}</time>
-          {isToday && (
-            <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
-              Today
-            </span>
-          )}
-          <span className="ml-auto text-xs font-normal text-gray-500">
-            {readingTimeMinutes(data.content)} min read
-          </span>
-        </h2>
-        <EntryActions date={data.entry.date} authorId={data.entry.authorId} />
-        <div className="mt-4">
-          <EntryBody content={data.content} />
+      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0">
+          <article className="pb-8">
+            <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
+              <time dateTime={data.entry.date}>{formatDate(data.entry.date)}</time>
+              {isToday && (
+                <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
+                  Today
+                </span>
+              )}
+              <span className="ml-auto text-xs font-normal text-gray-500">
+                {readingTimeMinutes(data.content)} min read
+              </span>
+            </h2>
+            <EntryActions date={data.entry.date} authorId={data.entry.authorId} />
+            <div className="mt-4">
+              <EntryBody content={data.content} />
+            </div>
+          </article>
+
+          <div className="mt-6">
+            <EntryReactionBar date={data.entry.date} />
+          </div>
+
+          <ShareActions date={data.entry.date} formattedDate={formatDate(data.entry.date)} />
+
+          {/* Print-only canonical URL footer (so a printed/PDF page is self-attributing) */}
+          <p className="hidden print:block mt-8 pt-4 border-t border-gray-300 text-xs text-gray-600">
+            {entryUrl}
+          </p>
+
+          {/* Prev / Next navigation */}
+          <nav className="flex items-center justify-between mt-10 pt-6 border-t border-white/8 print:hidden">
+            {prevDate ? (
+              <Link
+                href={`/journal/${prevDate}`}
+                aria-keyshortcuts="ArrowLeft j"
+                className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+              >
+                <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
+                <span>{formatDateShort(prevDate)}</span>
+              </Link>
+            ) : (
+              <span />
+            )}
+            {nextDate ? (
+              <Link
+                href={`/journal/${nextDate}`}
+                aria-keyshortcuts="ArrowRight k"
+                className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+              >
+                <span>{formatDateShort(nextDate)}</span>
+                <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+              </Link>
+            ) : (
+              <span />
+            )}
+          </nav>
+          <EntryKeyboardNav prevDate={prevDate} nextDate={nextDate} />
+
+          <CommentsThread date={data.entry.date} entryAuthorId={data.entry.authorId} />
         </div>
-      </article>
-
-      <div className="mt-6">
-        <EntryReactionBar date={data.entry.date} />
+        <ActivitySidebar date={data.entry.date} />
       </div>
-
-      <ShareActions date={data.entry.date} formattedDate={formatDate(data.entry.date)} />
-
-      {/* Print-only canonical URL footer (so a printed/PDF page is self-attributing) */}
-      <p className="hidden print:block mt-8 pt-4 border-t border-gray-300 text-xs text-gray-600">
-        {entryUrl}
-      </p>
-
-      {/* Prev / Next navigation */}
-      <nav className="flex items-center justify-between mt-10 pt-6 border-t border-white/8 print:hidden">
-        {prevDate ? (
-          <Link
-            href={`/journal/${prevDate}`}
-            aria-keyshortcuts="ArrowLeft j"
-            className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
-          >
-            <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
-            <span>{formatDateShort(prevDate)}</span>
-          </Link>
-        ) : (
-          <span />
-        )}
-        {nextDate ? (
-          <Link
-            href={`/journal/${nextDate}`}
-            aria-keyshortcuts="ArrowRight k"
-            className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
-          >
-            <span>{formatDateShort(nextDate)}</span>
-            <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
-          </Link>
-        ) : (
-          <span />
-        )}
-      </nav>
-      <EntryKeyboardNav prevDate={prevDate} nextDate={nextDate} />
-
-      <CommentsThread date={data.entry.date} entryAuthorId={data.entry.authorId} />
     </div>
   );
 }
