@@ -1,5 +1,6 @@
 // app/journal/page.tsx
 import Link from "next/link";
+import { toPlainExcerpt } from "@/lib/journal-text";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
@@ -9,6 +10,7 @@ const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 export const revalidate = 300;
 
 const PAGE_SIZE = 100;
+const EXCERPT_LEN = 200;
 
 interface JournalEntry {
   id: string;
@@ -18,6 +20,7 @@ interface JournalEntry {
   editCount: number;
   pendingSuggestionCount: number;
   currentVersionId: string | null;
+  contentExcerpt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -90,26 +93,36 @@ export default async function JournalPage() {
                 {year}
               </h2>
               <ul className="divide-y rounded-md border">
-                {yearEntries.map((e) => (
-                  <li key={e.id}>
-                    <Link
-                      href={`/journal/${e.date}`}
-                      className="flex items-baseline justify-between px-4 py-3 hover:bg-muted/50"
-                    >
-                      <span className="font-mono text-sm tabular-nums">{e.date}</span>
-                      <span className="ml-4 flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>
-                          {e.editCount} edit{e.editCount === 1 ? "" : "s"}
-                        </span>
-                        {e.pendingSuggestionCount > 0 && (
-                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100">
-                            {e.pendingSuggestionCount} pending
+                {yearEntries.map((e) => {
+                  const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
+                  return (
+                    <li key={e.id}>
+                      <Link
+                        href={`/journal/${e.date}`}
+                        className="block px-4 py-3 hover:bg-muted/50"
+                      >
+                        <div className="flex items-baseline justify-between">
+                          <span className="font-mono text-sm tabular-nums">{e.date}</span>
+                          <span className="ml-4 flex items-center gap-3 text-xs text-muted-foreground">
+                            <span>
+                              {e.editCount} edit{e.editCount === 1 ? "" : "s"}
+                            </span>
+                            {e.pendingSuggestionCount > 0 && (
+                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100">
+                                {e.pendingSuggestionCount} pending
+                              </span>
+                            )}
                           </span>
+                        </div>
+                        {excerpt && (
+                          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
+                            {excerpt}
+                          </p>
                         )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))}

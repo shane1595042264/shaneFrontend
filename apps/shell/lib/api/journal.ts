@@ -11,6 +11,7 @@ export interface JournalEntry {
   editCount: number;
   pendingSuggestionCount: number;
   currentVersionId: string | null;
+  contentExcerpt: string | null;
   createdAt: string;
   updatedAt: string;
 }

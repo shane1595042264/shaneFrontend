@@ -11,7 +11,7 @@ const EXCERPT_LEN = 400;
 
 type EntryRow = {
   date: string;
-  content: string;
+  contentExcerpt: string | null;
   updatedAt: string;
 };
 
@@ -37,32 +37,19 @@ function formatTitle(date: string): string {
 
 async function fetchEntries(): Promise<EntryRow[]> {
   try {
-    // Post-pivot: list endpoint returns metadata only ({entries, nextCursor});
-    // content lives on the per-date GET. Fetch list, then hydrate content per entry.
     const res = await fetch(
       `${JOURNAL_API_URL}/api/journal/entries?limit=${MAX_ENTRIES}`,
       { next: { revalidate: 3600 } }
     );
     if (!res.ok) return [];
-    const list = (await res.json()) as { entries: Array<{ date: string; updatedAt: string }> };
-    const meta = list.entries ?? [];
-    if (meta.length === 0) return [];
-
-    const detailed = await Promise.all(
-      meta.map(async (m) => {
-        try {
-          const r = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${m.date}`, {
-            next: { revalidate: 3600 },
-          });
-          if (!r.ok) return null;
-          const d = (await r.json()) as { entry: { updatedAt: string }; content: string };
-          return { date: m.date, content: d.content ?? "", updatedAt: d.entry.updatedAt ?? m.updatedAt };
-        } catch {
-          return null;
-        }
-      })
-    );
-    return detailed.filter((e): e is EntryRow => e !== null);
+    const list = (await res.json()) as {
+      entries: Array<{ date: string; updatedAt: string; contentExcerpt: string | null }>;
+    };
+    return (list.entries ?? []).map((e) => ({
+      date: e.date,
+      contentExcerpt: e.contentExcerpt ?? null,
+      updatedAt: e.updatedAt,
+    }));
   } catch {
     return [];
   }
@@ -81,7 +68,7 @@ export async function GET() {
   const items = entries.map((entry) => {
     const title = formatTitle(entry.date);
     const link = `${SITE_URL}/journal/${entry.date}`;
-    const excerpt = toPlainExcerpt(entry.content, EXCERPT_LEN);
+    const excerpt = toPlainExcerpt(entry.contentExcerpt ?? "", EXCERPT_LEN);
     const pubDate = new Date(entry.updatedAt).toUTCString();
     return `    <item>
       <title>${escapeXml(title)}</title>
