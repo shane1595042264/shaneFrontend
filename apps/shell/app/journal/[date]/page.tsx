@@ -9,6 +9,7 @@ import { CommentsThread } from "@/components/journal/comments-thread";
 import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
 import { ActivitySidebar } from "@/components/journal/activity-sidebar";
 import { readingTimeMinutes, toPlainExcerpt } from "@/lib/journal-text";
+import { MissingEntryCta } from "@/components/journal/missing-entry-cta";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
@@ -191,18 +192,14 @@ export default async function JournalEntryPage({ params }: PageProps) {
                 Today
               </span>
             </h2>
-            <p className="text-gray-500 text-sm italic">
-              No entry yet for today. Sign in to write one.
-            </p>
+            <MissingEntryCta date={date} isToday={true} />
           </article>
         </div>
       );
     }
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <p className="text-gray-400 text-sm">
-          No journal entry found for {formatDate(date)}.
-        </p>
+        <MissingEntryCta date={date} isToday={false} />
         <Link
           href="/journal"
           className="text-sm text-blue-400 hover:text-blue-300 transition-colors"

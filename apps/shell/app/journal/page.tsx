@@ -1,6 +1,7 @@
 // app/journal/page.tsx
 import Link from "next/link";
 import { toPlainExcerpt } from "@/lib/journal-text";
+import { JournalIndexHeader } from "@/components/journal/journal-index-header";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
@@ -75,13 +76,15 @@ export default async function JournalPage() {
   const grouped = groupByYear(entries);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12">
+    <div className="mx-auto max-w-3xl px-4 py-12">
       <header className="mb-10">
         <h1 className="text-3xl font-semibold tracking-tight">Shane Journal</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           A wiki-style journal. Anyone signed in can write the first entry for a date; the author approves edits suggested by others.
         </p>
       </header>
+
+      <JournalIndexHeader />
 
       {entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">No entries yet.</p>
@@ -128,6 +131,6 @@ export default async function JournalPage() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }
