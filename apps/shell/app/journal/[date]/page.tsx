@@ -197,17 +197,10 @@ export default async function JournalEntryPage({ params }: PageProps) {
         </div>
       );
     }
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <MissingEntryCta date={date} isToday={false} />
-        <Link
-          href="/journal"
-          className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-        >
-          &larr; Back to journal
-        </Link>
-      </div>
-    );
+    // Past dates with no entry: real 404. Friendly write-CTA UX lives in
+    // the route-scoped not-found.tsx, so users see the same affordance —
+    // they just get the right HTTP status under it.
+    notFound();
   }
 
   const entryUrl = `${SITE_URL}/journal/${date}`;
