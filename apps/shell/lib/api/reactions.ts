@@ -35,3 +35,31 @@ export async function toggleCommentReaction(commentId: string, emoji: Emoji): Pr
   if (!res.ok) throw new Error("Failed to toggle reaction");
   return (await res.json()).result;
 }
+
+export interface ReactionSummaryRow {
+  emoji: Emoji;
+  count: number;
+}
+
+export interface ReactionState {
+  summary: ReactionSummaryRow[];
+  mine: Emoji[];
+}
+
+export async function getEntryReactions(date: string): Promise<ReactionState> {
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/reactions`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) return { summary: [], mine: [] };
+  return res.json();
+}
+
+export async function getCommentReactions(commentId: string): Promise<ReactionState> {
+  const res = await fetch(`${API_URL}/api/journal/comments/${commentId}/reactions`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) return { summary: [], mine: [] };
+  return res.json();
+}

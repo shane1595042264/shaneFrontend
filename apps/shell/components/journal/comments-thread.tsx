@@ -10,8 +10,8 @@ import {
   deleteComment,
   type Comment,
 } from "@/lib/api/comments";
-import { toggleCommentReaction } from "@/lib/api/reactions";
-import { ReactionBar } from "./reaction-bar";
+import { getCommentReactions, toggleCommentReaction } from "@/lib/api/reactions";
+import { ReactionDisplay } from "./reaction-display";
 
 interface Props {
   date: string;
@@ -105,11 +105,10 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
               </button>
             )}
             {user && (
-              <ReactionBar
+              <ReactionDisplay
                 size="sm"
-                onToggle={async (e) => {
-                  await toggleCommentReaction(c.id, e);
-                }}
+                refetch={() => getCommentReactions(c.id)}
+                onToggle={(e) => toggleCommentReaction(c.id, e)}
               />
             )}
           </div>
