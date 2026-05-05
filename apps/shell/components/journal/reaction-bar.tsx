@@ -47,7 +47,7 @@ export function ReactionBar({ onToggle, disabled, size = "md" }: Props) {
               type="button"
               onClick={() => handle(e)}
               disabled={busy !== null}
-              className="rounded px-1 text-xl transition-transform hover:scale-125 disabled:opacity-50"
+              className="rounded px-1 text-xl hover:bg-white/10 disabled:opacity-50"
               aria-label={`React with ${e}`}
               title={e}
             >
