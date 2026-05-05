@@ -1,23 +1,12 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { MissingEntryCta } from "@/components/journal/missing-entry-cta";
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
+// Renders for `notFound()` thrown from journal/[date]/page.tsx — both
+// invalid-format dates and missing past-date entries. Server component so
+// Next can stream the 404 response with the right status code.
 export default function JournalDateNotFound() {
-  const pathname = usePathname();
-  const segment = pathname?.split("/")[2] ?? "";
-  const date = DATE_RE.test(segment) ? segment : null;
-
   return (
     <div className="flex flex-col items-center justify-center py-24 gap-4">
-      {date ? (
-        <MissingEntryCta date={date} isToday={false} />
-      ) : (
-        <p className="text-sm text-gray-400">Page not found.</p>
-      )}
+      <p className="text-gray-400 text-sm italic">No entry for this date.</p>
       <Link
         href="/journal"
         className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
