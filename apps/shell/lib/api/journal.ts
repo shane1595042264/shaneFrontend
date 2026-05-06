@@ -11,6 +11,7 @@ export interface JournalEntry {
   status: "published" | "trashed";
   editCount: number;
   pendingSuggestionCount: number;
+  commentCount: number;
   currentVersionId: string | null;
   contentExcerpt: string | null;
   createdAt: string;

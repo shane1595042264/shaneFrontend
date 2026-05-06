@@ -20,6 +20,7 @@ interface JournalEntry {
   status: "published" | "trashed";
   editCount: number;
   pendingSuggestionCount: number;
+  commentCount: number;
   currentVersionId: string | null;
   contentExcerpt: string | null;
   createdAt: string;
@@ -110,6 +111,11 @@ export default async function JournalPage() {
                             <span>
                               {e.editCount} edit{e.editCount === 1 ? "" : "s"}
                             </span>
+                            {e.commentCount > 0 && (
+                              <span>
+                                {e.commentCount} comment{e.commentCount === 1 ? "" : "s"}
+                              </span>
+                            )}
                             {e.pendingSuggestionCount > 0 && (
                               <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100">
                                 {e.pendingSuggestionCount} pending
