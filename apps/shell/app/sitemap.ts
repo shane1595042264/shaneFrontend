@@ -62,6 +62,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const now = new Date();
 
+  const latestJournalUpdate = journalDates.reduce<Date | null>((max, row) => {
+    const candidate = row.updatedAt ? new Date(row.updatedAt) : new Date(row.date + "T00:00:00Z");
+    return !max || candidate > max ? candidate : max;
+  }, null);
+
   const entries: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
@@ -72,9 +77,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   for (const el of elements) {
+    const elUpdated = el.updatedAt ? new Date(el.updatedAt) : now;
+    const lastModified =
+      el.route === "/journal" && latestJournalUpdate && latestJournalUpdate > elUpdated
+        ? latestJournalUpdate
+        : elUpdated;
     entries.push({
       url: `${SITE_URL}${el.route}`,
-      lastModified: el.updatedAt ? new Date(el.updatedAt) : now,
+      lastModified,
       changeFrequency: el.route === "/journal" ? "daily" : "weekly",
       priority: el.route === "/journal" ? 0.9 : 0.7,
     });
