@@ -1,44 +1,40 @@
 export default function JournalLoading() {
   return (
-    <div className="flex min-h-0 h-full">
-      {/* Sidebar skeleton */}
-      <div className="hidden md:block w-44 flex-shrink-0 border-r border-white/8 p-2 space-y-2">
-        <div className="h-5 w-16 rounded bg-white/8 animate-pulse" />
-        <div className="ml-2 space-y-1.5">
-          <div className="h-4 w-20 rounded bg-white/8 animate-pulse" />
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-3.5 w-10 ml-2 rounded bg-white/8 animate-pulse" />
-          ))}
-        </div>
-        <div className="h-4 w-20 ml-2 rounded bg-white/8 animate-pulse" />
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-3.5 w-10 ml-4 rounded bg-white/8 animate-pulse" />
-        ))}
+    <div className="mx-auto max-w-3xl px-4 py-12">
+      <header className="mb-10 space-y-3">
+        <div className="h-8 w-48 rounded bg-white/8 animate-pulse" />
+        <div className="h-3.5 w-full max-w-xl rounded bg-white/8 animate-pulse" />
+        <div className="h-3.5 w-3/4 max-w-md rounded bg-white/8 animate-pulse" />
+      </header>
+
+      <div className="mb-8 flex flex-wrap items-center gap-3">
+        <div className="h-8 w-40 rounded-md bg-white/8 animate-pulse" />
+        <div className="h-8 w-20 rounded-md bg-white/8 animate-pulse" />
       </div>
 
-      {/* Content skeleton */}
-      <div className="flex-1 min-w-0 px-4 md:px-8 py-6 max-w-2xl mx-auto space-y-8">
-        <div className="h-7 w-20 rounded bg-white/8 animate-pulse" />
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="space-y-3">
-            <div className="h-5 w-32 rounded bg-white/8 animate-pulse" />
-            <div className="h-3 w-full rounded bg-white/8 animate-pulse" />
-            <div className="h-3 w-5/6 rounded bg-white/8 animate-pulse" />
-            <div className="h-3 w-4/6 rounded bg-white/8 animate-pulse" />
-            <div className="h-3 w-full rounded bg-white/8 animate-pulse" />
-            <div className="h-3 w-3/4 rounded bg-white/8 animate-pulse" />
-          </div>
+      <div className="space-y-10">
+        {Array.from({ length: 2 }).map((_, sectionIdx) => (
+          <section key={sectionIdx}>
+            <div className="mb-3 h-3 w-12 rounded bg-white/8 animate-pulse" />
+            <ul className="divide-y divide-white/8 rounded-md border border-white/8">
+              {Array.from({ length: 5 }).map((_, rowIdx) => (
+                <li key={rowIdx} className="px-4 py-3 space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <div className="h-4 w-24 rounded bg-white/8 animate-pulse" />
+                    <div className="ml-4 flex items-center gap-3">
+                      <div className="h-3 w-14 rounded bg-white/8 animate-pulse" />
+                      <div className="h-3 w-20 rounded bg-white/8 animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="h-3 w-full rounded bg-white/8 animate-pulse" />
+                    <div className="h-3 w-4/5 rounded bg-white/8 animate-pulse" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </div>
-
-      {/* Right panel skeleton */}
-      <div className="hidden lg:block w-72 flex-shrink-0 border-l border-white/8 p-3 space-y-3">
-        <div className="h-4 w-24 rounded bg-white/8 animate-pulse" />
-        <div className="border-t border-white/8 pt-3 space-y-2">
-          <div className="h-4 w-16 rounded bg-white/8 animate-pulse" />
-          <div className="h-3 w-full rounded bg-white/8 animate-pulse" />
-          <div className="h-3 w-3/4 rounded bg-white/8 animate-pulse" />
-        </div>
       </div>
     </div>
   );
