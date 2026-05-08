@@ -110,8 +110,20 @@ export async function ActivitySidebar({ date }: Props) {
               </li>
             ))}
             {items.length > 8 && (
-              <li className="text-xs italic text-gray-600">
-                …and {items.length - 8} more
+              <li>
+                <details className="group">
+                  <summary className="cursor-pointer list-none text-xs italic text-gray-600 hover:text-gray-400 [&::-webkit-details-marker]:hidden">
+                    <span className="group-open:hidden">…and {items.length - 8} more</span>
+                    <span className="hidden group-open:inline">show less</span>
+                  </summary>
+                  <ul className="mt-1 space-y-1">
+                    {items.slice(8).map((a) => (
+                      <li key={a.id} className="text-xs leading-snug text-gray-400">
+                        {summarize(a)}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               </li>
             )}
           </ul>
