@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { listSuggestions, type Suggestion } from "@/lib/api/suggestions";
 
 const STATUS_FILTERS = ["pending", "approved", "rejected", "withdrawn"] as const;
@@ -11,9 +11,17 @@ type StatusFilter = typeof STATUS_FILTERS[number];
 export default function SuggestionsListPage() {
   const params = useParams<{ date: string }>();
   const date = params.date;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const submittedId = searchParams.get("submitted");
   const [items, setItems] = useState<Suggestion[]>([]);
   const [filter, setFilter] = useState<StatusFilter>("pending");
   const [loading, setLoading] = useState(true);
+  const [showSubmittedBanner, setShowSubmittedBanner] = useState(false);
+
+  useEffect(() => {
+    setShowSubmittedBanner(Boolean(submittedId));
+  }, [submittedId]);
 
   useEffect(() => {
     setLoading(true);
@@ -22,12 +30,34 @@ export default function SuggestionsListPage() {
       .finally(() => setLoading(false));
   }, [date, filter]);
 
+  const dismissBanner = () => {
+    setShowSubmittedBanner(false);
+    router.replace(`/journal/${date}/suggestions`, { scroll: false });
+  };
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <Link href={`/journal/${date}`} className="text-sm text-gray-500 hover:text-gray-300">
         ← back to entry
       </Link>
       <h1 className="mt-3 mb-4 font-mono text-2xl">{date} — suggestions</h1>
+
+      {showSubmittedBanner && (
+        <div
+          role="status"
+          className="mb-4 flex items-start justify-between gap-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200"
+        >
+          <span>Your suggestion was submitted — the author will review it.</span>
+          <button
+            type="button"
+            onClick={dismissBanner}
+            aria-label="Dismiss"
+            className="text-emerald-300/70 hover:text-emerald-100"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
         {STATUS_FILTERS.map((s) => (
@@ -52,7 +82,12 @@ export default function SuggestionsListPage() {
       ) : (
         <ul className="divide-y divide-white/10 rounded-md border border-white/10">
           {items.map((s) => (
-            <li key={s.id} className="hover:bg-white/5">
+            <li
+              key={s.id}
+              className={`hover:bg-white/5 ${
+                s.id === submittedId ? "ring-1 ring-inset ring-emerald-500/40 bg-emerald-500/[0.04]" : ""
+              }`}
+            >
               <Link href={`/journal/${date}/suggestions/${s.id}`} className="block p-3">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-sm">

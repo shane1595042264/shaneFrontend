@@ -71,8 +71,8 @@ export default function SuggestPage() {
     setSaving(true);
     setError(null);
     try {
-      await createSuggestion(date, baseVersionNum, content);
-      router.push(`/journal/${date}/suggestions`);
+      const created = await createSuggestion(date, baseVersionNum, content);
+      router.push(`/journal/${date}/suggestions?submitted=${created.id}`);
     } catch (err: any) {
       setError(err.message ?? "Failed to submit suggestion");
       setSaving(false);
