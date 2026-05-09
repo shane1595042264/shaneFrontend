@@ -1,7 +1,7 @@
 // apps/shell/app/journal/[date]/suggest/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -15,23 +15,38 @@ export default function SuggestPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [content, setContent] = useState("");
+  const [initialContent, setInitialContent] = useState("");
   const [baseVersionNum, setBaseVersionNum] = useState<number | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const skipPromptRef = useRef(false);
+  const dirty = content !== initialContent;
 
   useEffect(() => {
     getEntry(date)
       .then((r) => {
         if (r) {
           setContent(r.content);
+          setInitialContent(r.content);
           setBaseVersionNum(r.currentVersionNum);
           setAuthorId(r.entry.authorId);
         }
       })
       .finally(() => setLoading(false));
   }, [date]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      if (skipPromptRef.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   if (authLoading || loading) {
     return <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
@@ -72,6 +87,7 @@ export default function SuggestPage() {
     setError(null);
     try {
       const created = await createSuggestion(date, baseVersionNum, content);
+      skipPromptRef.current = true;
       router.push(`/journal/${date}/suggestions?submitted=${created.id}`);
     } catch (err: any) {
       setError(err.message ?? "Failed to submit suggestion");
@@ -101,8 +117,13 @@ export default function SuggestPage() {
           {saving ? "Submitting…" : "Submit suggestion"}
         </button>
         <button
-          onClick={() => router.push(`/journal/${date}`)}
-          className="rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5"
+          onClick={() => {
+            if (dirty && !window.confirm("Discard unsaved changes?")) return;
+            skipPromptRef.current = true;
+            router.push(`/journal/${date}`);
+          }}
+          disabled={saving}
+          className="rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel
         </button>

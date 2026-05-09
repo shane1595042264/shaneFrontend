@@ -132,7 +132,8 @@ export default function EditEntryPage() {
             skipPromptRef.current = true;
             router.push(`/journal/${date}`);
           }}
-          className="rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5"
+          disabled={saving}
+          className="rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel
         </button>
