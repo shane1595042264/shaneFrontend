@@ -2,11 +2,18 @@ import { getAuthHeaders } from "@/lib/auth-api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+export interface CommentAuthor {
+  id: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
 export interface Comment {
   id: string;
   entryId: string;
   parentCommentId: string | null;
   authorId: string;
+  author: CommentAuthor | null;
   content: string;
   editedAt: string | null;
   createdAt: string;

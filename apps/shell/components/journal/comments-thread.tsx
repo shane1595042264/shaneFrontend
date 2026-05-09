@@ -77,13 +77,22 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
 
   const renderComment = (c: Comment, isReply: boolean) => {
     const canDelete = !!user && (user.id === c.authorId || user.id === entryAuthorId);
+    const displayName = c.author?.name?.trim() || "Anonymous";
     return (
       <li key={c.id} className={`rounded border border-white/10 ${isReply ? "bg-black/20" : "bg-black/10"} p-3`}>
         <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-500">
-          <span>
-            <span className="font-mono">{c.authorId.slice(0, 8)}</span>
-            <span className="ml-2">{new Date(c.createdAt).toLocaleString()}</span>
-            {c.editedAt && <span className="ml-2 italic">edited</span>}
+          <span className="flex items-center gap-2">
+            {c.author?.avatarUrl ? (
+              <img
+                src={c.author.avatarUrl}
+                alt=""
+                className="h-5 w-5 rounded-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
+            <span className="text-gray-300">{displayName}</span>
+            <span>{new Date(c.createdAt).toLocaleString()}</span>
+            {c.editedAt && <span className="italic">edited</span>}
           </span>
           <div className="flex flex-wrap items-center gap-2">
             {!isReply && user && (
@@ -143,7 +152,10 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
         <div className="mt-4 rounded border border-white/10 bg-black/20 p-3">
           {replyTo && (
             <div className="mb-2 text-xs text-gray-500">
-              Replying to <span className="font-mono">{replyTo.slice(0, 8)}</span>
+              Replying to{" "}
+              <span className="text-gray-300">
+                {comments.find((c) => c.id === replyTo)?.author?.name?.trim() || "Anonymous"}
+              </span>
               <button
                 type="button"
                 onClick={() => setReplyTo(null)}
