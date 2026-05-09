@@ -86,6 +86,8 @@ export default function EditEntryPage() {
       }
       skipPromptRef.current = true;
       router.push(`/journal/${date}`);
+      // revalidatePath only marks the client router cache stale; force a refetch so the author lands on the saved version, not Next's 5min staleTimes.static RSC payload.
+      router.refresh();
     } catch (err: any) {
       if (err.message === "ENTRY_EXISTS") {
         setError("Someone created an entry for this date before you. Try suggesting an edit instead.");
