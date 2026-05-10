@@ -39,6 +39,7 @@ export interface JournalVersion {
   content: string;
   contentHash: string;
   editorId: string;
+  editor: JournalAuthor | null;
   source: "direct" | "suggestion" | "revert";
   suggestionId: string | null;
   parentVersionId: string | null;

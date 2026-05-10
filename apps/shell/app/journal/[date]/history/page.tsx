@@ -93,8 +93,19 @@ export default function HistoryPage() {
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">
-                    by {v.editorId.slice(0, 8)} · <RelativeTime iso={v.createdAt} />
+                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                    {v.editor?.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={v.editor.avatarUrl}
+                        alt=""
+                        className="h-4 w-4 rounded-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : null}
+                    <span className="text-gray-400">{v.editor?.name?.trim() || "Anonymous"}</span>
+                    <span>·</span>
+                    <RelativeTime iso={v.createdAt} />
                   </span>
                 </div>
                 <details className="mt-3">

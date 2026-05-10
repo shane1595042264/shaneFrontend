@@ -129,11 +129,20 @@ export default function SuggestionDetailPage() {
         ← all suggestions
       </Link>
       <h1 className="mt-3 mb-1 font-mono text-2xl">{date} — suggestion</h1>
-      <p className="mb-4 text-sm text-gray-500">
-        by <span className="font-mono">{s.proposerId.slice(0, 8)}</span>
-        <RelativeTime iso={s.createdAt} className="ml-2" />
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+        {s.proposer?.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={s.proposer.avatarUrl}
+            alt=""
+            className="h-5 w-5 rounded-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        ) : null}
+        <span className="text-gray-300">{s.proposer?.name?.trim() || "Anonymous"}</span>
+        <RelativeTime iso={s.createdAt} />
         <span
-          className={`ml-2 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${
+          className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${
             s.status === "approved"
               ? "bg-emerald-500/15 text-emerald-300"
               : s.status === "rejected"
@@ -146,9 +155,9 @@ export default function SuggestionDetailPage() {
           {s.status}
         </span>
         {s.status === "rejected" && s.rejectionReason && (
-          <span className="ml-2 italic text-gray-400">— {s.rejectionReason}</span>
+          <span className="italic text-gray-400">— {s.rejectionReason}</span>
         )}
-      </p>
+      </div>
 
       <div className="mb-4 flex gap-2 text-xs">
         {(["current", "base", "full"] as const).map((v) => (

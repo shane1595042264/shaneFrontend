@@ -4,10 +4,17 @@ import { revalidateJournalEntry } from "@/lib/journal-revalidate";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+export interface SuggestionProposer {
+  id: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
 export interface Suggestion {
   id: string;
   entryId: string;
   proposerId: string;
+  proposer: SuggestionProposer | null;
   baseVersionId: string;
   proposedContent: string;
   status: "pending" | "approved" | "rejected" | "withdrawn";

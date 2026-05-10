@@ -82,15 +82,27 @@ export default function InboxPage() {
               </Link>
             </header>
             <ul className="divide-y divide-white/10 rounded-md border border-white/10">
-              {list.map((item) => (
+              {list.map((item) => {
+                const proposerName = item.suggestion.proposer?.name?.trim() || "Anonymous";
+                const proposerAvatar = item.suggestion.proposer?.avatarUrl;
+                return (
                 <li key={item.suggestion.id} className="hover:bg-white/5">
                   <Link
                     href={`/journal/${date}/suggestions/${item.suggestion.id}`}
                     className="block p-3"
                   >
-                    <div className="flex items-baseline justify-between gap-2 text-sm">
-                      <span>
-                        by <span className="font-mono">{item.suggestion.proposerId.slice(0, 8)}</span>
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="flex items-center gap-2">
+                        {proposerAvatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={proposerAvatar}
+                            alt=""
+                            className="h-5 w-5 rounded-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : null}
+                        <span className="text-gray-300">{proposerName}</span>
                       </span>
                       <RelativeTime iso={item.suggestion.createdAt} className="text-xs text-gray-500" />
                     </div>
@@ -100,7 +112,8 @@ export default function InboxPage() {
                     </p>
                   </Link>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </section>
         ))}

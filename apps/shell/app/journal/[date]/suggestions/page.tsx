@@ -82,7 +82,10 @@ export default function SuggestionsListPage() {
         <p className="text-sm text-gray-400">No {filter} suggestions.</p>
       ) : (
         <ul className="divide-y divide-white/10 rounded-md border border-white/10">
-          {items.map((s) => (
+          {items.map((s) => {
+            const proposerName = s.proposer?.name?.trim() || "Anonymous";
+            const proposerAvatar = s.proposer?.avatarUrl;
+            return (
             <li
               key={s.id}
               className={`hover:bg-white/5 ${
@@ -90,10 +93,19 @@ export default function SuggestionsListPage() {
               }`}
             >
               <Link href={`/journal/${date}/suggestions/${s.id}`} className="block p-3">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm">
-                    by <span className="font-mono">{s.proposerId.slice(0, 8)}</span>
-                    <RelativeTime iso={s.createdAt} className="ml-2 text-gray-500" />
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-sm">
+                    {proposerAvatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={proposerAvatar}
+                        alt=""
+                        className="h-5 w-5 rounded-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : null}
+                    <span className="text-gray-300">{proposerName}</span>
+                    <RelativeTime iso={s.createdAt} className="text-xs text-gray-500" />
                   </span>
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${
@@ -111,7 +123,8 @@ export default function SuggestionsListPage() {
                 </div>
               </Link>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>
