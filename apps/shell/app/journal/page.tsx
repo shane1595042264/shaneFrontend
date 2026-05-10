@@ -17,6 +17,7 @@ interface JournalEntry {
   id: string;
   date: string;
   authorId: string;
+  author: { id: string; name: string | null; avatarUrl: string | null } | null;
   status: "published" | "trashed";
   editCount: number;
   pendingSuggestionCount: number;
@@ -99,6 +100,7 @@ export default async function JournalPage() {
               <ul className="divide-y rounded-md border">
                 {yearEntries.map((e) => {
                   const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
+                  const authorName = e.author?.name?.trim() || "Anonymous";
                   return (
                     <li key={e.id}>
                       <Link
@@ -122,6 +124,18 @@ export default async function JournalPage() {
                               </span>
                             )}
                           </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                          {e.author?.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={e.author.avatarUrl}
+                              alt=""
+                              className="h-4 w-4 rounded-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : null}
+                          <span>{authorName}</span>
                         </div>
                         {excerpt && (
                           <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">

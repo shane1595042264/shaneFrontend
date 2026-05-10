@@ -4,10 +4,17 @@ import { revalidateJournalEntry } from "@/lib/journal-revalidate";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+export interface JournalAuthor {
+  id: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
 export interface JournalEntry {
   id: string;
   date: string;
   authorId: string;
+  author: JournalAuthor | null;
   status: "published" | "trashed";
   editCount: number;
   pendingSuggestionCount: number;
@@ -20,6 +27,7 @@ export interface JournalEntry {
 
 export interface EntryDetail {
   entry: JournalEntry;
+  author: JournalAuthor | null;
   content: string;
   currentVersionNum: number;
 }

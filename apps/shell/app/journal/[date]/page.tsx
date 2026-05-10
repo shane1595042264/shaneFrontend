@@ -55,6 +55,7 @@ async function fetchEntryServer(date: string) {
         createdAt: string;
         updatedAt: string;
       };
+      author: { id: string; name: string | null; avatarUrl: string | null } | null;
       content: string;
       currentVersionNum: number;
     }>;
@@ -281,6 +282,18 @@ export default async function JournalEntryPage({ params }: PageProps) {
                 {readingTimeMinutes(data.content)} min read
               </span>
             </h2>
+            <div className="mb-4 flex items-center gap-2 text-xs text-gray-400">
+              {data.author?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={data.author.avatarUrl}
+                  alt=""
+                  className="h-5 w-5 rounded-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : null}
+              <span className="text-gray-300">{data.author?.name?.trim() || "Anonymous"}</span>
+            </div>
             <EntryActions date={data.entry.date} authorId={data.entry.authorId} />
             <div className="mt-4">
               <EntryBody content={data.content} />
