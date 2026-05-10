@@ -13,6 +13,7 @@ import {
   type Suggestion,
 } from "@/lib/api/suggestions";
 import { SuggestionDiff } from "@/components/journal/suggestion-diff";
+import { RelativeTime } from "@/lib/format-time";
 
 type DiffView = "current" | "base" | "full";
 
@@ -130,7 +131,7 @@ export default function SuggestionDetailPage() {
       <h1 className="mt-3 mb-1 font-mono text-2xl">{date} — suggestion</h1>
       <p className="mb-4 text-sm text-gray-500">
         by <span className="font-mono">{s.proposerId.slice(0, 8)}</span>
-        <span className="ml-2">{new Date(s.createdAt).toLocaleString()}</span>
+        <RelativeTime iso={s.createdAt} className="ml-2" />
         <span
           className={`ml-2 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${
             s.status === "approved"

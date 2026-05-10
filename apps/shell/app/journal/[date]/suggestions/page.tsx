@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { listSuggestions, type Suggestion } from "@/lib/api/suggestions";
+import { RelativeTime } from "@/lib/format-time";
 
 const STATUS_FILTERS = ["pending", "approved", "rejected", "withdrawn"] as const;
 type StatusFilter = typeof STATUS_FILTERS[number];
@@ -92,9 +93,7 @@ export default function SuggestionsListPage() {
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-sm">
                     by <span className="font-mono">{s.proposerId.slice(0, 8)}</span>
-                    <span className="ml-2 text-gray-500">
-                      {new Date(s.createdAt).toLocaleString()}
-                    </span>
+                    <RelativeTime iso={s.createdAt} className="ml-2 text-gray-500" />
                   </span>
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${

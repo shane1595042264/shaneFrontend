@@ -11,6 +11,7 @@ import {
   type Comment,
 } from "@/lib/api/comments";
 import { getCommentReactions, toggleCommentReaction } from "@/lib/api/reactions";
+import { RelativeTime } from "@/lib/format-time";
 import { ReactionDisplay } from "./reaction-display";
 
 interface Props {
@@ -91,7 +92,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
               />
             ) : null}
             <span className="text-gray-300">{displayName}</span>
-            <span>{new Date(c.createdAt).toLocaleString()}</span>
+            <RelativeTime iso={c.createdAt} />
             {c.editedAt && <span className="italic">edited</span>}
           </span>
           <div className="flex flex-wrap items-center gap-2">

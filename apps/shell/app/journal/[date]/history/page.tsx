@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { listVersions, getEntry, revertEntry, type JournalVersion } from "@/lib/api/journal";
+import { RelativeTime } from "@/lib/format-time";
 
 export default function HistoryPage() {
   const params = useParams<{ date: string }>();
@@ -93,7 +94,7 @@ export default function HistoryPage() {
                     )}
                   </div>
                   <span className="text-xs text-gray-500">
-                    by {v.editorId.slice(0, 8)} · {new Date(v.createdAt).toLocaleString()}
+                    by {v.editorId.slice(0, 8)} · <RelativeTime iso={v.createdAt} />
                   </span>
                 </div>
                 <details className="mt-3">

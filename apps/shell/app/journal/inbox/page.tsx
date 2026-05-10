@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { fetchInbox, type InboxItem } from "@/lib/api/suggestions";
+import { RelativeTime } from "@/lib/format-time";
 
 export default function InboxPage() {
   const { user, loading: authLoading } = useAuth();
@@ -91,9 +92,7 @@ export default function InboxPage() {
                       <span>
                         by <span className="font-mono">{item.suggestion.proposerId.slice(0, 8)}</span>
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(item.suggestion.createdAt).toLocaleString()}
-                      </span>
+                      <RelativeTime iso={item.suggestion.createdAt} className="text-xs text-gray-500" />
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs text-gray-400">
                       {item.suggestion.proposedContent.slice(0, 200).replace(/\s+/g, " ").trim()}
