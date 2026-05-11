@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EntryBody } from "@/components/journal/entry-body";
+import { RelativeTime } from "@/lib/format-time";
 import { EntryActions } from "@/components/journal/entry-actions";
 import { EntryKeyboardNav } from "@/components/journal/entry-keyboard-nav";
 import { ShareActions } from "@/components/journal/share-actions";
@@ -16,7 +17,7 @@ const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 const SITE_URL = "https://shanejli.com";
 
 // ISR with explicit revalidation: cache the rendered detail HTML at the edge for
-// 5 min for crawlers/idle traffic, but every mutation (create/edit/revert and
+// 5 min for crawlers/idle traffic, but every mutation (create/append/revert and
 // suggestion approve/reject/withdraw) calls revalidateJournalEntry, which fires
 // revalidatePath for both this page and the /journal index — so authors see
 // their writes instantly without waiting for the 5 min window to elapse.
@@ -58,6 +59,14 @@ async function fetchEntryServer(date: string) {
       author: { id: string; name: string | null; avatarUrl: string | null } | null;
       content: string;
       currentVersionNum: number;
+      appends: Array<{
+        id: string;
+        entryId: string;
+        authorId: string;
+        author: { id: string; name: string | null; avatarUrl: string | null } | null;
+        content: string;
+        createdAt: string;
+      }>;
     }>;
   } catch {
     return null;
@@ -298,6 +307,22 @@ export default async function JournalEntryPage({ params }: PageProps) {
             <div className="mt-4">
               <EntryBody content={data.content} />
             </div>
+            {data.appends && data.appends.length > 0 && (
+              <ol className="mt-8 space-y-4 border-l border-white/10 pl-4">
+                {data.appends.map((a) => (
+                  <li key={a.id} id={`append-${a.id}`} className="relative">
+                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
+                      <span aria-hidden className="absolute -left-[1.125rem] top-1.5 h-2 w-2 rounded-full bg-white/20" />
+                      <RelativeTime iso={a.createdAt} className="font-mono" />
+                      {a.author?.name?.trim() ? (
+                        <span className="text-gray-600">· {a.author.name}</span>
+                      ) : null}
+                    </div>
+                    <EntryBody content={a.content} />
+                  </li>
+                ))}
+              </ol>
+            )}
           </article>
 
           <div className="mt-6">

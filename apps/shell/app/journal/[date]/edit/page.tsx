@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getEntry, createEntry, editEntry, type EntryDetail } from "@/lib/api/journal";
+import { getEntry, createEntry, type EntryDetail } from "@/lib/api/journal";
 import { MarkdownEditor } from "@/components/journal/markdown-editor";
 
 export default function EditEntryPage() {
@@ -16,8 +16,7 @@ export default function EditEntryPage() {
   const { user, loading: authLoading } = useAuth();
   const [content, setContent] = useState("");
   const [initialContent, setInitialContent] = useState("");
-  const [versionNum, setVersionNum] = useState<number | null>(null);
-  const [authorId, setAuthorId] = useState<string | null>(null);
+  const [entryExists, setEntryExists] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
@@ -30,12 +29,7 @@ export default function EditEntryPage() {
     if (isNew) return;
     getEntry(date)
       .then((r: EntryDetail | null) => {
-        if (r) {
-          setContent(r.content);
-          setInitialContent(r.content);
-          setVersionNum(r.currentVersionNum);
-          setAuthorId(r.entry.authorId);
-        }
+        if (r) setEntryExists(true);
       })
       .finally(() => setLoading(false));
   }, [date, isNew]);
@@ -63,12 +57,18 @@ export default function EditEntryPage() {
     );
   }
 
-  // Author check (only for existing entries — new entries have no author yet)
-  if (!isNew && authorId !== null && authorId !== user.id) {
+  // Direct edits of existing entries are disabled — entries are append-only.
+  if (!isNew && entryExists) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
         <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
-        <p className="mt-4">Only the entry author can edit directly.</p>
+        <p className="mt-4">Entries are append-only. You can&apos;t edit existing content — add a new timestamped append instead.</p>
+        <Link
+          href={`/journal/${date}/append`}
+          className="mt-3 inline-block rounded bg-white px-3 py-1.5 text-sm text-black hover:bg-gray-200"
+        >
+          Append
+        </Link>
       </div>
     );
   }
@@ -77,27 +77,13 @@ export default function EditEntryPage() {
     setSaving(true);
     setError(null);
     try {
-      if (isNew) {
-        await createEntry(date, content);
-      } else if (versionNum !== null) {
-        await editEntry(date, content, versionNum);
-      } else {
-        throw new Error("No version number — cannot edit");
-      }
+      await createEntry(date, content);
       skipPromptRef.current = true;
       router.push(`/journal/${date}`);
-      // revalidatePath only marks the client router cache stale; force a refetch so the author lands on the saved version, not Next's 5min staleTimes.static RSC payload.
       router.refresh();
     } catch (err: any) {
       if (err.message === "ENTRY_EXISTS") {
         setError("Someone created an entry for this date before you. Try suggesting an edit instead.");
-      } else if (err.message === "VERSION_CONFLICT") {
-        const cur = (err as any).currentVersionNum;
-        setError(
-          cur !== undefined
-            ? `Someone else edited this entry (now v${cur}). Refresh and try again.`
-            : "Someone else edited this entry. Refresh and try again."
-        );
       } else {
         setError(err.message ?? "Failed to save");
       }
@@ -110,12 +96,7 @@ export default function EditEntryPage() {
       <Link href={`/journal/${date}`} className="text-sm text-gray-500 hover:text-gray-300">
         ← back to entry
       </Link>
-      <h1 className="mt-3 mb-4 font-mono text-2xl">
-        {date} — {isNew ? "create" : "edit"}
-        {!isNew && versionNum !== null && (
-          <span className="ml-2 text-sm font-normal text-gray-500">(based on v{versionNum})</span>
-        )}
-      </h1>
+      <h1 className="mt-3 mb-4 font-mono text-2xl">{date} — create</h1>
       <MarkdownEditor value={content} onChange={setContent} />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <div className="mt-4 flex gap-2">
@@ -124,7 +105,7 @@ export default function EditEntryPage() {
           disabled={saving || !content.trim()}
           className="rounded bg-white px-3 py-1.5 text-sm text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? "Saving…" : isNew ? "Publish" : "Save new version"}
+          {saving ? "Saving…" : "Publish"}
         </button>
         <button
           onClick={() => {

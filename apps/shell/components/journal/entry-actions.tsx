@@ -22,10 +22,10 @@ export function EntryActions({ date, authorId }: Props) {
       </Link>
       {!loading && user && user.id === authorId && (
         <Link
-          href={`/journal/${date}/edit`}
+          href={`/journal/${date}/append`}
           className="text-gray-500 hover:text-gray-300 transition-colors"
         >
-          Edit
+          Append
         </Link>
       )}
       {!loading && user && user.id !== authorId && (

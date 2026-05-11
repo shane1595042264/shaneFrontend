@@ -25,11 +25,21 @@ export interface JournalEntry {
   updatedAt: string;
 }
 
+export interface JournalAppend {
+  id: string;
+  entryId: string;
+  authorId: string;
+  author: JournalAuthor | null;
+  content: string;
+  createdAt: string;
+}
+
 export interface EntryDetail {
   entry: JournalEntry;
   author: JournalAuthor | null;
   content: string;
   currentVersionNum: number;
+  appends: JournalAppend[];
 }
 
 export interface JournalVersion {
@@ -74,22 +84,24 @@ export async function createEntry(date: string, content: string): Promise<{ entr
   return json;
 }
 
-export async function editEntry(date: string, content: string, ifMatch: number) {
-  const res = await fetch(`${API_URL}/api/journal/entries/${date}`, {
-    method: "PATCH",
-    headers: { ...getAuthHeaders(), "Content-Type": "application/json", "If-Match": String(ifMatch) },
+export async function listAppends(date: string): Promise<JournalAppend[]> {
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/appends`);
+  if (!res.ok) throw new Error("Failed to list appends");
+  return (await res.json()).appends;
+}
+
+export async function createAppend(date: string, content: string): Promise<JournalAppend> {
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/appends`, {
+    method: "POST",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ content }),
   });
-  if (res.status === 409) {
-    const body = await res.json().catch(() => ({}));
-    const e = new Error("VERSION_CONFLICT");
-    (e as any).currentVersionNum = body.currentVersionNum;
-    throw e;
-  }
-  if (!res.ok) throw new Error("Failed to edit entry");
-  const json = (await res.json()) as { versionNum: number; versionId: string };
+  if (res.status === 403) throw new Error("NOT_AUTHOR");
+  if (res.status === 404) throw new Error("ENTRY_NOT_FOUND");
+  if (!res.ok) throw new Error("Failed to append");
+  const json = (await res.json()) as { append: JournalAppend };
   await revalidateJournalEntry(date).catch(() => {});
-  return json;
+  return json.append;
 }
 
 export async function deleteEntry(date: string): Promise<void> {

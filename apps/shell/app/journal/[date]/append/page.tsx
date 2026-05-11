@@ -1,38 +1,31 @@
-// apps/shell/app/journal/[date]/suggest/page.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getEntry } from "@/lib/api/journal";
-import { createSuggestion } from "@/lib/api/suggestions";
+import { getEntry, createAppend } from "@/lib/api/journal";
 import { MarkdownEditor } from "@/components/journal/markdown-editor";
 
-export default function SuggestPage() {
+export default function AppendEntryPage() {
   const params = useParams<{ date: string }>();
   const date = params.date;
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [content, setContent] = useState("");
-  const [initialContent, setInitialContent] = useState("");
-  const [baseVersionNum, setBaseVersionNum] = useState<number | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
+  const [entryMissing, setEntryMissing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const skipPromptRef = useRef(false);
-  const dirty = content !== initialContent;
+  const dirty = content.length > 0;
 
   useEffect(() => {
     getEntry(date)
       .then((r) => {
-        if (r) {
-          setContent(r.content);
-          setInitialContent(r.content);
-          setBaseVersionNum(r.currentVersionNum);
-          setAuthorId(r.entry.authorId);
-        }
+        if (!r) setEntryMissing(true);
+        else setAuthorId(r.entry.authorId);
       })
       .finally(() => setLoading(false));
   }, [date]);
@@ -55,28 +48,34 @@ export default function SuggestPage() {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
         <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
-        <p className="mt-4">Sign in to suggest edits.</p>
+        <p className="mt-4">Sign in to append.</p>
       </div>
     );
   }
-  if (baseVersionNum === null || authorId === null) {
+  if (entryMissing) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
         <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
-        <p className="mt-4">Entry not found.</p>
-      </div>
-    );
-  }
-  if (authorId === user.id) {
-    return (
-      <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
-        <p className="mt-4">You&apos;re the author of this entry — add a timestamped append instead.</p>
+        <p className="mt-4">No entry exists for this date yet.</p>
         <Link
-          href={`/journal/${date}/append`}
+          href={`/journal/${date}/edit?new=1`}
           className="mt-3 inline-block rounded bg-white px-3 py-1.5 text-sm text-black hover:bg-gray-200"
         >
-          Append
+          Start the entry
+        </Link>
+      </div>
+    );
+  }
+  if (authorId !== null && authorId !== user.id) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
+        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
+        <p className="mt-4">Only the entry author can append. You can suggest an edit instead.</p>
+        <Link
+          href={`/journal/${date}/suggest`}
+          className="mt-3 inline-block rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5"
+        >
+          Suggest edit
         </Link>
       </div>
     );
@@ -86,11 +85,14 @@ export default function SuggestPage() {
     setSaving(true);
     setError(null);
     try {
-      const created = await createSuggestion(date, baseVersionNum, content);
+      await createAppend(date, content);
       skipPromptRef.current = true;
-      router.push(`/journal/${date}/suggestions?submitted=${created.id}`);
+      router.push(`/journal/${date}`);
+      router.refresh();
     } catch (err: any) {
-      setError(err.message ?? "Failed to submit suggestion");
+      if (err.message === "NOT_AUTHOR") setError("Only the author can append.");
+      else if (err.message === "ENTRY_NOT_FOUND") setError("Entry no longer exists.");
+      else setError(err.message ?? "Failed to append");
       setSaving(false);
     }
   };
@@ -100,25 +102,23 @@ export default function SuggestPage() {
       <Link href={`/journal/${date}`} className="text-sm text-gray-500 hover:text-gray-300">
         ← back to entry
       </Link>
-      <h1 className="mt-3 mb-1 font-mono text-2xl">
-        {date} — suggest <span className="text-sm font-normal text-gray-500">(based on v{baseVersionNum})</span>
-      </h1>
+      <h1 className="mt-3 mb-1 font-mono text-2xl">{date} — append</h1>
       <p className="mb-4 text-sm text-gray-400">
-        The author will review and approve or reject. If the author edits the entry before deciding, your base will be out of date and the diff vs current may shift.
+        Entries are append-only. Each append is timestamped and added below the existing content.
       </p>
       <MarkdownEditor value={content} onChange={setContent} />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <div className="mt-4 flex gap-2">
         <button
           onClick={submit}
-          disabled={saving || !content.trim() || content === ""}
+          disabled={saving || !content.trim()}
           className="rounded bg-white px-3 py-1.5 text-sm text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? "Submitting…" : "Submit suggestion"}
+          {saving ? "Appending…" : "Append"}
         </button>
         <button
           onClick={() => {
-            if (dirty && !window.confirm("Discard unsaved changes?")) return;
+            if (dirty && !window.confirm("Discard this append?")) return;
             skipPromptRef.current = true;
             router.push(`/journal/${date}`);
           }}
