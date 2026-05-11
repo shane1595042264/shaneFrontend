@@ -310,10 +310,16 @@ export default async function JournalEntryPage({ params }: PageProps) {
             {data.appends && data.appends.length > 0 && (
               <ol className="mt-8 space-y-4 border-l border-white/10 pl-4">
                 {data.appends.map((a) => (
-                  <li key={a.id} id={`append-${a.id}`} className="relative">
+                  <li key={a.id} id={`append-${a.id}`} className="relative scroll-mt-6">
                     <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
                       <span aria-hidden className="absolute -left-[1.125rem] top-1.5 h-2 w-2 rounded-full bg-white/20" />
-                      <RelativeTime iso={a.createdAt} className="font-mono" />
+                      <a
+                        href={`#append-${a.id}`}
+                        aria-label="Permalink to this sub-entry"
+                        className="font-mono text-gray-500 transition-colors hover:text-gray-200 focus-visible:text-gray-200 focus-visible:outline-none"
+                      >
+                        <RelativeTime iso={a.createdAt} />
+                      </a>
                       {a.author?.name?.trim() ? (
                         <span className="text-gray-600">· {a.author.name}</span>
                       ) : null}
