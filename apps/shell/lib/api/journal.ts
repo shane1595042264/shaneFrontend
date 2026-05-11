@@ -19,6 +19,7 @@ export interface JournalEntry {
   editCount: number;
   pendingSuggestionCount: number;
   commentCount: number;
+  appendCount: number;
   currentVersionId: string | null;
   contentExcerpt: string | null;
   createdAt: string;
