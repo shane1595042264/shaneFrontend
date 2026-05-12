@@ -303,7 +303,18 @@ export default async function JournalEntryPage({ params }: PageProps) {
               ) : null}
               <span className="text-gray-300">{data.author?.name?.trim() || "Anonymous"}</span>
             </div>
-            <EntryActions date={data.entry.date} authorId={data.entry.authorId} />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <EntryActions date={data.entry.date} authorId={data.entry.authorId} />
+              {data.entry.pendingSuggestionCount > 0 && (
+                <Link
+                  href={`/journal/${data.entry.date}/suggestions`}
+                  className="rounded border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-500/25 hover:text-amber-100"
+                >
+                  {data.entry.pendingSuggestionCount} pending suggestion
+                  {data.entry.pendingSuggestionCount === 1 ? "" : "s"} → review
+                </Link>
+              )}
+            </div>
             <div className="mt-4">
               <EntryBody content={data.content} />
             </div>
