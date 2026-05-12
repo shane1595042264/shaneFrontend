@@ -47,6 +47,25 @@ export function JournalIndexHeader() {
           )}
         </Link>
       )}
+      <a
+        href="/journal/feed.xml"
+        target="_blank"
+        rel="noopener"
+        aria-label="Subscribe via RSS"
+        title="Subscribe via RSS"
+        className="inline-flex items-center gap-1.5 rounded-md border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="currentColor"
+        >
+          <path d="M4 11a9 9 0 0 1 9 9h-3a6 6 0 0 0-6-6v-3zm0-7a16 16 0 0 1 16 16h-3A13 13 0 0 0 4 7V4zm2.5 13a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" />
+        </svg>
+        RSS
+      </a>
       {!user && (
         <span className="text-sm text-gray-500">
           Sign in to claim a date or suggest edits.
