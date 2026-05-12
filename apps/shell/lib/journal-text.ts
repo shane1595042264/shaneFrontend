@@ -28,7 +28,13 @@ export function stripMarkdown(text: string): string {
 
 export function toPlainExcerpt(content: string, maxLen: number, ellipsis = "..."): string {
   const plain = stripMarkdown(stripDataMarkers(content ?? "")).replace(/\s+/g, " ").trim();
-  return plain.length > maxLen ? plain.slice(0, maxLen).trimEnd() + ellipsis : plain;
+  // String iteration walks by Unicode codepoint (not UTF-16 code unit), so a cutoff
+  // landing inside a surrogate pair (emoji, non-BMP CJK) keeps the whole character
+  // instead of leaving a lone surrogate that renders as U+FFFD.
+  const codepoints = Array.from(plain);
+  return codepoints.length > maxLen
+    ? codepoints.slice(0, maxLen).join("").trimEnd() + ellipsis
+    : plain;
 }
 
 export function countWords(text: string): number {
