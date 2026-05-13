@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { fetchInbox } from "@/lib/api/suggestions";
+import { LoginButton } from "@/components/login-button";
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
@@ -67,9 +68,12 @@ export function JournalIndexHeader() {
         RSS
       </a>
       {!user && (
-        <span className="text-sm text-gray-500">
-          Sign in to claim a date or suggest edits.
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-gray-500">
+            Sign in to claim a date or suggest edits.
+          </span>
+          <LoginButton />
+        </div>
       )}
     </div>
   );

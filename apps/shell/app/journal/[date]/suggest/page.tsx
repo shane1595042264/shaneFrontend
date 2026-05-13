@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getEntry } from "@/lib/api/journal";
 import { createSuggestion } from "@/lib/api/suggestions";
 import { MarkdownEditor } from "@/components/journal/markdown-editor";
+import { LoginButton } from "@/components/login-button";
 
 export default function SuggestPage() {
   const params = useParams<{ date: string }>();
@@ -55,7 +56,10 @@ export default function SuggestPage() {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
         <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
-        <p className="mt-4">Sign in to suggest edits.</p>
+        <div className="mt-6 flex flex-col items-start gap-3">
+          <p>Sign in with Google to suggest an edit.</p>
+          <LoginButton />
+        </div>
       </div>
     );
   }

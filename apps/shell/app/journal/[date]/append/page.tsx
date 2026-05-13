@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getEntry, createAppend } from "@/lib/api/journal";
 import { MarkdownEditor } from "@/components/journal/markdown-editor";
+import { LoginButton } from "@/components/login-button";
 
 export default function AppendEntryPage() {
   const params = useParams<{ date: string }>();
@@ -48,7 +49,10 @@ export default function AppendEntryPage() {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
         <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
-        <p className="mt-4">Sign in to append.</p>
+        <div className="mt-6 flex flex-col items-start gap-3">
+          <p>Sign in with Google to append to this entry.</p>
+          <LoginButton />
+        </div>
       </div>
     );
   }

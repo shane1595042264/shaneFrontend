@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { LoginButton } from "@/components/login-button";
 
 interface Props {
   date: string;
@@ -17,11 +18,14 @@ export function MissingEntryCta({ date, isToday }: Props) {
 
   if (!user) {
     return (
-      <p className="text-gray-500 text-sm italic">
-        {isToday
-          ? "No entry yet for today. Sign in to write one."
-          : "No entry yet for this date. Sign in to write one."}
-      </p>
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-gray-500 text-sm italic">
+          {isToday
+            ? "No entry yet for today. Sign in to write one."
+            : "No entry yet for this date. Sign in to write one."}
+        </p>
+        <LoginButton />
+      </div>
     );
   }
 
