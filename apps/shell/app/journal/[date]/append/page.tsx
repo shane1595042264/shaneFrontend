@@ -91,8 +91,10 @@ export default function AppendEntryPage() {
     try {
       await createAppend(date, content);
       skipPromptRef.current = true;
-      router.push(`/journal/${date}`);
-      router.refresh();
+      // Hard nav: Next 15's client router cache (staleTimes.static=5min) can serve
+      // the prior /journal/[date] RSC payload because the user just came from there.
+      // router.refresh refreshes the current page, not the push destination.
+      window.location.href = `/journal/${date}`;
     } catch (err: any) {
       if (err.message === "NOT_AUTHOR") setError("Only the author can append.");
       else if (err.message === "ENTRY_NOT_FOUND") setError("Entry no longer exists.");
