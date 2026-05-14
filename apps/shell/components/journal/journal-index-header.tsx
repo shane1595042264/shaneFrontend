@@ -30,7 +30,7 @@ export function JournalIndexHeader() {
     <div className="mb-8 flex flex-wrap items-center gap-3">
       <Link
         href={`/journal/${today}`}
-        className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-black hover:bg-gray-200"
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
       >
         <span aria-hidden="true">✏️</span>
         Write today's entry
@@ -38,7 +38,7 @@ export function JournalIndexHeader() {
       {user && (
         <Link
           href="/journal/inbox"
-          className="inline-flex items-center gap-1.5 rounded-md border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5"
+          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-white/20 px-4 text-sm hover:bg-white/5"
         >
           Inbox
           {pending > 0 && (
@@ -54,7 +54,7 @@ export function JournalIndexHeader() {
         rel="noopener"
         aria-label="Subscribe via RSS"
         title="Subscribe via RSS"
-        className="inline-flex items-center gap-1.5 rounded-md border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5"
+        className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-white/20 px-4 text-sm hover:bg-white/5"
       >
         <svg
           aria-hidden="true"

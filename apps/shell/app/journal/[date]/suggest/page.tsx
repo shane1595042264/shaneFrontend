@@ -78,7 +78,7 @@ export default function SuggestPage() {
         <p className="mt-4">You&apos;re the author of this entry — add a timestamped append instead.</p>
         <Link
           href={`/journal/${date}/append`}
-          className="mt-3 inline-block rounded bg-white px-3 py-1.5 text-sm text-black hover:bg-gray-200"
+          className="mt-3 inline-flex min-h-11 items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
         >
           Append
         </Link>
@@ -112,11 +112,11 @@ export default function SuggestPage() {
       </p>
       <MarkdownEditor value={content} onChange={setContent} />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-2">
         <button
           onClick={submit}
           disabled={saving || !content.trim() || content === ""}
-          className="rounded bg-white px-3 py-1.5 text-sm text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           {saving ? "Submitting…" : "Submit suggestion"}
         </button>
@@ -127,7 +127,7 @@ export default function SuggestPage() {
             router.push(`/journal/${date}`);
           }}
           disabled={saving}
-          className="rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded border border-white/20 px-4 text-sm hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           Cancel
         </button>

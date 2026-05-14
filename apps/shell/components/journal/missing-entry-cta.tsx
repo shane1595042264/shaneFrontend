@@ -38,7 +38,7 @@ export function MissingEntryCta({ date, isToday }: Props) {
       </p>
       <Link
         href={`/journal/${date}/edit?new=1`}
-        className="inline-flex w-fit items-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-black hover:bg-gray-200"
+        className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
       >
         <span aria-hidden="true">✏️</span>
         Write the first version

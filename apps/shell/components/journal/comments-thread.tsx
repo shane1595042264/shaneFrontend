@@ -170,14 +170,14 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Markdown supported. Be kind."
-            className="h-24 w-full resize-y rounded border border-white/10 bg-black/40 p-2 text-sm text-white/90 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+            className="h-24 w-full resize-y rounded border border-white/10 bg-black/40 p-2 text-base text-white/90 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 sm:text-sm"
           />
           {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
           <button
             type="button"
             onClick={submit}
             disabled={submitting || !text.trim()}
-            className="mt-2 rounded bg-white px-3 py-1.5 text-sm text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {submitting ? "Posting…" : "Post"}
           </button>
