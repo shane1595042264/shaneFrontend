@@ -1,0 +1,225 @@
+"use client";
+
+import { useDeferredValue, useMemo, useState } from "react";
+import Link from "next/link";
+import { toPlainExcerpt } from "@/lib/journal-text";
+
+const EXCERPT_LEN = 200;
+
+interface JournalEntry {
+  id: string;
+  date: string;
+  authorId: string;
+  author: { id: string; name: string | null; avatarUrl: string | null } | null;
+  status: "published" | "trashed";
+  editCount: number;
+  pendingSuggestionCount: number;
+  commentCount: number;
+  appendCount: number;
+  currentVersionId: string | null;
+  contentExcerpt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface YearGroup {
+  year: string;
+  entries: JournalEntry[];
+}
+
+function groupByYear(entries: JournalEntry[]): YearGroup[] {
+  const map = new Map<string, JournalEntry[]>();
+  for (const e of entries) {
+    const year = e.date.slice(0, 4);
+    if (!map.has(year)) map.set(year, []);
+    map.get(year)!.push(e);
+  }
+  return [...map.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([year, list]) => ({ year, entries: list }));
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlightMatches(text: string, query: string): React.ReactNode {
+  if (!query) return text;
+  const re = new RegExp(`(${escapeRegex(query)})`, "ig");
+  const parts = text.split(re);
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <mark key={i} className="rounded-sm bg-yellow-300/70 px-0.5 text-inherit dark:bg-yellow-500/40">
+        {part}
+      </mark>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+interface Props {
+  entries: JournalEntry[];
+}
+
+export function JournalSearchList({ entries }: Props) {
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const trimmed = deferredQuery.trim();
+
+  const filtered = useMemo(() => {
+    if (!trimmed) return entries;
+    const needle = trimmed.toLowerCase();
+    return entries.filter((e) => {
+      const haystack = [
+        e.date,
+        e.contentExcerpt ?? "",
+        e.author?.name ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [entries, trimmed]);
+
+  const grouped = useMemo(() => groupByYear(filtered), [filtered]);
+  const isFiltering = trimmed.length > 0;
+
+  return (
+    <div>
+      <div className="mb-6">
+        <label htmlFor="journal-search" className="sr-only">
+          Search journal entries
+        </label>
+        <div className="relative">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3-3" />
+          </svg>
+          <input
+            id="journal-search"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by keyword, date, or author…"
+            autoComplete="off"
+            className="block min-h-11 w-full rounded-md border border-white/15 bg-transparent pl-9 pr-10 text-sm placeholder:text-muted-foreground focus:border-white/40 focus:outline-none"
+          />
+          {query.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-white/10 hover:text-foreground"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {isFiltering && (
+          <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
+            Showing {filtered.length} of {entries.length}{" "}
+            {entries.length === 1 ? "entry" : "entries"}
+          </p>
+        )}
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {isFiltering ? "No entries match your search." : "No entries yet."}
+        </p>
+      ) : (
+        <div className="space-y-10">
+          {grouped.map(({ year, entries: yearEntries }) => (
+            <section key={year}>
+              <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {year}
+              </h2>
+              <ul className="divide-y rounded-md border">
+                {yearEntries.map((e) => {
+                  const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
+                  const authorName = e.author?.name?.trim() || "Anonymous";
+                  return (
+                    <li key={e.id}>
+                      <Link
+                        href={`/journal/${e.date}`}
+                        className="block px-4 py-3 hover:bg-muted/50"
+                      >
+                        <div className="flex items-baseline justify-between">
+                          <span className="font-mono text-sm tabular-nums">
+                            {highlightMatches(e.date, trimmed)}
+                          </span>
+                          <span className="ml-4 flex items-center gap-3 text-xs text-muted-foreground">
+                            <span>
+                              {e.editCount} edit{e.editCount === 1 ? "" : "s"}
+                            </span>
+                            {e.commentCount > 0 && (
+                              <span>
+                                {e.commentCount} comment{e.commentCount === 1 ? "" : "s"}
+                              </span>
+                            )}
+                            {e.appendCount > 0 && (
+                              <span>
+                                {e.appendCount} append{e.appendCount === 1 ? "" : "s"}
+                              </span>
+                            )}
+                            {e.pendingSuggestionCount > 0 && (
+                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100">
+                                {e.pendingSuggestionCount} pending
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                          {e.author?.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={e.author.avatarUrl}
+                              alt=""
+                              className="h-4 w-4 rounded-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : null}
+                          <span>{highlightMatches(authorName, trimmed)}</span>
+                        </div>
+                        {excerpt && (
+                          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
+                            {highlightMatches(excerpt, trimmed)}
+                          </p>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

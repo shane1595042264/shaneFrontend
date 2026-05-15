@@ -1,7 +1,6 @@
 // app/journal/page.tsx
-import Link from "next/link";
-import { toPlainExcerpt } from "@/lib/journal-text";
 import { JournalIndexHeader } from "@/components/journal/journal-index-header";
+import { JournalSearchList } from "@/components/journal/journal-search-list";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
@@ -11,7 +10,6 @@ const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 export const revalidate = 300;
 
 const PAGE_SIZE = 100;
-const EXCERPT_LEN = 200;
 
 interface JournalEntry {
   id: string;
@@ -56,27 +54,8 @@ async function fetchAllEntries(): Promise<JournalEntry[]> {
   return all;
 }
 
-function formatDateLong(date: string): string {
-  return new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-  });
-}
-
-function groupByYear(entries: JournalEntry[]): Array<{ year: string; entries: JournalEntry[] }> {
-  const map = new Map<string, JournalEntry[]>();
-  for (const e of entries) {
-    const year = e.date.slice(0, 4);
-    if (!map.has(year)) map.set(year, []);
-    map.get(year)!.push(e);
-  }
-  return [...map.entries()]
-    .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([year, list]) => ({ year, entries: list }));
-}
-
 export default async function JournalPage() {
   const entries = await fetchAllEntries();
-  const grouped = groupByYear(entries);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -89,74 +68,7 @@ export default async function JournalPage() {
 
       <JournalIndexHeader />
 
-      {entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No entries yet.</p>
-      ) : (
-        <div className="space-y-10">
-          {grouped.map(({ year, entries: yearEntries }) => (
-            <section key={year}>
-              <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {year}
-              </h2>
-              <ul className="divide-y rounded-md border">
-                {yearEntries.map((e) => {
-                  const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
-                  const authorName = e.author?.name?.trim() || "Anonymous";
-                  return (
-                    <li key={e.id}>
-                      <Link
-                        href={`/journal/${e.date}`}
-                        className="block px-4 py-3 hover:bg-muted/50"
-                      >
-                        <div className="flex items-baseline justify-between">
-                          <span className="font-mono text-sm tabular-nums">{e.date}</span>
-                          <span className="ml-4 flex items-center gap-3 text-xs text-muted-foreground">
-                            <span>
-                              {e.editCount} edit{e.editCount === 1 ? "" : "s"}
-                            </span>
-                            {e.commentCount > 0 && (
-                              <span>
-                                {e.commentCount} comment{e.commentCount === 1 ? "" : "s"}
-                              </span>
-                            )}
-                            {e.appendCount > 0 && (
-                              <span>
-                                {e.appendCount} append{e.appendCount === 1 ? "" : "s"}
-                              </span>
-                            )}
-                            {e.pendingSuggestionCount > 0 && (
-                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100">
-                                {e.pendingSuggestionCount} pending
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                          {e.author?.avatarUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={e.author.avatarUrl}
-                              alt=""
-                              className="h-4 w-4 rounded-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : null}
-                          <span>{authorName}</span>
-                        </div>
-                        {excerpt && (
-                          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
-                            {excerpt}
-                          </p>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+      <JournalSearchList entries={entries} />
     </div>
   );
 }
