@@ -102,6 +102,9 @@ export function WordDetail({
   if (!word) {
     return (
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Loading word"
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
         onClick={onClose}
       >
@@ -139,6 +142,9 @@ export function WordDetail({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="word-detail-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       onClick={onClose}
     >
@@ -148,7 +154,7 @@ export function WordDetail({
       >
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-white">{word.word}</h2>
+            <h2 id="word-detail-title" className="text-2xl font-bold text-white">{word.word}</h2>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs px-1.5 py-0.5 border border-white/10 rounded text-gray-400">
                 {word.language}
