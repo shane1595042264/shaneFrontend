@@ -60,9 +60,10 @@ function highlightMatches(text: string, query: string): React.ReactNode {
 
 interface Props {
   entries: JournalEntry[];
+  today: string;
 }
 
-export function JournalSearchList({ entries }: Props) {
+export function JournalSearchList({ entries, today }: Props) {
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const trimmed = deferredQuery.trim();
@@ -84,6 +85,14 @@ export function JournalSearchList({ entries }: Props) {
 
   const grouped = useMemo(() => groupByYear(filtered), [filtered]);
   const isFiltering = trimmed.length > 0;
+  const todayHasEntry = useMemo(
+    () => entries.some((e) => e.date === today),
+    [entries, today]
+  );
+  const todayYear = today.slice(0, 4);
+  // Surface the today-placeholder row only on the unfiltered list, so search
+  // results stay strictly about matches.
+  const showTodayPlaceholder = !isFiltering && !todayHasEntry;
 
   return (
     <div>
@@ -148,76 +157,119 @@ export function JournalSearchList({ entries }: Props) {
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && !showTodayPlaceholder ? (
         <p className="text-sm text-muted-foreground">
           {isFiltering ? "No entries match your search." : "No entries yet."}
         </p>
       ) : (
         <div className="space-y-10">
-          {grouped.map(({ year, entries: yearEntries }) => (
-            <section key={year}>
-              <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {year}
-              </h2>
-              <ul className="divide-y rounded-md border">
-                {yearEntries.map((e) => {
-                  const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
-                  const authorName = e.author?.name?.trim() || "Anonymous";
-                  return (
-                    <li key={e.id}>
-                      <Link
-                        href={`/journal/${e.date}`}
-                        className="block px-4 py-3 hover:bg-muted/50"
-                      >
-                        <div className="flex items-baseline justify-between">
-                          <span className="font-mono text-sm tabular-nums">
-                            {highlightMatches(e.date, trimmed)}
-                          </span>
-                          <span className="ml-4 flex items-center gap-3 text-xs text-muted-foreground">
-                            <span>
-                              {e.editCount} edit{e.editCount === 1 ? "" : "s"}
+          {(() => {
+            // If today's year isn't already a section (e.g., no entries yet
+            // for this calendar year), inject an empty one so the placeholder
+            // row has somewhere to live.
+            const sections =
+              showTodayPlaceholder && !grouped.some((g) => g.year === todayYear)
+                ? [{ year: todayYear, entries: [] as JournalEntry[] }, ...grouped]
+                : grouped;
+            return sections.map(({ year, entries: yearEntries }) => {
+              const renderTodayPlaceholderHere =
+                showTodayPlaceholder && year === todayYear;
+              return (
+                <section key={year}>
+                  <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {year}
+                  </h2>
+                  <ul className="divide-y rounded-md border">
+                    {renderTodayPlaceholderHere && (
+                      <li>
+                        <Link
+                          href={`/journal/${today}`}
+                          className="block px-4 py-3 hover:bg-muted/50"
+                        >
+                          <div className="flex items-baseline justify-between">
+                            <span className="flex items-center gap-2">
+                              <span className="font-mono text-sm tabular-nums text-muted-foreground">
+                                {today}
+                              </span>
+                              <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-blue-400">
+                                Today
+                              </span>
                             </span>
-                            {e.commentCount > 0 && (
-                              <span>
-                                {e.commentCount} comment{e.commentCount === 1 ? "" : "s"}
-                              </span>
-                            )}
-                            {e.appendCount > 0 && (
-                              <span>
-                                {e.appendCount} append{e.appendCount === 1 ? "" : "s"}
-                              </span>
-                            )}
-                            {e.pendingSuggestionCount > 0 && (
-                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100">
-                                {e.pendingSuggestionCount} pending
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                          {e.author?.avatarUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={e.author.avatarUrl}
-                              alt=""
-                              className="h-4 w-4 rounded-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : null}
-                          <span>{highlightMatches(authorName, trimmed)}</span>
-                        </div>
-                        {excerpt && (
-                          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
-                            {highlightMatches(excerpt, trimmed)}
+                          </div>
+                          <p className="mt-1 text-xs italic text-muted-foreground">
+                            No entry yet — be the first to write.
                           </p>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+                        </Link>
+                      </li>
+                    )}
+                    {yearEntries.map((e) => {
+                      const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
+                      const authorName = e.author?.name?.trim() || "Anonymous";
+                      const isToday = e.date === today;
+                      return (
+                        <li key={e.id}>
+                          <Link
+                            href={`/journal/${e.date}`}
+                            className="block px-4 py-3 hover:bg-muted/50"
+                          >
+                            <div className="flex items-baseline justify-between">
+                              <span className="flex items-center gap-2">
+                                <span className="font-mono text-sm tabular-nums">
+                                  {highlightMatches(e.date, trimmed)}
+                                </span>
+                                {isToday && (
+                                  <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-blue-400">
+                                    Today
+                                  </span>
+                                )}
+                              </span>
+                              <span className="ml-4 flex items-center gap-3 text-xs text-muted-foreground">
+                                <span>
+                                  {e.editCount} edit{e.editCount === 1 ? "" : "s"}
+                                </span>
+                                {e.commentCount > 0 && (
+                                  <span>
+                                    {e.commentCount} comment{e.commentCount === 1 ? "" : "s"}
+                                  </span>
+                                )}
+                                {e.appendCount > 0 && (
+                                  <span>
+                                    {e.appendCount} append{e.appendCount === 1 ? "" : "s"}
+                                  </span>
+                                )}
+                                {e.pendingSuggestionCount > 0 && (
+                                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100">
+                                    {e.pendingSuggestionCount} pending
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                              {e.author?.avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={e.author.avatarUrl}
+                                  alt=""
+                                  className="h-4 w-4 rounded-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : null}
+                              <span>{highlightMatches(authorName, trimmed)}</span>
+                            </div>
+                            {excerpt && (
+                              <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
+                                {highlightMatches(excerpt, trimmed)}
+                              </p>
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              );
+            });
+          })()}
         </div>
       )}
     </div>

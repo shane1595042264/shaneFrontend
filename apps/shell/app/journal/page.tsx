@@ -54,8 +54,15 @@ async function fetchAllEntries(): Promise<JournalEntry[]> {
   return all;
 }
 
+// UTC day matches the backend and the [date] route's getTodayUtcStr,
+// so "today" means the same thing on the index, the entry page, and the API.
+function getTodayUtcStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default async function JournalPage() {
   const entries = await fetchAllEntries();
+  const today = getTodayUtcStr();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -68,7 +75,7 @@ export default async function JournalPage() {
 
       <JournalIndexHeader />
 
-      <JournalSearchList entries={entries} />
+      <JournalSearchList entries={entries} today={today} />
     </div>
   );
 }
