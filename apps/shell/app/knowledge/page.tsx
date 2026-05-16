@@ -89,11 +89,11 @@ export default function KnowledgePage() {
   async function handleSubmitNote(text: string) {
     setAdding(true);
     try {
-      const result = await submitNote(text);
+      const { entry } = await submitNote(text);
       await loadEntries();
       refreshMeta();
       showNotification(
-        `Added "${result.entry.word}" to ${result.category}`,
+        `Added "${entry.word}" to ${entry.category}`,
         "success"
       );
     } catch (err: any) {

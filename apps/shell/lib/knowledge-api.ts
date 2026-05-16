@@ -1,4 +1,14 @@
+import { getAuthHeaders } from "@/lib/auth-api";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+export interface KnowledgeEntrySource {
+  app: string | null;
+  book: string | null;
+  author: string | null;
+  location: string | null;
+  rawContext: string | null;
+}
 
 export interface KnowledgeEntry {
   id: string;
@@ -11,6 +21,7 @@ export interface KnowledgeEntry {
   exampleSentence: string | null;
   labels: string[];
   aiMetadata: Record<string, unknown> | null;
+  source: KnowledgeEntrySource | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,18 +35,27 @@ export interface KnowledgeConnection {
   createdAt: string;
 }
 
-// Smart note input — AI classifies and creates entry
-export async function submitNote(text: string): Promise<{ entry: KnowledgeEntry; category: string }> {
+// Smart note input — AI classifies, optionally records provenance, creates entry.
+// Returns the first (and only) created entry. The endpoint also accepts a batch
+// shape ({ notes: [...] }) for external clients like Nibbler.
+export async function submitNote(
+  text: string,
+  source?: string | KnowledgeEntrySource
+): Promise<{ entry: KnowledgeEntry }> {
+  const body: Record<string, unknown> = { text };
+  if (source !== undefined) body.source = source;
+
   const res = await fetch(`${API_URL}/api/knowledge/notes`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || "Failed to classify note");
   }
-  return res.json();
+  const data = (await res.json()) as { entries: KnowledgeEntry[] };
+  return { entry: data.entries[0] };
 }
 
 export interface PaginatedKnowledgeEntries {
