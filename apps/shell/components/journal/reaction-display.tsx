@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import {
   EMOJI_GLYPHS,
@@ -25,6 +25,7 @@ export function ReactionDisplay({ initial, refetch, onToggle, size = "md" }: Pro
   const [loaded, setLoaded] = useState(!!initial);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<Emoji | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (loaded) return;
@@ -32,6 +33,24 @@ export function ReactionDisplay({ initial, refetch, onToggle, size = "md" }: Pro
       .then(setState)
       .finally(() => setLoaded(true));
   }, [loaded, refetch]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onPointer = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPointer);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPointer);
+    };
+  }, [open]);
 
   const handle = async (emoji: Emoji) => {
     if (!user) return; // anon clicks do nothing
@@ -79,13 +98,15 @@ export function ReactionDisplay({ initial, refetch, onToggle, size = "md" }: Pro
           </button>
         );
       })}
-      <div className="relative inline-block">
+      <div className="relative inline-block" ref={popoverRef}>
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           disabled={!user}
           className={`${triggerClass} disabled:cursor-not-allowed disabled:opacity-50`}
           aria-label="Add reaction"
+          aria-haspopup="true"
+          aria-expanded={open}
           title={user ? "Add reaction" : "Sign in to react"}
         >
           <span aria-hidden="true">😀</span>
