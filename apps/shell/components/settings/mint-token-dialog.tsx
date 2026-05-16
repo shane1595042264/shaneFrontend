@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { mintToken } from "@/lib/api/tokens";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 const SCOPE_OPTIONS = [
   "entries:write",
@@ -16,6 +17,7 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
   const [raw, setRaw] = useState<string | null>(null);
 
   const dismissable = raw === null;
+  const containerRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
     if (!dismissable) return;
@@ -34,6 +36,7 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div
+      ref={containerRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="mint-token-dialog-title"

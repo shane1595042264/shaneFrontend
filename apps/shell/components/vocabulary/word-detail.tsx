@@ -8,6 +8,7 @@ import {
   deleteConnection,
   createConnection,
 } from "@/lib/vocabulary-api";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 interface WordDetailProps {
   wordId: string;
@@ -38,6 +39,7 @@ export function WordDetail({
   const [connectTarget, setConnectTarget] = useState("");
   const [connectType, setConnectType] = useState<string>("related");
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
     loadWord();
@@ -102,6 +104,7 @@ export function WordDetail({
   if (!word) {
     return (
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-label="Loading word"
@@ -142,6 +145,7 @@ export function WordDetail({
 
   return (
     <div
+      ref={containerRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="word-detail-title"

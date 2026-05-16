@@ -8,6 +8,7 @@ import {
   deleteConnection,
   createConnection,
 } from "@/lib/knowledge-api";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 interface EntryDetailProps {
   entryId: string;
@@ -38,6 +39,7 @@ export function EntryDetail({
   const [connectTarget, setConnectTarget] = useState("");
   const [connectType, setConnectType] = useState<string>("related");
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
     loadEntry();
@@ -102,6 +104,7 @@ export function EntryDetail({
   if (!entry) {
     return (
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-label="Loading entry"
@@ -142,6 +145,7 @@ export function EntryDetail({
 
   return (
     <div
+      ref={containerRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="entry-detail-title"
