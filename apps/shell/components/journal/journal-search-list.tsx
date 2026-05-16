@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toPlainExcerpt } from "@/lib/journal-text";
 
@@ -63,10 +63,40 @@ interface Props {
   today: string;
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  return target.isContentEditable;
+}
+
 export function JournalSearchList({ entries, today }: Props) {
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const trimmed = deferredQuery.trim();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (isEditableTarget(e.target)) return;
+        e.preventDefault();
+        const el = inputRef.current;
+        if (el) {
+          el.focus();
+          el.select();
+        }
+        return;
+      }
+      if (e.key === "Escape" && document.activeElement === inputRef.current) {
+        e.preventDefault();
+        setQuery("");
+        inputRef.current?.blur();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const filtered = useMemo(() => {
     if (!trimmed) return entries;
@@ -117,14 +147,23 @@ export function JournalSearchList({ entries, today }: Props) {
             <path d="m20 20-3-3" />
           </svg>
           <input
+            ref={inputRef}
             id="journal-search"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by keyword, date, or author…"
             autoComplete="off"
-            className="block min-h-11 w-full rounded-md border border-white/15 bg-transparent pl-9 pr-10 text-sm placeholder:text-muted-foreground focus:border-white/40 focus:outline-none"
+            className="block min-h-11 w-full rounded-md border border-white/15 bg-transparent pl-9 pr-10 text-sm placeholder:text-muted-foreground focus:border-white/40 focus:outline-none sm:pr-12"
           />
+          {query.length === 0 && (
+            <kbd
+              aria-hidden="true"
+              className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-white/15 px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex"
+            >
+              /
+            </kbd>
+          )}
           {query.length > 0 && (
             <button
               type="button"
