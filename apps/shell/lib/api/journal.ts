@@ -111,6 +111,7 @@ export async function deleteEntry(date: string): Promise<void> {
     headers: getAuthHeaders(),
   });
   if (!res.ok && res.status !== 404) throw new Error("Failed to delete entry");
+  await revalidateJournalEntry(date).catch(() => {});
 }
 
 export async function listVersions(date: string): Promise<JournalVersion[]> {
