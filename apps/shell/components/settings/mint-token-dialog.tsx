@@ -5,10 +5,11 @@ import { mintToken } from "@/lib/api/tokens";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 const SCOPE_OPTIONS = [
-  "entries:write",
-  "suggestions:write",
-  "comments:write",
-  "reactions:write",
+  { value: "entries:write", label: "entries:write — create/edit journal entries" },
+  { value: "suggestions:write", label: "suggestions:write — submit edit suggestions" },
+  { value: "comments:write", label: "comments:write — post comments" },
+  { value: "reactions:write", label: "reactions:write — add reactions" },
+  { value: "knowledge:write", label: "knowledge:write — push vocab/notes (e.g. Nibbler)" },
 ] as const;
 
 export function MintTokenDialog({ onClose }: { onClose: () => void }) {
@@ -61,12 +62,12 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
             <fieldset className="mb-4">
               <legend className="mb-1 text-sm">Scopes</legend>
               {SCOPE_OPTIONS.map((s) => (
-                <label key={s} className="block text-sm">
+                <label key={s.value} className="block text-sm">
                   <input
                     type="checkbox"
-                    checked={scopes.includes(s)}
-                    onChange={(e) => setScopes((cur) => e.target.checked ? [...cur, s] : cur.filter((x) => x !== s))}
-                  /> {s}
+                    checked={scopes.includes(s.value)}
+                    onChange={(e) => setScopes((cur) => e.target.checked ? [...cur, s.value] : cur.filter((x) => x !== s.value))}
+                  /> {s.label}
                 </label>
               ))}
             </fieldset>
