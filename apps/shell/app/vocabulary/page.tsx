@@ -30,7 +30,17 @@ export default function VocabularyPage() {
     type: "error" | "success";
   } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    if (!deleteConfirmId) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setDeleteConfirmId(null);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [deleteConfirmId]);
 
   const loadWords = useCallback(async () => {
     setLoading(true);
@@ -88,7 +98,6 @@ export default function VocabularyPage() {
   }
 
   async function handleDeleteWord(id: string) {
-    if (!confirm("Delete this word?")) return;
     setDeletingId(id);
     try {
       await deleteWord(id);
@@ -99,6 +108,7 @@ export default function VocabularyPage() {
       showNotification(err.message || "Failed to delete word", "error");
     } finally {
       setDeletingId(null);
+      setDeleteConfirmId(null);
     }
   }
 
@@ -165,7 +175,7 @@ export default function VocabularyPage() {
               key={word.id}
               word={word}
               onClick={(w) => setSelectedWordId(w.id)}
-              onDelete={handleDeleteWord}
+              onDelete={(id) => setDeleteConfirmId(id)}
               deleting={deletingId === word.id}
             />
           ))}
@@ -182,6 +192,44 @@ export default function VocabularyPage() {
             refreshMeta();
           }}
         />
+      )}
+
+      {deleteConfirmId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setDeleteConfirmId(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="vocab-delete-heading"
+        >
+          <div
+            className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="vocab-delete-heading" className="text-lg font-semibold text-white mb-2">
+              Delete word?
+            </h3>
+            <p className="text-sm text-gray-400 mb-6">
+              This will permanently remove the word and its definition.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                disabled={!!deletingId}
+                className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 disabled:opacity-50 text-gray-400 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteWord(deleteConfirmId)}
+                disabled={!!deletingId}
+                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
+              >
+                {deletingId ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
