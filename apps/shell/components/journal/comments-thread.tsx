@@ -117,6 +117,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
             {user && (
               <ReactionDisplay
                 size="sm"
+                initial={c.reactions}
                 refetch={() => getCommentReactions(c.id)}
                 onToggle={(e) => toggleCommentReaction(c.id, e)}
               />

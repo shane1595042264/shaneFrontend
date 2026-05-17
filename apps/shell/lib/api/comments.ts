@@ -1,4 +1,5 @@
 import { getAuthHeaders } from "@/lib/auth-api";
+import type { ReactionState } from "@/lib/api/reactions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -18,10 +19,13 @@ export interface Comment {
   editedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  reactions?: ReactionState;
 }
 
 export async function listComments(date: string): Promise<Comment[]> {
-  const res = await fetch(`${API_URL}/api/journal/entries/${date}/comments`);
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/comments`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error("Failed to load comments");
   return (await res.json()).comments;
 }
