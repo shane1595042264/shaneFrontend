@@ -16,8 +16,10 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [scopes, setScopes] = useState<string[]>([]);
   const [raw, setRaw] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const dismissable = raw === null;
+  const dismissable = raw === null && !saving;
   const containerRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
@@ -30,9 +32,17 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
   }, [dismissable, onClose]);
 
   const submit = async () => {
-    if (!name.trim()) return;
-    const res = await mintToken(name.trim(), scopes);
-    setRaw(res.token);
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await mintToken(name.trim(), scopes);
+      setRaw(res.token);
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to create token");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -71,11 +81,14 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
                 </label>
               ))}
             </fieldset>
+            {error && (
+              <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>
+            )}
             <div className="flex gap-2">
-              <button onClick={submit} disabled={!name.trim()} className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50">
-                Create
+              <button onClick={submit} disabled={!name.trim() || saving} className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50">
+                {saving ? "Creating…" : "Create"}
               </button>
-              <button onClick={onClose} className="rounded border px-3 py-1.5 text-sm">Cancel</button>
+              <button onClick={onClose} disabled={saving} className="rounded border px-3 py-1.5 text-sm disabled:opacity-50">Cancel</button>
             </div>
           </>
         )}

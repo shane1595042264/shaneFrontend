@@ -9,13 +9,28 @@ export default function TokensPage() {
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMint, setShowMint] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = () => {
     setLoading(true);
-    listTokens().then(setTokens).finally(() => setLoading(false));
+    setError(null);
+    listTokens()
+      .then(setTokens)
+      .catch((err: any) => setError(err?.message ?? "Failed to load tokens"))
+      .finally(() => setLoading(false));
   };
 
   useEffect(refresh, []);
+
+  const handleRevoke = async (id: string) => {
+    setError(null);
+    try {
+      await revokeToken(id);
+      refresh();
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to revoke token");
+    }
+  };
 
   return (
     <section>
@@ -25,7 +40,10 @@ export default function TokensPage() {
           New token
         </button>
       </header>
-      {loading ? <p>Loading…</p> : <TokenList tokens={tokens} onRevoke={async (id) => { await revokeToken(id); refresh(); }} />}
+      {error && (
+        <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>
+      )}
+      {loading ? <p>Loading…</p> : <TokenList tokens={tokens} onRevoke={handleRevoke} />}
       {showMint && <MintTokenDialog onClose={() => { setShowMint(false); refresh(); }} />}
     </section>
   );
