@@ -33,6 +33,11 @@ export default function SuggestionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectError, setRejectError] = useState<string | null>(null);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -50,6 +55,24 @@ export default function SuggestionDetailPage() {
       .catch((e) => setError(e.message ?? "Failed to load suggestion"))
       .finally(() => setLoading(false));
   }, [id, date]);
+
+  useEffect(() => {
+    if (!rejectOpen && !withdrawOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !busy) {
+        if (rejectOpen) {
+          setRejectOpen(false);
+          setRejectError(null);
+        }
+        if (withdrawOpen) {
+          setWithdrawOpen(false);
+          setWithdrawError(null);
+        }
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [rejectOpen, withdrawOpen, busy]);
 
   if (loading) {
     return <div className="mx-auto max-w-4xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
@@ -95,29 +118,51 @@ export default function SuggestionDetailPage() {
     }
   };
 
-  const handleReject = async () => {
-    const reason = prompt("Optional rejection reason:") ?? undefined;
+  const openReject = () => {
+    setRejectReason("");
+    setRejectError(null);
+    setRejectOpen(true);
+  };
+
+  const dismissReject = () => {
+    if (busy) return;
+    setRejectOpen(false);
+    setRejectError(null);
+  };
+
+  const confirmReject = async () => {
     setBusy(true);
-    setError(null);
+    setRejectError(null);
     try {
+      const reason = rejectReason.trim() || undefined;
       await rejectSuggestion(id, reason, date);
       router.push(`/journal/${date}/suggestions`);
     } catch (e: any) {
-      setError(e.message ?? "Reject failed");
+      setRejectError(e.message ?? "Reject failed");
     } finally {
       setBusy(false);
     }
   };
 
-  const handleWithdraw = async () => {
-    if (!confirm("Withdraw this suggestion?")) return;
+  const openWithdraw = () => {
+    setWithdrawError(null);
+    setWithdrawOpen(true);
+  };
+
+  const dismissWithdraw = () => {
+    if (busy) return;
+    setWithdrawOpen(false);
+    setWithdrawError(null);
+  };
+
+  const confirmWithdraw = async () => {
     setBusy(true);
-    setError(null);
+    setWithdrawError(null);
     try {
       await withdrawSuggestion(id, date);
       router.push(`/journal/${date}/suggestions`);
     } catch (e: any) {
-      setError(e.message ?? "Withdraw failed");
+      setWithdrawError(e.message ?? "Withdraw failed");
     } finally {
       setBusy(false);
     }
@@ -195,7 +240,7 @@ export default function SuggestionDetailPage() {
                 {busy ? "Working…" : "Approve"}
               </button>
               <button
-                onClick={handleReject}
+                onClick={openReject}
                 disabled={busy}
                 className="rounded bg-red-700 px-3 py-1.5 text-sm text-white hover:bg-red-600 disabled:opacity-50"
               >
@@ -205,13 +250,106 @@ export default function SuggestionDetailPage() {
           )}
           {isProposer && (
             <button
-              onClick={handleWithdraw}
+              onClick={openWithdraw}
               disabled={busy}
               className="rounded border border-white/20 px-3 py-1.5 text-sm hover:bg-white/5 disabled:opacity-50"
             >
               {busy ? "Working…" : "Withdraw"}
             </button>
           )}
+        </div>
+      )}
+
+      {rejectOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={dismissReject}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="suggestion-reject-heading"
+        >
+          <div
+            className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="suggestion-reject-heading" className="text-lg font-semibold text-white mb-2">
+              Reject this suggestion?
+            </h3>
+            <p className="text-sm text-gray-400 mb-3">
+              Optional: tell the proposer why. They will see this on the suggestion.
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Reason (optional)"
+              disabled={busy}
+              className="h-24 w-full resize-y rounded border border-white/10 bg-black/40 p-2 text-sm text-white/90 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 disabled:opacity-50"
+            />
+            {rejectError && (
+              <p role="alert" className="mt-3 text-sm text-red-400">{rejectError}</p>
+            )}
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={dismissReject}
+                disabled={busy}
+                className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 disabled:opacity-50 text-gray-400 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmReject}
+                disabled={busy}
+                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
+              >
+                {busy ? "Rejecting…" : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {withdrawOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={dismissWithdraw}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="suggestion-withdraw-heading"
+        >
+          <div
+            className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="suggestion-withdraw-heading" className="text-lg font-semibold text-white mb-2">
+              Withdraw this suggestion?
+            </h3>
+            <p className="text-sm text-gray-400 mb-4">
+              The author will no longer see it. You can always propose another one.
+            </p>
+            {withdrawError && (
+              <p role="alert" className="mb-4 text-sm text-red-400">{withdrawError}</p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={dismissWithdraw}
+                disabled={busy}
+                className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 disabled:opacity-50 text-gray-400 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmWithdraw}
+                disabled={busy}
+                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
+              >
+                {busy ? "Withdrawing…" : "Withdraw"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
