@@ -27,6 +27,9 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -61,15 +64,44 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
     }
   };
 
-  const onDelete = async (id: string) => {
-    if (!confirm("Delete this comment?")) return;
+  const requestDelete = (id: string) => {
+    setDeleteError(null);
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    const id = deleteConfirmId;
+    setDeletingId(id);
+    setDeleteError(null);
     try {
       await deleteComment(id);
+      setDeleteConfirmId(null);
       await refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to delete");
+      setDeleteError(e instanceof Error ? e.message : "Failed to delete");
+    } finally {
+      setDeletingId(null);
     }
   };
+
+  const dismissDelete = () => {
+    if (deletingId) return;
+    setDeleteConfirmId(null);
+    setDeleteError(null);
+  };
+
+  useEffect(() => {
+    if (!deleteConfirmId) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !deletingId) {
+        setDeleteConfirmId(null);
+        setDeleteError(null);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [deleteConfirmId, deletingId]);
 
   // Render top-level comments + their direct replies (one level deep)
   const topLevel = comments.filter((c) => c.parentCommentId === null);
@@ -108,10 +140,11 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
             {canDelete && (
               <button
                 type="button"
-                onClick={() => onDelete(c.id)}
-                className="text-red-400 hover:text-red-300"
+                onClick={() => requestDelete(c.id)}
+                disabled={deletingId === c.id}
+                className="text-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                delete
+                {deletingId === c.id ? "deleting…" : "delete"}
               </button>
             )}
             {user && (
@@ -135,6 +168,11 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
       </li>
     );
   };
+
+  const deleteTarget = deleteConfirmId
+    ? comments.find((c) => c.id === deleteConfirmId)
+    : null;
+  const deleteTargetName = deleteTarget?.author?.name?.trim() || "Anonymous";
 
   return (
     <section className="mt-10 border-t border-white/10 pt-6">
@@ -185,6 +223,49 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
         </div>
       ) : (
         <p className="mt-4 text-sm text-gray-500">Sign in to comment.</p>
+      )}
+
+      {deleteConfirmId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={dismissDelete}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="comment-delete-heading"
+        >
+          <div
+            className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="comment-delete-heading" className="text-lg font-semibold text-white mb-2">
+              Delete comment by {deleteTargetName}?
+            </h3>
+            <p className="text-sm text-gray-400 mb-4">
+              This removes the comment and its reactions. This cannot be undone.
+            </p>
+            {deleteError && (
+              <p role="alert" className="mb-4 text-sm text-red-400">{deleteError}</p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={dismissDelete}
+                disabled={!!deletingId}
+                className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 disabled:opacity-50 text-gray-400 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={!!deletingId}
+                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
+              >
+                {deletingId ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );
