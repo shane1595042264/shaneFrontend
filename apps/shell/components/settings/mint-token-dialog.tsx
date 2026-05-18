@@ -18,6 +18,7 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
   const [raw, setRaw] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<"copied" | "error" | null>(null);
 
   const dismissable = raw === null && !saving;
   const containerRef = useFocusTrap<HTMLDivElement>();
@@ -45,6 +46,24 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const handleCopy = async () => {
+    if (!raw) return;
+    try {
+      await navigator.clipboard.writeText(raw);
+      setCopyFeedback("copied");
+    } catch {
+      setCopyFeedback("error");
+    }
+    setTimeout(() => setCopyFeedback(null), 2000);
+  };
+
+  const srMessage =
+    copyFeedback === "copied"
+      ? "Token copied to clipboard"
+      : copyFeedback === "error"
+        ? "Failed to copy token"
+        : "";
+
   return (
     <div
       ref={containerRef}
@@ -61,8 +80,31 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
           <>
             <h3 id="mint-token-dialog-title" className="mb-2 font-medium">Token created — copy it now</h3>
             <p className="mb-3 text-xs text-gray-500">This is the only time you'll see this value.</p>
-            <pre className="mb-4 break-all rounded bg-gray-100 p-2 font-mono text-sm">{raw}</pre>
-            <button onClick={onClose} className="rounded bg-black px-3 py-1.5 text-sm text-white">Done</button>
+            <pre className="mb-3 break-all rounded bg-gray-100 p-2 font-mono text-sm">{raw}</pre>
+            {copyFeedback === "error" && (
+              <p role="alert" className="mb-3 text-sm text-red-600">
+                Couldn't copy automatically — select the token above manually.
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="rounded bg-black px-3 py-1.5 text-sm text-white"
+              >
+                {copyFeedback === "copied" ? "Copied!" : "Copy token"}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded border px-3 py-1.5 text-sm"
+              >
+                Done
+              </button>
+            </div>
+            <div role="status" aria-live="polite" className="sr-only">
+              {srMessage}
+            </div>
           </>
         ) : (
           <>
