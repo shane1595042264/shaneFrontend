@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { listTokens, revokeToken, type ApiToken } from "@/lib/api/tokens";
 import { TokenList } from "@/components/settings/token-list";
 import { MintTokenDialog } from "@/components/settings/mint-token-dialog";
+import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 export default function TokensPage() {
   const [tokens, setTokens] = useState<ApiToken[]>([]);
@@ -73,7 +74,7 @@ export default function TokensPage() {
           aria-modal="true"
           aria-labelledby="pat-revoke-heading"
         >
-          <div
+          <FocusTrappedDiv
             className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -99,7 +100,7 @@ export default function TokensPage() {
                 {revokingId ? "Revoking..." : "Revoke"}
               </button>
             </div>
-          </div>
+          </FocusTrappedDiv>
         </div>
       )}
     </section>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { deleteEntry } from "@/lib/api/journal";
+import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 interface Props {
   date: string;
@@ -87,7 +88,7 @@ export function EntryActions({ date, authorId }: Props) {
           aria-modal="true"
           aria-labelledby="entry-delete-heading"
         >
-          <div
+          <FocusTrappedDiv
             className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -116,7 +117,7 @@ export function EntryActions({ date, authorId }: Props) {
                 {deleting ? "Deleting..." : "Delete"}
               </button>
             </div>
-          </div>
+          </FocusTrappedDiv>
         </div>
       )}
     </>

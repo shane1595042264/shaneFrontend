@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getEntry, createAppend } from "@/lib/api/journal";
 import { MarkdownEditor } from "@/components/journal/markdown-editor";
 import { LoginButton } from "@/components/login-button";
+import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 export default function AppendEntryPage() {
   const params = useParams<{ date: string }>();
@@ -164,7 +165,7 @@ export default function AppendEntryPage() {
           aria-labelledby="discard-confirm-heading"
           aria-describedby="discard-confirm-body"
         >
-          <div
+          <FocusTrappedDiv
             className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -190,7 +191,7 @@ export default function AppendEntryPage() {
                 Discard
               </button>
             </div>
-          </div>
+          </FocusTrappedDiv>
         </div>
       )}
     </div>

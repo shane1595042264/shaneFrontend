@@ -13,6 +13,7 @@ import { FilterBar } from "@/components/vocabulary/filter-bar";
 import { AddWordForm } from "@/components/vocabulary/add-word-form";
 import { WordCard } from "@/components/vocabulary/word-card";
 import { WordDetail } from "@/components/vocabulary/word-detail";
+import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 export default function VocabularyPage() {
   const [words, setWords] = useState<VocabWord[]>([]);
@@ -202,7 +203,7 @@ export default function VocabularyPage() {
           aria-modal="true"
           aria-labelledby="vocab-delete-heading"
         >
-          <div
+          <FocusTrappedDiv
             className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -228,7 +229,7 @@ export default function VocabularyPage() {
                 {deletingId ? "Deleting..." : "Delete"}
               </button>
             </div>
-          </div>
+          </FocusTrappedDiv>
         </div>
       )}
     </div>

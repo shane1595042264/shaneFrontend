@@ -13,6 +13,7 @@ import {
 import { getCommentReactions, toggleCommentReaction } from "@/lib/api/reactions";
 import { RelativeTime } from "@/lib/format-time";
 import { ReactionDisplay } from "./reaction-display";
+import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 interface Props {
   date: string;
@@ -233,7 +234,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
           aria-modal="true"
           aria-labelledby="comment-delete-heading"
         >
-          <div
+          <FocusTrappedDiv
             className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -264,7 +265,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
                 {deletingId ? "Deleting..." : "Delete"}
               </button>
             </div>
-          </div>
+          </FocusTrappedDiv>
         </div>
       )}
     </section>

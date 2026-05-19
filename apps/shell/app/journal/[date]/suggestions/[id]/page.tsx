@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/suggestions";
 import { SuggestionDiff } from "@/components/journal/suggestion-diff";
 import { RelativeTime } from "@/lib/format-time";
+import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 type DiffView = "current" | "base" | "full";
 
@@ -268,7 +269,7 @@ export default function SuggestionDetailPage() {
           aria-modal="true"
           aria-labelledby="suggestion-reject-heading"
         >
-          <div
+          <FocusTrappedDiv
             className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-md w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -306,7 +307,7 @@ export default function SuggestionDetailPage() {
                 {busy ? "Rejecting…" : "Reject"}
               </button>
             </div>
-          </div>
+          </FocusTrappedDiv>
         </div>
       )}
 
@@ -318,7 +319,7 @@ export default function SuggestionDetailPage() {
           aria-modal="true"
           aria-labelledby="suggestion-withdraw-heading"
         >
-          <div
+          <FocusTrappedDiv
             className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -349,7 +350,7 @@ export default function SuggestionDetailPage() {
                 {busy ? "Withdrawing…" : "Withdraw"}
               </button>
             </div>
-          </div>
+          </FocusTrappedDiv>
         </div>
       )}
     </div>
