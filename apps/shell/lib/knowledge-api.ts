@@ -22,6 +22,7 @@ export interface KnowledgeEntry {
   labels: string[];
   aiMetadata: Record<string, unknown> | null;
   source: KnowledgeEntrySource | null;
+  createdBy: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -147,8 +148,31 @@ export async function createEntry(input: {
 export async function deleteEntry(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/knowledge/entries/${id}`, {
     method: "DELETE",
+    headers: { ...getAuthHeaders() },
   });
-  if (!res.ok) throw new Error("Failed to delete entry");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to delete entry");
+  }
+}
+
+export interface BulkDeleteResult {
+  deleted: string[];
+  denied: string[];
+  notFound: string[];
+}
+
+export async function bulkDeleteEntries(ids: string[]): Promise<BulkDeleteResult> {
+  const res = await fetch(`${API_URL}/api/knowledge/entries/bulk-delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to delete entries");
+  }
+  return res.json();
 }
 
 export async function enrichEntryApi(id: string): Promise<KnowledgeEntry> {

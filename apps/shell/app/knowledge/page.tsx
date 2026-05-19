@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   fetchAllEntries,
   fetchLabels,
@@ -8,14 +8,19 @@ import {
   fetchCategories,
   submitNote,
   deleteEntry,
+  bulkDeleteEntries,
   type KnowledgeEntry,
 } from "@/lib/knowledge-api";
+import { useAuth } from "@/lib/auth-context";
 import { NoteInput } from "@/components/knowledge/note-input";
 import { CategoryTabs } from "@/components/knowledge/category-tabs";
 import { EntryCard } from "@/components/knowledge/entry-card";
 import { EntryDetail } from "@/components/knowledge/entry-detail";
 
 export default function KnowledgePage() {
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? null;
+
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
@@ -33,6 +38,13 @@ export default function KnowledgePage() {
   } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const [editMode, setEditMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const lastClickedIndexRef = useRef<number | null>(null);
+
   const abortRef = useRef<AbortController | null>(null);
   const hasLoaded = useRef(false);
 
@@ -75,6 +87,13 @@ export default function KnowledgePage() {
     fetchLabels().then(setLabels).catch(() => {});
   }, []);
 
+  // Re-loading entries (filter change, deletions) invalidates the saved anchor
+  // for shift-range selection: indices into the array shifted, so a "select
+  // everything between last and new" would span the wrong rows.
+  useEffect(() => {
+    lastClickedIndexRef.current = null;
+  }, [entries]);
+
   function refreshMeta() {
     fetchCategories().then(setCategories).catch(() => {});
     fetchLanguages().then(setLanguages).catch(() => {});
@@ -84,6 +103,76 @@ export default function KnowledgePage() {
   function showNotification(message: string, type: "error" | "success") {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 4000);
+  }
+
+  // Current user can delete an entry if they created it, or if it's a legacy
+  // entry (createdBy IS NULL — predates the column). Backend enforces this too;
+  // the UI hint here just avoids dangling X buttons that would 403.
+  const canDeleteEntry = useCallback(
+    (entry: KnowledgeEntry) => {
+      if (!currentUserId) return false;
+      return entry.createdBy === null || entry.createdBy === currentUserId;
+    },
+    [currentUserId]
+  );
+
+  const deletableSelectedIds = useMemo(() => {
+    const out: string[] = [];
+    for (const e of entries) {
+      if (selectedIds.has(e.id) && canDeleteEntry(e)) out.push(e.id);
+    }
+    return out;
+  }, [entries, selectedIds, canDeleteEntry]);
+
+  const selectableEntries = useMemo(
+    () => entries.filter(canDeleteEntry),
+    [entries, canDeleteEntry]
+  );
+
+  function exitEditMode() {
+    setEditMode(false);
+    setSelectedIds(new Set());
+    lastClickedIndexRef.current = null;
+  }
+
+  function toggleSelectAt(index: number, shiftKey: boolean) {
+    const entry = entries[index];
+    if (!entry) return;
+    if (!canDeleteEntry(entry)) {
+      // Quiet no-op: row is visible but the user can't delete it, so selecting
+      // it would be misleading. Don't move the anchor either.
+      return;
+    }
+
+    const next = new Set(selectedIds);
+    const anchor = lastClickedIndexRef.current;
+    if (shiftKey && anchor !== null) {
+      const [lo, hi] = anchor < index ? [anchor, index] : [index, anchor];
+      // The clicked row decides whether the range becomes selected or deselected.
+      const shouldSelect = !next.has(entry.id);
+      for (let i = lo; i <= hi; i++) {
+        const e = entries[i];
+        if (!e || !canDeleteEntry(e)) continue;
+        if (shouldSelect) next.add(e.id);
+        else next.delete(e.id);
+      }
+    } else {
+      if (next.has(entry.id)) next.delete(entry.id);
+      else next.add(entry.id);
+    }
+    lastClickedIndexRef.current = index;
+    setSelectedIds(next);
+  }
+
+  function selectAllVisible() {
+    const next = new Set(selectedIds);
+    for (const e of selectableEntries) next.add(e.id);
+    setSelectedIds(next);
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+    lastClickedIndexRef.current = null;
   }
 
   async function handleSubmitNote(text: string) {
@@ -118,12 +207,35 @@ export default function KnowledgePage() {
     }
   }
 
+  async function handleBulkDelete() {
+    if (deletableSelectedIds.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const result = await bulkDeleteEntries(deletableSelectedIds);
+      await loadEntries();
+      refreshMeta();
+      const parts = [`Deleted ${result.deleted.length}`];
+      if (result.denied.length > 0) parts.push(`${result.denied.length} not yours`);
+      if (result.notFound.length > 0) parts.push(`${result.notFound.length} missing`);
+      showNotification(parts.join(", "), "success");
+      setBulkConfirmOpen(false);
+      exitEditMode();
+    } catch (err: any) {
+      showNotification(err.message || "Failed to delete entries", "error");
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
   if (loading && !hasLoaded.current) {
     return <KnowledgeSkeleton />;
   }
 
+  const selectedCount = selectedIds.size;
+  const deletableSelectedCount = deletableSelectedIds.length;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {notification && (
         <div
           className={`flex items-center justify-between px-4 py-3 rounded text-sm transition-opacity ${
@@ -164,10 +276,34 @@ export default function KnowledgePage() {
           onChange={(e) => setSearch(e.target.value)}
           className="px-3 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 w-40"
         />
+        <div className="ml-auto">
+          {editMode ? (
+            <button
+              onClick={exitEditMode}
+              className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-300 transition-colors"
+            >
+              Done
+            </button>
+          ) : (
+            <button
+              onClick={() => setEditMode(true)}
+              disabled={!currentUserId || entries.length === 0}
+              className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed border border-white/10 rounded text-gray-300 transition-colors"
+              title={currentUserId ? "Edit (select multiple)" : "Sign in to edit"}
+            >
+              Edit
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="text-xs text-gray-600">
         {entries.length} entr{entries.length !== 1 ? "ies" : "y"}
+        {editMode && (
+          <span className="ml-3 text-gray-500">
+            (click to select, shift-click for range)
+          </span>
+        )}
       </div>
 
       {entries.length === 0 && !initError ? (
@@ -183,19 +319,24 @@ export default function KnowledgePage() {
         />
       ) : (
         <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
-          {entries.map((entry) => (
+          {entries.map((entry, idx) => (
             <EntryCard
               key={entry.id}
               entry={entry}
+              index={idx}
               onClick={(e) => setSelectedEntryId(e.id)}
               onDelete={(id) => setDeleteConfirmId(id)}
               deleting={deletingId === entry.id}
+              canDelete={canDeleteEntry(entry)}
+              editMode={editMode}
+              selected={selectedIds.has(entry.id)}
+              onToggleSelect={toggleSelectAt}
             />
           ))}
         </div>
       )}
 
-      {selectedEntryId && (
+      {selectedEntryId && !editMode && (
         <EntryDetail
           entryId={selectedEntryId}
           allEntries={entries}
@@ -235,6 +376,81 @@ export default function KnowledgePage() {
                 className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
               >
                 {deletingId ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editMode && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur border-t border-white/10 px-4 py-3">
+          <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-4">
+            <div className="text-sm text-gray-300">
+              {selectedCount} selected
+              {selectedCount > deletableSelectedCount && (
+                <span className="ml-2 text-xs text-amber-400">
+                  ({selectedCount - deletableSelectedCount} not yours)
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={selectAllVisible}
+                disabled={selectableEntries.length === 0}
+                className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-40 border border-white/10 rounded text-gray-300 transition-colors"
+              >
+                Select all
+              </button>
+              <button
+                onClick={clearSelection}
+                disabled={selectedCount === 0}
+                className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-40 border border-white/10 rounded text-gray-300 transition-colors"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setBulkConfirmOpen(true)}
+                disabled={deletableSelectedCount === 0}
+                className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded transition-colors"
+              >
+                Delete {deletableSelectedCount > 0 ? deletableSelectedCount : ""}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkConfirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => !bulkDeleting && setBulkConfirmOpen(false)}
+        >
+          <div
+            className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Delete {deletableSelectedCount} entr
+              {deletableSelectedCount === 1 ? "y" : "ies"}?
+            </h3>
+            <p className="text-sm text-gray-400 mb-6">
+              This permanently removes the selected entries and all their
+              connections. This can&apos;t be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setBulkConfirmOpen(false)}
+                disabled={bulkDeleting}
+                className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 disabled:opacity-40 text-gray-400 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
+              >
+                {bulkDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
