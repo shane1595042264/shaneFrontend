@@ -9,6 +9,7 @@ import {
   createConnection,
 } from "@/lib/knowledge-api";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+import { KnowledgeCommentsThread } from "./comments-thread";
 
 interface EntryDetailProps {
   entryId: string;
@@ -322,6 +323,11 @@ export function EntryDetail({
             </div>
           )}
         </div>
+
+        <KnowledgeCommentsThread
+          entryId={entryId}
+          entryAuthorId={entry.createdBy}
+        />
       </div>
     </div>
   );
