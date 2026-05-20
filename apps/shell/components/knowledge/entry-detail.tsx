@@ -228,6 +228,8 @@ export function EntryDetail({
           </div>
         )}
 
+        <EntrySource source={entry.source} />
+
         <button
           onClick={handleEnrich}
           disabled={enriching}
@@ -329,6 +331,38 @@ export function EntryDetail({
           entryAuthorId={entry.createdBy}
         />
       </div>
+    </div>
+  );
+}
+
+function EntrySource({ source }: { source: KnowledgeEntry["source"] }) {
+  if (!source) return null;
+  const { app, book, author, location, rawContext } = source;
+  if (!app && !book && !author && !location && !rawContext) return null;
+
+  return (
+    <div className="mb-4">
+      <h3 className="text-xs text-gray-500 uppercase mb-1">Source</h3>
+      {(book || author) && (
+        <p className="text-sm text-gray-300">
+          {book && <span className="italic">{book}</span>}
+          {book && author && <span className="text-gray-500"> &mdash; </span>}
+          {author && <span>{author}</span>}
+        </p>
+      )}
+      {location && (
+        <p className="text-xs text-gray-500 mt-0.5">{location}</p>
+      )}
+      {app && (
+        <span className="inline-block mt-1 text-xs px-1.5 py-0.5 border border-white/10 rounded text-gray-400">
+          via {app}
+        </span>
+      )}
+      {rawContext && (
+        <blockquote className="mt-2 pl-3 border-l-2 border-white/10 text-xs text-gray-400 italic line-clamp-3">
+          {rawContext}
+        </blockquote>
+      )}
     </div>
   );
 }
