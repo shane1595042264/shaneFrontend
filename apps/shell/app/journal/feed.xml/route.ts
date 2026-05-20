@@ -12,6 +12,7 @@ const EXCERPT_LEN = 400;
 type EntryRow = {
   date: string;
   contentExcerpt: string | null;
+  createdAt: string;
   updatedAt: string;
 };
 
@@ -43,11 +44,12 @@ async function fetchEntries(): Promise<EntryRow[]> {
     );
     if (!res.ok) return [];
     const list = (await res.json()) as {
-      entries: Array<{ date: string; updatedAt: string; contentExcerpt: string | null }>;
+      entries: Array<{ date: string; createdAt: string; updatedAt: string; contentExcerpt: string | null }>;
     };
     return (list.entries ?? []).map((e) => ({
       date: e.date,
       contentExcerpt: e.contentExcerpt ?? null,
+      createdAt: e.createdAt,
       updatedAt: e.updatedAt,
     }));
   } catch {
@@ -62,14 +64,14 @@ export async function GET() {
 
   const lastBuildDate =
     entries.length > 0
-      ? new Date(entries[0].updatedAt).toUTCString()
+      ? new Date(Math.max(...entries.map((e) => Date.parse(e.updatedAt)))).toUTCString()
       : new Date().toUTCString();
 
   const items = entries.map((entry) => {
     const title = formatTitle(entry.date);
     const link = `${SITE_URL}/journal/${entry.date}`;
     const excerpt = toPlainExcerpt(entry.contentExcerpt ?? "", EXCERPT_LEN);
-    const pubDate = new Date(entry.updatedAt).toUTCString();
+    const pubDate = new Date(entry.createdAt).toUTCString();
     return `    <item>
       <title>${escapeXml(title)}</title>
       <link>${escapeXml(link)}</link>
