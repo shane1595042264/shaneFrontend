@@ -1,11 +1,14 @@
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { fetchElements, getDefaultElements } from "@/lib/elements";
 
-interface PageProps {
+interface Params {
   params: Promise<{ symbol: string }>;
 }
 
-export default async function ElementPage({ params }: PageProps) {
+// Route Handler (not a Page) so redirects flush as real HTTP 307s instead of
+// the meta-refresh fallback that streaming Server Components produce. See
+// SHAN-196 for context.
+export async function GET(_req: Request, { params }: Params) {
   const { symbol } = await params;
 
   let elements;
@@ -20,7 +23,7 @@ export default async function ElementPage({ params }: PageProps) {
   );
 
   if (!element) {
-    redirect("/");
+    notFound();
   }
 
   if (element.status === "coming-soon") {
