@@ -92,6 +92,23 @@ function formatDuration(ms: number): string {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
+// GitHub webhooks fire once per branch a commit lands on, so the same SHA can
+// show up several times in /api/activities for one day. Collapse to first-seen
+// so the sidebar surfaces ~one row per actual commit.
+function dedupeGithubBySha(items: Activity[]): Activity[] {
+  const seen = new Set<string>();
+  const out: Activity[] = [];
+  for (const a of items) {
+    const sha = a.data.sha;
+    if (typeof sha === "string") {
+      if (seen.has(sha)) continue;
+      seen.add(sha);
+    }
+    out.push(a);
+  }
+  return out;
+}
+
 function summarizeLocations(items: Activity[]): { rows: Row[]; backgroundPings: number } {
   const namedEvents: Array<{ a: Activity; t: Date }> = [];
   const pings: Array<{ a: Activity; t: Date; lat: number; lon: number }> = [];
@@ -185,7 +202,8 @@ export async function ActivitySidebar({ date }: Props) {
       <h2 className="text-xs font-medium uppercase tracking-wider text-gray-500">
         Activity
       </h2>
-      {[...grouped.entries()].map(([source, items]) => {
+      {[...grouped.entries()].map(([source, rawItems]) => {
+        const items = source === "github" ? dedupeGithubBySha(rawItems) : rawItems;
         const isLocation = source === "google_maps" || source === "owntracks";
         const locationSummary = isLocation ? summarizeLocations(items) : null;
         const rows: Row[] = isLocation
