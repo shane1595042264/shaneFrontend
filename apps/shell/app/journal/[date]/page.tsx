@@ -213,6 +213,10 @@ export default async function JournalEntryPage({ params }: PageProps) {
     notFound();
   }
 
+  // Appends render on the same page, so the reader-facing "N min read"
+  // estimate must cover them too — otherwise it under-reports.
+  const fullContent = [data.content, ...data.appends.map((a) => a.content)].join("\n\n");
+
   const entryUrl = `${SITE_URL}/journal/${date}`;
   const personEntity = {
     "@type": "Person" as const,
@@ -288,7 +292,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
                 </span>
               )}
               <span className="ml-auto text-xs font-normal text-gray-500">
-                {readingTimeMinutes(data.content)} min read
+                {readingTimeMinutes(fullContent)} min read
               </span>
             </h2>
             <div className="mb-4 flex items-center gap-2 text-xs text-gray-400">
