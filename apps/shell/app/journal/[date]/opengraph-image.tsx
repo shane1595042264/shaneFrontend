@@ -34,8 +34,15 @@ async function fetchEntry(date: string): Promise<string | null> {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { entry?: { content?: string }; content?: string };
-    return data.content ?? data.entry?.content ?? null;
+    const data = (await res.json()) as {
+      entry?: { content?: string };
+      content?: string;
+      appends?: Array<{ content: string }>;
+    };
+    const base = data.content ?? data.entry?.content ?? null;
+    if (base === null) return null;
+    const appendBodies = (data.appends ?? []).map((a) => a.content).filter(Boolean);
+    return appendBodies.length > 0 ? [base, ...appendBodies].join("\n\n") : base;
   } catch {
     return null;
   }

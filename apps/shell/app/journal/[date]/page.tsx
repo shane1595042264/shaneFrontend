@@ -136,7 +136,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const snippet = buildSnippet(data.content);
+  // Match the on-page reading experience: appends contribute to the body the
+  // reader sees, so the meta/OG/Twitter snippet must consider them too. Same
+  // rationale as the reading-time fix in SHAN-197.
+  const snippetSource = [data.content, ...data.appends.map((a) => a.content)].join("\n\n");
+  const snippet = buildSnippet(snippetSource);
   const title = `${formatDate(date)} — Journal — Shane`;
   const canonicalUrl = `${SITE_URL}/journal/${date}`;
   const ogImagePath = `/journal/${date}/opengraph-image`;
@@ -227,7 +231,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: `${formatDate(date)} — Journal — Shane`,
-    description: buildSnippet(data.content),
+    description: buildSnippet(fullContent),
     inLanguage: "en-US",
     datePublished: data.entry.createdAt,
     dateModified: data.entry.updatedAt,
