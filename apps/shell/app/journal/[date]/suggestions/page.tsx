@@ -37,7 +37,7 @@ export default function SuggestionsListPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-8" aria-busy={loading}>
       <Link href={`/journal/${date}`} className="text-sm text-gray-500 hover:text-gray-300">
         ← back to entry
       </Link>
@@ -77,7 +77,25 @@ export default function SuggestionsListPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
+        <div
+          role="status"
+          aria-label="Loading suggestions"
+          className="divide-y divide-white/10 rounded-md border border-white/10"
+        >
+          <span className="sr-only">Loading suggestions…</span>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2">
+                  <div className="h-5 w-5 rounded-full bg-white/8 animate-pulse" />
+                  <div className="h-3 w-24 rounded bg-white/8 animate-pulse" />
+                  <div className="h-3 w-14 rounded bg-white/8 animate-pulse" />
+                </span>
+                <div className="h-4 w-16 rounded bg-white/8 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <p className="text-sm text-gray-400">No {filter} suggestions.</p>
       ) : (
