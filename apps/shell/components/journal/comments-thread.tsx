@@ -176,13 +176,27 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
   const deleteTargetName = deleteTarget?.author?.name?.trim() || "Anonymous";
 
   return (
-    <section className="mt-10 border-t border-white/10 pt-6">
+    <section className="mt-10 border-t border-white/10 pt-6" aria-busy={loading}>
       <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-gray-500">
         Comments {comments.length > 0 && <span className="ml-1 text-gray-400">({comments.length})</span>}
       </h2>
 
       {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
+        <div role="status" aria-label="Loading comments" className="space-y-3">
+          <span className="sr-only">Loading comments…</span>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded border border-white/10 bg-black/10 p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="h-3 w-24 rounded bg-white/8 animate-pulse" />
+                <div className="h-3 w-16 rounded bg-white/8 animate-pulse" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="h-3 w-11/12 rounded bg-white/8 animate-pulse" />
+                <div className="h-3 w-3/4 rounded bg-white/8 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : topLevel.length === 0 ? (
         <p className="text-sm text-gray-500">No comments yet.</p>
       ) : (
