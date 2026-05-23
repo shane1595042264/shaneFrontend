@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { fetchInbox, type InboxItem } from "@/lib/api/suggestions";
 import { RelativeTime } from "@/lib/format-time";
+import { toPlainExcerpt } from "@/lib/journal-text";
 
 export default function InboxPage() {
   const { user, loading: authLoading } = useAuth();
@@ -134,8 +135,7 @@ export default function InboxPage() {
                       <RelativeTime iso={item.suggestion.createdAt} className="text-xs text-gray-500" />
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs text-gray-400">
-                      {item.suggestion.proposedContent.slice(0, 200).replace(/\s+/g, " ").trim()}
-                      {item.suggestion.proposedContent.length > 200 && "…"}
+                      {toPlainExcerpt(item.suggestion.proposedContent, 200)}
                     </p>
                   </Link>
                 </li>
