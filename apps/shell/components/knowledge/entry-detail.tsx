@@ -109,11 +109,12 @@ export function EntryDetail({
         role="dialog"
         aria-modal="true"
         aria-label="Loading entry"
+        aria-busy={!error}
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
         onClick={onClose}
       >
         <div
-          className="bg-gray-900 border border-white/10 rounded-lg p-8"
+          className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {error ? (
@@ -135,7 +136,32 @@ export function EntryDetail({
               </div>
             </div>
           ) : (
-            <div className="animate-pulse text-gray-500">Loading...</div>
+            <div role="status" aria-label="Loading entry">
+              <span className="sr-only">Loading entry…</span>
+              <div className="mb-4">
+                <div className="h-7 w-40 rounded bg-white/8 animate-pulse" />
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="h-4 w-16 rounded bg-white/8 animate-pulse" />
+                  <div className="h-4 w-14 rounded bg-white/8 animate-pulse" />
+                  <div className="h-3 w-12 rounded bg-white/8 animate-pulse" />
+                </div>
+              </div>
+              <div className="mb-4 space-y-1.5">
+                <div className="h-3 w-20 rounded bg-white/8 animate-pulse" />
+                <div className="h-3 w-11/12 rounded bg-white/8 animate-pulse" />
+                <div className="h-3 w-3/4 rounded bg-white/8 animate-pulse" />
+              </div>
+              <div className="mb-4 space-y-1.5">
+                <div className="h-3 w-16 rounded bg-white/8 animate-pulse" />
+                <div className="h-3 w-10/12 rounded bg-white/8 animate-pulse" />
+              </div>
+              <div className="mb-6 h-7 w-28 rounded bg-white/8 animate-pulse" />
+              <div className="border-t border-white/8 pt-4 space-y-2">
+                <div className="h-3 w-24 rounded bg-white/8 animate-pulse" />
+                <div className="h-8 w-full rounded bg-white/8 animate-pulse" />
+                <div className="h-8 w-full rounded bg-white/8 animate-pulse" />
+              </div>
+            </div>
           )}
         </div>
       </div>
