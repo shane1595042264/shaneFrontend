@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getEntry, createEntry, type EntryDetail } from "@/lib/api/journal";
-import { MarkdownEditor } from "@/components/journal/markdown-editor";
+import { MarkdownEditor } from "@shane/ui";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 export default function EditEntryPage() {

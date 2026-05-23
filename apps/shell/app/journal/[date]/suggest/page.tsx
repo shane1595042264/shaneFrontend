@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getEntry } from "@/lib/api/journal";
 import { createSuggestion } from "@/lib/api/suggestions";
-import { MarkdownEditor } from "@/components/journal/markdown-editor";
+import { MarkdownEditor } from "@shane/ui";
 import { LoginButton } from "@/components/login-button";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
