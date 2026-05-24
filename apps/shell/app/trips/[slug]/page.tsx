@@ -15,8 +15,13 @@ interface TripFull {
   createdAt: string;
 }
 
+// no-store (not ISR) because trips are mutable via the public PATCH endpoint
+// — anyone running the /upload-trip curl recipe expects their next page view
+// to reflect the updated HTML, not a stale 60s ISR window. Matches the
+// /trips index pattern. Journal uses revalidatePath via journal-revalidate.ts
+// because it has frontend mutation paths to hook; trips has no such UI yet.
 async function fetchTrip(slug: string): Promise<TripFull | null> {
-  const res = await fetch(`${API_URL}/api/trips/${slug}`, { next: { revalidate: 60 } });
+  const res = await fetch(`${API_URL}/api/trips/${slug}`, { cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to load trip: ${res.status}`);
   return (await res.json()).trip;
