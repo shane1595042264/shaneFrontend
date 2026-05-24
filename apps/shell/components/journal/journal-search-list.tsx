@@ -3,6 +3,8 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toPlainExcerpt } from "@/lib/journal-text";
+import { useAuth } from "@/lib/auth-context";
+import { getTodayInTimezone, resolveViewerTimezone, timezoneTagFor } from "@/lib/timezone";
 
 const EXCERPT_LEN = 200;
 
@@ -10,6 +12,7 @@ interface JournalEntry {
   id: string;
   date: string;
   authorId: string;
+  authorTimezone?: string | null;
   author: { id: string; name: string | null; avatarUrl: string | null } | null;
   status: "published" | "trashed";
   editCount: number;
@@ -60,6 +63,7 @@ function highlightMatches(text: string, query: string): React.ReactNode {
 
 interface Props {
   entries: JournalEntry[];
+  /** Server-side guess used until the client mounts (avoids hydration mismatch). */
   today: string;
 }
 
@@ -70,7 +74,16 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return target.isContentEditable;
 }
 
-export function JournalSearchList({ entries, today }: Props) {
+export function JournalSearchList({ entries, today: ssrToday }: Props) {
+  const { user } = useAuth();
+  // Use SSR today on first paint, then swap to the viewer's TZ once auth-context
+  // resolves. Avoids a hydration mismatch warning while still respecting per-user TZ.
+  const viewerTz = useMemo(() => resolveViewerTimezone(user), [user]);
+  const [today, setToday] = useState(ssrToday);
+  useEffect(() => {
+    setToday(getTodayInTimezone(viewerTz));
+  }, [viewerTz]);
+
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const trimmed = deferredQuery.trim();
@@ -245,6 +258,7 @@ export function JournalSearchList({ entries, today }: Props) {
                       const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
                       const authorName = e.author?.name?.trim() || "Anonymous";
                       const isToday = e.date === today;
+                      const tzTag = timezoneTagFor(e.authorTimezone, viewerTz);
                       return (
                         <li key={e.id}>
                           <Link
@@ -256,6 +270,14 @@ export function JournalSearchList({ entries, today }: Props) {
                                 <span className="font-mono text-sm tabular-nums">
                                   {highlightMatches(e.date, trimmed)}
                                 </span>
+                                {tzTag && (
+                                  <span
+                                    className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400"
+                                    title={`Posted in ${tzTag}; you're viewing in ${viewerTz}`}
+                                  >
+                                    {tzTag}
+                                  </span>
+                                )}
                                 {isToday && (
                                   <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-blue-400">
                                     Today

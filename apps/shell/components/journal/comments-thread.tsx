@@ -14,6 +14,7 @@ import { getCommentReactions, toggleCommentReaction } from "@/lib/api/reactions"
 import { RelativeTime } from "@/lib/format-time";
 import { ReactionDisplay } from "./reaction-display";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { resolveViewerTimezone, timezoneTagFor } from "@/lib/timezone";
 
 interface Props {
   date: string;
@@ -109,9 +110,12 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
   const repliesFor = (parentId: string) =>
     comments.filter((c) => c.parentCommentId === parentId);
 
+  const viewerTz = resolveViewerTimezone(user);
+
   const renderComment = (c: Comment, isReply: boolean) => {
     const canDelete = !!user && (user.id === c.authorId || user.id === entryAuthorId);
     const displayName = c.author?.name?.trim() || "Anonymous";
+    const tzTag = timezoneTagFor(c.authorTimezone, viewerTz);
     return (
       <li key={c.id} className={`rounded border border-white/10 ${isReply ? "bg-black/20" : "bg-black/10"} p-3`}>
         <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-500">
@@ -126,6 +130,14 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
             ) : null}
             <span className="text-gray-300">{displayName}</span>
             <RelativeTime iso={c.createdAt} />
+            {tzTag && (
+              <span
+                className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400"
+                title={`Posted in ${tzTag}; you're viewing in ${viewerTz}`}
+              >
+                {tzTag}
+              </span>
+            )}
             {c.editedAt && <span className="italic">edited</span>}
           </span>
           <div className="flex flex-wrap items-center gap-2">

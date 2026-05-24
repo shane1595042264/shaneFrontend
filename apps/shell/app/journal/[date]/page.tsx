@@ -32,10 +32,16 @@ function isValidDate(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(Date.parse(date));
 }
 
-// UTC day — matches backend cron's getTodayDate() so "today" means the same
-// thing on both sides of the API and the nightly-generation boundary.
+// Server-rendered "today" seed, in the site's default TZ (America/Chicago).
+// Used only for the SSR "no entry yet — today" branch + the isToday metadata
+// flag. The client overrides via timezone helpers when needed.
 function getTodayUtcStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 async function fetchEntryServer(date: string) {

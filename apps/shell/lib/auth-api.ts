@@ -5,6 +5,23 @@ export interface AuthUser {
   email: string;
   name: string | null;
   avatarUrl: string | null;
+  /** IANA timezone the user posts in. Falls back to America/Chicago server-side. */
+  timezone: string;
+}
+
+export async function updateMyTimezone(timezone: string): Promise<{ timezone: string }> {
+  const token = getStoredToken();
+  if (!token) throw new Error("Not signed in");
+  const res = await fetch(`${API_URL}/api/auth/me/timezone`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ timezone }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to update timezone");
+  }
+  return res.json();
 }
 
 interface AuthResponse {

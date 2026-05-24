@@ -54,15 +54,22 @@ async function fetchAllEntries(): Promise<JournalEntry[]> {
   return all;
 }
 
-// UTC day matches the backend and the [date] route's getTodayUtcStr,
-// so "today" means the same thing on the index, the entry page, and the API.
-function getTodayUtcStr(): string {
-  return new Date().toISOString().slice(0, 10);
+// Server-rendered ISR seed for "today". The client component rehydrates
+// with the viewer's actual timezone (see JournalSearchList) so authenticated
+// users see today correctly. Chicago is the site's default TZ — it matches
+// the most common visitor (the author) and is stable across UTC midnight.
+function getTodayChicago(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 export default async function JournalPage() {
   const entries = await fetchAllEntries();
-  const today = getTodayUtcStr();
+  const today = getTodayChicago();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">

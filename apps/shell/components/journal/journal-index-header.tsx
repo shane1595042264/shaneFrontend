@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { fetchInbox } from "@/lib/api/suggestions";
 import { LoginButton } from "@/components/login-button";
-
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { getTodayInTimezone, resolveViewerTimezone } from "@/lib/timezone";
 
 export function JournalIndexHeader() {
   const { user, loading } = useAuth();
   const [pending, setPending] = useState<number>(0);
-  const today = todayUtc();
+  // Recompute today whenever the user changes (login/logout or TZ flip in /settings).
+  const today = useMemo(() => getTodayInTimezone(resolveViewerTimezone(user)), [user]);
 
   useEffect(() => {
     if (!user) return;

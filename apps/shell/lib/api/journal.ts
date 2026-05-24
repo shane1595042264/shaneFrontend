@@ -14,6 +14,8 @@ export interface JournalEntry {
   id: string;
   date: string;
   authorId: string;
+  /** IANA timezone snapshot of the author at create-time. Null for pre-migration rows. */
+  authorTimezone?: string | null;
   author: JournalAuthor | null;
   status: "published" | "trashed";
   editCount: number;
@@ -30,6 +32,7 @@ export interface JournalAppend {
   id: string;
   entryId: string;
   authorId: string;
+  authorTimezone?: string | null;
   author: JournalAuthor | null;
   content: string;
   createdAt: string;

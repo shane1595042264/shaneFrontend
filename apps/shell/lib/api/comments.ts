@@ -14,6 +14,7 @@ export interface Comment {
   entryId: string;
   parentCommentId: string | null;
   authorId: string;
+  authorTimezone?: string | null;
   author: CommentAuthor | null;
   content: string;
   editedAt: string | null;

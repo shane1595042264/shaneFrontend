@@ -14,6 +14,8 @@ interface AuthContextValue {
   loading: boolean;
   login: (credential: string) => Promise<void>;
   logout: () => void;
+  /** Optimistically update the cached user (e.g. after a profile PATCH). */
+  patchUser: (patch: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -21,6 +23,7 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   login: async () => {},
   logout: () => {},
+  patchUser: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -45,8 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const patchUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, patchUser }}>
       {children}
     </AuthContext.Provider>
   );
