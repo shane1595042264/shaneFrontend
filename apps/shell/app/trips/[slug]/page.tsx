@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { TripActions } from "@/components/trips/trip-actions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -49,10 +50,13 @@ export default async function TripPage({ params }: PageProps) {
             <span className="text-gray-600">/</span>
             <span className="font-medium text-white">{trip.title || trip.slug}</span>
           </div>
-          <span className="text-xs text-gray-500">
-            {new Date(trip.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
-            {trip.ownerName ? ` · ${trip.ownerName}` : ""}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500">
+              {new Date(trip.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+              {trip.ownerName ? ` · ${trip.ownerName}` : ""}
+            </span>
+            <TripActions slug={trip.slug} title={trip.title} />
+          </div>
         </div>
       </header>
 
