@@ -3,13 +3,10 @@
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
 import { uploadTripFile } from "@/lib/api/trips";
-import { LoginButton } from "@/components/login-button";
 
 export default function NewTripPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [titleOverride, setTitleOverride] = useState("");
@@ -42,19 +39,6 @@ export default function NewTripPage() {
       setUploading(false);
     }
   };
-
-  if (authLoading) {
-    return <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
-  }
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-12">
-        <Link href="/trips" className="text-sm text-gray-500 hover:text-gray-300">← back</Link>
-        <p className="mt-6 mb-3 text-sm text-gray-400">Sign in to upload a trip.</p>
-        <LoginButton />
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
