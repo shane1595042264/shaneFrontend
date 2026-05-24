@@ -13,6 +13,7 @@ import journalManifest from "@/app/journal/manifest";
 import rngCapitalistManifest from "@/app/rng-capitalist/manifest";
 import videoDownloaderManifest from "@/app/video-downloader/manifest";
 import knowledgeManifest from "@/app/knowledge/manifest";
+import tripsManifest from "@/app/trips/manifest";
 
 // External links and coming-soon elements that don't have route folders
 const externalElements: ElementConfig[] = [
@@ -70,5 +71,6 @@ export const allElements: ElementConfig[] = [
   rngCapitalistManifest,
   videoDownloaderManifest,
   knowledgeManifest,
+  tripsManifest,
   ...externalElements,
 ];
