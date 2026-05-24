@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RelativeTime } from "@/lib/format-time";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -12,6 +13,15 @@ interface TripListItem {
   title: string | null;
   ownerName: string | null;
   createdAt: string;
+  updatedAt: string;
+}
+
+// 60s threshold: createdAt + updatedAt are both DB-defaulted at INSERT so
+// they're equal at creation. Only flag as "edited" when PATCH has actually
+// moved updatedAt forward materially, so the badge means what it says.
+const EDIT_THRESHOLD_MS = 60_000;
+function wasMateriallyEdited(createdAt: string, updatedAt: string): boolean {
+  return new Date(updatedAt).getTime() - new Date(createdAt).getTime() > EDIT_THRESHOLD_MS;
 }
 
 async function fetchTrips(): Promise<TripListItem[]> {
@@ -67,6 +77,12 @@ export default async function TripsIndexPage() {
                 <p className="mt-1 text-xs text-gray-500">
                   {formatDate(t.createdAt)}
                   {t.ownerName ? ` · ${t.ownerName}` : ""}
+                  {wasMateriallyEdited(t.createdAt, t.updatedAt) && (
+                    <>
+                      {" · edited "}
+                      <RelativeTime iso={t.updatedAt} />
+                    </>
+                  )}
                 </p>
                 <p className="mt-2 font-mono text-[11px] text-gray-600">/trips/{t.slug}</p>
               </Link>

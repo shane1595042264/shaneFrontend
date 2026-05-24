@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { TripActions } from "@/components/trips/trip-actions";
+import { RelativeTime } from "@/lib/format-time";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -13,6 +14,14 @@ interface TripFull {
   sourceFilename: string | null;
   ownerName: string | null;
   createdAt: string;
+  updatedAt: string;
+}
+
+// 60s: see /trips/page.tsx — both timestamps are DB-defaulted at INSERT, so
+// anything past that is a real PATCH from the public update endpoint.
+const EDIT_THRESHOLD_MS = 60_000;
+function wasMateriallyEdited(createdAt: string, updatedAt: string): boolean {
+  return new Date(updatedAt).getTime() - new Date(createdAt).getTime() > EDIT_THRESHOLD_MS;
 }
 
 // no-store (not ISR) because trips are mutable via the public PATCH endpoint
@@ -59,6 +68,12 @@ export default async function TripPage({ params }: PageProps) {
             <span className="text-xs text-gray-500">
               {new Date(trip.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
               {trip.ownerName ? ` · ${trip.ownerName}` : ""}
+              {wasMateriallyEdited(trip.createdAt, trip.updatedAt) && (
+                <>
+                  {" · edited "}
+                  <RelativeTime iso={trip.updatedAt} />
+                </>
+              )}
             </span>
             <TripActions slug={trip.slug} title={trip.title} />
           </div>
