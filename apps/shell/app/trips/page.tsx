@@ -76,7 +76,8 @@ export default async function TripsIndexPage() {
                 </h2>
                 <p className="mt-1 text-xs text-gray-500">
                   {formatDate(t.createdAt)}
-                  {t.ownerName ? ` · ${t.ownerName}` : ""}
+                  {" · "}
+                  {t.ownerName ?? <span className="italic text-gray-600">Anonymous</span>}
                   {wasMateriallyEdited(t.createdAt, t.updatedAt) && (
                     <>
                       {" · edited "}

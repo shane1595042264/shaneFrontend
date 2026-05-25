@@ -67,7 +67,8 @@ export default async function TripPage({ params }: PageProps) {
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">
               {new Date(trip.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
-              {trip.ownerName ? ` · ${trip.ownerName}` : ""}
+              {" · "}
+              {trip.ownerName ?? <span className="italic text-gray-600">Anonymous</span>}
               {wasMateriallyEdited(trip.createdAt, trip.updatedAt) && (
                 <>
                   {" · edited "}
