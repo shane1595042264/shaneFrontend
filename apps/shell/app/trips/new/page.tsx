@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { uploadTripFile } from "@/lib/api/trips";
 
 export default function NewTripPage() {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [titleOverride, setTitleOverride] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -45,7 +44,8 @@ export default function NewTripPage() {
       <Link href="/trips" className="text-sm text-gray-500 hover:text-gray-300">← back to trips</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">Upload a trip</h1>
 
-      <div
+      <label
+        htmlFor="trip-file-input"
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => {
@@ -54,37 +54,38 @@ export default function NewTripPage() {
           const f = e.dataTransfer.files?.[0];
           if (f) acceptFile(f);
         }}
-        onClick={() => fileInputRef.current?.click()}
-        className={`flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed p-6 text-center transition-colors ${
+        className={`flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed p-6 text-center transition-colors focus-within:border-white/40 focus-within:ring-2 focus-within:ring-white/30 ${
           dragging
             ? "border-blue-400 bg-blue-500/10"
             : "border-white/15 bg-black/20 hover:border-white/30 hover:bg-black/30"
         }`}
       >
         <input
-          ref={fileInputRef}
+          id="trip-file-input"
           type="file"
           accept=".html,.htm,text/html"
+          aria-label="Upload an HTML file"
+          aria-describedby="trip-file-help"
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) acceptFile(f);
           }}
-          className="hidden"
+          className="sr-only"
         />
         {file ? (
           <>
-            <p className="text-sm text-white">{file.name}</p>
-            <p className="mt-1 text-xs text-gray-500">
-              {(file.size / 1024).toFixed(1)} KB · click to pick a different file
-            </p>
+            <span className="text-sm text-white">{file.name}</span>
+            <span id="trip-file-help" className="mt-1 text-xs text-gray-500">
+              {(file.size / 1024).toFixed(1)} KB · click or press Enter to pick a different file
+            </span>
           </>
         ) : (
           <>
-            <p className="text-sm text-gray-300">Drop an HTML file here, or click to pick one.</p>
-            <p className="mt-1 text-xs text-gray-500">Max 10 MB. Title is extracted from the file automatically.</p>
+            <span className="text-sm text-gray-300">Drop an HTML file here, or click to pick one.</span>
+            <span id="trip-file-help" className="mt-1 text-xs text-gray-500">Max 10 MB. Title is extracted from the file automatically.</span>
           </>
         )}
-      </div>
+      </label>
 
       <div className="mt-6">
         <label htmlFor="title-override" className="mb-1 block text-sm text-gray-400">
