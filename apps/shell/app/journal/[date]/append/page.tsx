@@ -68,7 +68,22 @@ export default function AppendEntryPage() {
   };
 
   if (authLoading || loading) {
-    return <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8" aria-busy={true}>
+        <div role="status" aria-label="Loading append editor">
+          <span className="sr-only">Loading append editor…</span>
+          <div className="h-3 w-28 rounded bg-white/8 animate-pulse" />
+          <div className="mt-3 mb-1 h-7 w-48 rounded bg-white/8 animate-pulse" />
+          <div className="mb-2 h-3 w-full max-w-xl rounded bg-white/8 animate-pulse" />
+          <div className="mb-4 h-3 w-3/4 max-w-md rounded bg-white/8 animate-pulse" />
+          <div className="h-64 w-full rounded border border-white/10 bg-white/8 animate-pulse" />
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-2">
+            <div className="h-11 w-full rounded bg-white/8 animate-pulse sm:w-24" />
+            <div className="h-11 w-full rounded border border-white/10 bg-white/8 animate-pulse sm:w-24" />
+          </div>
+        </div>
+      </div>
+    );
   }
   if (!user) {
     return (
