@@ -14,6 +14,8 @@ type ElementRow = {
 
 type JournalRow = { date: string; updatedAt: string | null };
 
+type TripRow = { slug: string; updatedAt: string | null };
+
 async function fetchLiveInternalRoutes(): Promise<ElementRow[]> {
   try {
     const res = await fetch(`${API_URL}/api/elements`, { next: { revalidate: 3600 } });
@@ -54,16 +56,34 @@ async function fetchAllJournalDates(): Promise<JournalRow[]> {
   }
 }
 
+async function fetchAllTrips(): Promise<TripRow[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/trips`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { trips: { slug: string; updatedAt: string | null }[] };
+    return data.trips.map((t) => ({ slug: t.slug, updatedAt: t.updatedAt }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [elements, journalDates] = await Promise.all([
+  const [elements, journalDates, trips] = await Promise.all([
     fetchLiveInternalRoutes(),
     fetchAllJournalDates(),
+    fetchAllTrips(),
   ]);
 
   const now = new Date();
 
   const latestJournalUpdate = journalDates.reduce<Date | null>((max, row) => {
     const candidate = row.updatedAt ? new Date(row.updatedAt) : new Date(row.date + "T00:00:00Z");
+    return !max || candidate > max ? candidate : max;
+  }, null);
+
+  const latestTripUpdate = trips.reduce<Date | null>((max, row) => {
+    if (!row.updatedAt) return max;
+    const candidate = new Date(row.updatedAt);
     return !max || candidate > max ? candidate : max;
   }, null);
 
@@ -78,10 +98,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const el of elements) {
     const elUpdated = el.updatedAt ? new Date(el.updatedAt) : now;
-    const lastModified =
-      el.route === "/journal" && latestJournalUpdate && latestJournalUpdate > elUpdated
-        ? latestJournalUpdate
-        : elUpdated;
+    let lastModified = elUpdated;
+    if (el.route === "/journal" && latestJournalUpdate && latestJournalUpdate > elUpdated) {
+      lastModified = latestJournalUpdate;
+    } else if (el.route === "/trips" && latestTripUpdate && latestTripUpdate > elUpdated) {
+      lastModified = latestTripUpdate;
+    }
     entries.push({
       url: `${SITE_URL}${el.route}`,
       lastModified,
@@ -94,6 +116,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push({
       url: `${SITE_URL}/journal/${row.date}`,
       lastModified: row.updatedAt ? new Date(row.updatedAt) : new Date(row.date + "T00:00:00Z"),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    });
+  }
+
+  for (const row of trips) {
+    entries.push({
+      url: `${SITE_URL}/trips/${row.slug}`,
+      lastModified: row.updatedAt ? new Date(row.updatedAt) : now,
       changeFrequency: "monthly",
       priority: 0.6,
     });
