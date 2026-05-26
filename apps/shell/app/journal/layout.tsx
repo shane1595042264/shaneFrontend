@@ -34,10 +34,8 @@ export default function JournalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col overflow-hidden h-[calc(100dvh-57px)] print:block print:h-auto print:overflow-visible">
-      <div className="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-6 print:overflow-visible print:p-0">
-        {children}
-      </div>
+    <div className="px-3 md:px-6 py-4 md:py-6 print:p-0">
+      {children}
     </div>
   );
 }
