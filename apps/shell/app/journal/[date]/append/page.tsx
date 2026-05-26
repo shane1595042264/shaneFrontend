@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getEntry, createAppend } from "@/lib/api/journal";
+import { uploadImage } from "@/lib/api/images";
 import { MarkdownEditor } from "@shane/ui";
 import { LoginButton } from "@/components/login-button";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
@@ -152,7 +153,7 @@ export default function AppendEntryPage() {
       <p className="mb-4 text-sm text-gray-400">
         Entries are append-only. Each append is timestamped and added below the existing content.
       </p>
-      <MarkdownEditor value={content} onChange={setContent} />
+      <MarkdownEditor value={content} onChange={setContent} onImageUpload={uploadImage} />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-2">
         <button

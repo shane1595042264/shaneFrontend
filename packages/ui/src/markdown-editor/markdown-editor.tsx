@@ -41,6 +41,12 @@ export interface MarkdownEditorProps {
   autoFocus?: boolean;
   /** Submit shortcut (Ctrl/Cmd + Enter). */
   onSubmit?: () => void;
+  /**
+   * Async uploader invoked when the user pastes or drops an image file.
+   * If omitted, paste/drop of binary images is ignored (the editor still
+   * accepts pasted URLs as before).
+   */
+  onImageUpload?: (file: Blob, filename: string) => Promise<{ url: string }>;
 }
 
 type Mode = "write" | "preview";
@@ -54,9 +60,19 @@ export function MarkdownEditor({
   showPreviewTab = true,
   autoFocus,
   onSubmit,
+  onImageUpload,
 }: MarkdownEditorProps) {
   const [mode, setMode] = React.useState<Mode>("write");
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  // Latest committed value, used by async upload callbacks that may resolve
+  // after the React closure that started them has gone stale (the user kept
+  // typing, the parent's `value` prop has moved on).
+  const valueRef = React.useRef(value);
+  React.useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const [uploadsInFlight, setUploadsInFlight] = React.useState(0);
 
   // Apply a pure action to the textarea, preserving the native undo stack
   // by replacing only the differing region via document.execCommand.
@@ -228,13 +244,81 @@ export function MarkdownEditor({
     }
   }
 
+  // Insert a placeholder line at the caret, then asynchronously replace it
+  // with the final ![](url) once the upload resolves. The placeholder token is
+  // a unique sentinel so we can still find it after the user keeps typing.
+  const startImageUpload = React.useCallback(
+    (file: Blob, filename: string) => {
+      if (!onImageUpload) return;
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const altBase = filename || "pasted-image";
+      const token = `uploading-${Math.random().toString(36).slice(2, 10)}-${Date.now()}`;
+      const placeholderMd = `![${altBase}](${token})`;
+
+      const before: EditorState = {
+        value: ta.value,
+        selectionStart: ta.selectionStart,
+        selectionEnd: ta.selectionEnd,
+      };
+      const insertAt = ta.selectionStart;
+      const after: EditorState = {
+        value: ta.value.slice(0, insertAt) + placeholderMd + ta.value.slice(ta.selectionEnd),
+        selectionStart: insertAt + placeholderMd.length,
+        selectionEnd: insertAt + placeholderMd.length,
+      };
+      replaceRegionPreservingUndo(ta, before, after);
+      onChange(ta.value);
+
+      setUploadError(null);
+      setUploadsInFlight((n) => n + 1);
+      onImageUpload(file, filename)
+        .then((result) => {
+          const current = valueRef.current;
+          const replacement = `![${altBase}](${result.url})`;
+          if (!current.includes(token)) return;
+          onChange(current.replace(placeholderMd, replacement));
+        })
+        .catch((err: unknown) => {
+          setUploadError(err instanceof Error ? err.message : "Image upload failed");
+          const current = valueRef.current;
+          if (current.includes(token)) onChange(current.replace(placeholderMd, ""));
+        })
+        .finally(() => setUploadsInFlight((n) => Math.max(0, n - 1)));
+    },
+    [onImageUpload, onChange],
+  );
+
   function onPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    if (onImageUpload && e.clipboardData?.files?.length) {
+      const file = Array.from(e.clipboardData.files).find((f) => f.type.startsWith("image/"));
+      if (file) {
+        e.preventDefault();
+        startImageUpload(file, file.name || "pasted-image");
+        return;
+      }
+    }
     const ta = textareaRef.current;
     if (!ta || ta.selectionStart === ta.selectionEnd) return;
     const pasted = e.clipboardData.getData("text/plain");
     if (!pasted || !looksLikeUrl(pasted)) return;
     e.preventDefault();
     applyLink(pasted);
+  }
+
+  function onDrop(e: React.DragEvent<HTMLTextAreaElement>) {
+    if (!onImageUpload) return;
+    const file = Array.from(e.dataTransfer?.files ?? []).find((f) => f.type.startsWith("image/"));
+    if (!file) return;
+    e.preventDefault();
+    startImageUpload(file, file.name || "dropped-image");
+  }
+
+  function onDragOver(e: React.DragEvent<HTMLTextAreaElement>) {
+    if (!onImageUpload) return;
+    if (Array.from(e.dataTransfer?.items ?? []).some((it) => it.kind === "file")) {
+      e.preventDefault();
+    }
   }
 
   return (
@@ -278,12 +362,26 @@ export function MarkdownEditor({
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
             placeholder={placeholder}
             autoFocus={autoFocus}
             spellCheck={true}
             className="block w-full resize-y rounded-b border border-white/10 bg-black/20 p-3 font-mono text-base text-white/90 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 md:text-sm"
             style={{ minHeight }}
           />
+          {(uploadsInFlight > 0 || uploadError) && (
+            <div className="mt-1 text-xs" role="status" aria-live="polite">
+              {uploadsInFlight > 0 && (
+                <span className="text-gray-400">
+                  Uploading image{uploadsInFlight > 1 ? `s (${uploadsInFlight})` : ""}…
+                </span>
+              )}
+              {uploadError && !uploadsInFlight && (
+                <span className="text-red-400">{uploadError}</span>
+              )}
+            </div>
+          )}
         </>
       ) : (
         <div

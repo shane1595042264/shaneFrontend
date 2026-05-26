@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getEntry } from "@/lib/api/journal";
 import { createSuggestion } from "@/lib/api/suggestions";
+import { uploadImage } from "@/lib/api/images";
 import { MarkdownEditor } from "@shane/ui";
 import { LoginButton } from "@/components/login-button";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
@@ -150,7 +151,7 @@ export default function SuggestPage() {
       <p className="mb-4 text-sm text-gray-400">
         The author will review and approve or reject. If the author edits the entry before deciding, your base will be out of date and the diff vs current may shift.
       </p>
-      <MarkdownEditor value={content} onChange={setContent} />
+      <MarkdownEditor value={content} onChange={setContent} onImageUpload={uploadImage} />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-2">
         <button

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getEntry, createEntry, type EntryDetail } from "@/lib/api/journal";
+import { uploadImage } from "@/lib/api/images";
 import { MarkdownEditor } from "@shane/ui";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
@@ -135,7 +136,7 @@ export default function EditEntryPage() {
         ← back to entry
       </Link>
       <h1 className="mt-3 mb-4 font-mono text-2xl">{date} — create</h1>
-      <MarkdownEditor value={content} onChange={setContent} />
+      <MarkdownEditor value={content} onChange={setContent} onImageUpload={uploadImage} />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-2">
         <button
