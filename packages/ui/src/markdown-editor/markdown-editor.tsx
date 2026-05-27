@@ -64,6 +64,7 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const [mode, setMode] = React.useState<Mode>("write");
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   // Latest committed value, used by async upload callbacks that may resolve
   // after the React closure that started them has gone stale (the user kept
   // typing, the parent's `value` prop has moved on).
@@ -118,7 +119,19 @@ export function MarkdownEditor({
     { key: "inline-code", label: "Inline code", hint: "Ctrl+E", icon: TOOLBAR_ICONS.inlineCode, onClick: () => apply(inlineCodeAction) },
     { key: "code-block", label: "Code block", hint: "Ctrl+Shift+E", icon: TOOLBAR_ICONS.codeBlock, onClick: () => apply(codeBlockAction) },
     { key: "link", label: "Link", hint: "Ctrl+K", icon: TOOLBAR_ICONS.link, onClick: () => applyLink() },
-    { key: "image", label: "Image (paste a URL)", hint: "", icon: TOOLBAR_ICONS.image, onClick: () => apply(imageAction) },
+    {
+      key: "image",
+      label: onImageUpload ? "Upload image" : "Image (paste a URL)",
+      hint: onImageUpload ? "Pick a file from your device" : "",
+      icon: TOOLBAR_ICONS.image,
+      onClick: () => {
+        if (onImageUpload && fileInputRef.current) {
+          fileInputRef.current.click();
+          return;
+        }
+        apply(imageAction);
+      },
+    },
     { key: "_sep_2", label: "", hint: "", icon: null, onClick: () => {} },
     { key: "bulleted-list", label: "Bulleted list", hint: "Ctrl+Shift+8", icon: TOOLBAR_ICONS.bulletedList, onClick: () => apply(bulletedListAction) },
     { key: "numbered-list", label: "Numbered list", hint: "Ctrl+Shift+7", icon: TOOLBAR_ICONS.numberedList, onClick: () => apply(numberedListAction) },
@@ -356,6 +369,21 @@ export function MarkdownEditor({
       {mode === "write" ? (
         <>
           <Toolbar buttons={buttons} />
+          {onImageUpload && (
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              tabIndex={-1}
+              aria-hidden="true"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) startImageUpload(file, file.name || "uploaded-image");
+                e.target.value = "";
+              }}
+            />
+          )}
           <textarea
             ref={textareaRef}
             value={value}
