@@ -122,8 +122,12 @@ function formatDate(dateStr: string): string {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { date } = await params;
+  // SHAN-224: notFound() from generateMetadata is what actually sets the 404
+  // status header on Vercel for Next.js 15 dynamic segments. Calling notFound()
+  // only from the page below renders the not-found UI but the response stays
+  // 200 because generateMetadata has already committed metadata for the route.
   if (!isValidDate(date)) {
-    return { title: "Entry Not Found — Journal — Shane" };
+    notFound();
   }
 
   const data = await fetchEntryServer(date);
@@ -134,12 +138,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         robots: { index: false, follow: true },
       };
     }
-    // Soft-404 for valid-format dates with no entry: keep the friendly fallback UI
-    // but tell crawlers not to index this empty page (still let them follow links back).
-    return {
-      title: "Entry Not Found — Journal — Shane",
-      robots: { index: false, follow: true },
-    };
+    notFound();
   }
 
   // Match the on-page reading experience: appends contribute to the body the
