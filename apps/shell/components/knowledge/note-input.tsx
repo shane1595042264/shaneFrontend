@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { MarkdownEditor } from "@shane/ui";
+import { uploadImage } from "@/lib/api/images";
 
 interface NoteInputProps {
   onSubmit: (text: string) => void;
@@ -10,45 +12,42 @@ interface NoteInputProps {
 export function NoteInput({ onSubmit, loading }: NoteInputProps) {
   const [text, setText] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!text.trim()) return;
+  function submit() {
+    if (!text.trim() || loading) return;
     onSubmit(text.trim());
     setText("");
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
+  function handleFormSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    submit();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
+    <form onSubmit={handleFormSubmit} className="space-y-2">
       <label className="block text-xs text-gray-500">
         What did you learn? (AI will classify it automatically)
       </label>
-      <div className="flex gap-3">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder='e.g. "gracias means thank you in Spanish" or "void specifies a return type, not behavior"'
-          rows={2}
-          className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 resize-none"
-        />
+      <MarkdownEditor
+        value={text}
+        onChange={setText}
+        placeholder='e.g. "gracias means thank you in Spanish" — or paste/drop an image to attach it'
+        minHeight="6rem"
+        onImageUpload={uploadImage}
+        onSubmit={submit}
+      />
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-gray-600">
+          Ctrl+Enter to submit. Paste or drop images to embed them.
+        </p>
         <button
           type="submit"
           disabled={loading || !text.trim()}
-          className="self-end px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm rounded transition-colors whitespace-nowrap"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm rounded transition-colors whitespace-nowrap"
         >
           {loading ? "Thinking..." : "Add Note"}
         </button>
       </div>
-      <p className="text-xs text-gray-600">
-        Press Enter to submit. Shift+Enter for new line.
-      </p>
     </form>
   );
 }

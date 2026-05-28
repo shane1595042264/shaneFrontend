@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { MarkdownEditor } from "@shane/ui";
 import type { KnowledgeEntry, KnowledgeConnection } from "@/lib/knowledge-api";
 import {
   fetchEntry,
   enrichEntryApi,
   deleteConnection,
   createConnection,
+  updateEntry,
 } from "@/lib/knowledge-api";
+import { uploadImage } from "@/lib/api/images";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { KnowledgeCommentsThread } from "./comments-thread";
 
@@ -40,6 +45,10 @@ export function EntryDetail({
   const [connectTarget, setConnectTarget] = useState("");
   const [connectType, setConnectType] = useState<string>("related");
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editDefinition, setEditDefinition] = useState("");
+  const [editExample, setEditExample] = useState("");
+  const [saving, setSaving] = useState(false);
   const containerRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
@@ -74,6 +83,38 @@ export function EntryDetail({
       onEntryUpdated();
     } finally {
       setEnriching(false);
+    }
+  }
+
+  function startEdit() {
+    if (!entry) return;
+    setEditDefinition(entry.definition ?? "");
+    setEditExample(entry.exampleSentence ?? "");
+    setError(null);
+    setEditing(true);
+  }
+
+  function cancelEdit() {
+    setEditing(false);
+    setError(null);
+  }
+
+  async function saveEdit() {
+    if (!entry || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await updateEntry(entryId, {
+        definition: editDefinition,
+        exampleSentence: editExample,
+      });
+      setEntry(updated);
+      setEditing(false);
+      onEntryUpdated();
+    } catch (err: any) {
+      setError(err?.message || "Failed to save changes.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -220,49 +261,112 @@ export function EntryDetail({
           </div>
         )}
 
-        {entry.definition && (
-          <div className="mb-4">
-            <h3 className="text-xs text-gray-500 uppercase mb-1">
-              Definition
-            </h3>
-            <p className="text-sm text-gray-300">{entry.definition}</p>
-          </div>
-        )}
-
-        {entry.exampleSentence && (
-          <div className="mb-4">
-            <h3 className="text-xs text-gray-500 uppercase mb-1">Example</h3>
-            <p className="text-sm text-gray-300 italic">
-              {entry.exampleSentence}
-            </p>
-          </div>
-        )}
-
-        {(entry.labels as string[])?.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-xs text-gray-500 uppercase mb-1">Labels</h3>
-            <div className="flex flex-wrap gap-1">
-              {(entry.labels as string[]).map((label) => (
-                <span
-                  key={label}
-                  className="text-xs px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-blue-400"
-                >
-                  {label}
-                </span>
-              ))}
+        {editing ? (
+          <div className="mb-4 space-y-3">
+            <div>
+              <label className="text-xs text-gray-500 uppercase mb-1 block">
+                Definition
+              </label>
+              <MarkdownEditor
+                value={editDefinition}
+                onChange={setEditDefinition}
+                placeholder="Definition. Paste or drop an image to embed it."
+                minHeight="6rem"
+                onImageUpload={uploadImage}
+                onSubmit={saveEdit}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 uppercase mb-1 block">
+                Example
+              </label>
+              <MarkdownEditor
+                value={editExample}
+                onChange={setEditExample}
+                placeholder="Example sentence (optional). Paste or drop an image to embed it."
+                minHeight="6rem"
+                onImageUpload={uploadImage}
+                onSubmit={saveEdit}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={cancelEdit}
+                disabled={saving}
+                className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-50 text-gray-400 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={saving}
+                className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white rounded transition-colors"
+              >
+                {saving ? "Saving…" : "Save"}
+              </button>
             </div>
           </div>
+        ) : (
+          <>
+            {entry.definition && (
+              <div className="mb-4">
+                <h3 className="text-xs text-gray-500 uppercase mb-1">
+                  Definition
+                </h3>
+                <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 text-gray-300">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {entry.definition}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )}
+
+            {entry.exampleSentence && (
+              <div className="mb-4">
+                <h3 className="text-xs text-gray-500 uppercase mb-1">Example</h3>
+                <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 italic text-gray-300">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {entry.exampleSentence}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )}
+
+            {(entry.labels as string[])?.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-xs text-gray-500 uppercase mb-1">Labels</h3>
+                <div className="flex flex-wrap gap-1">
+                  {(entry.labels as string[]).map((label) => (
+                    <span
+                      key={label}
+                      className="text-xs px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-blue-400"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <EntrySource source={entry.source} />
+
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+              <button
+                onClick={startEdit}
+                className="px-3 py-1.5 text-xs bg-white/5 border border-white/10 text-gray-300 rounded hover:bg-white/10 transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                onClick={handleEnrich}
+                disabled={enriching}
+                className="px-3 py-1.5 text-xs bg-purple-600/20 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-600/30 disabled:opacity-50 transition-colors"
+              >
+                {enriching ? "Enriching..." : "Re-enrich with AI"}
+              </button>
+            </div>
+          </>
         )}
-
-        <EntrySource source={entry.source} />
-
-        <button
-          onClick={handleEnrich}
-          disabled={enriching}
-          className="mb-6 px-3 py-1.5 text-xs bg-purple-600/20 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-600/30 disabled:opacity-50 transition-colors"
-        >
-          {enriching ? "Enriching..." : "Re-enrich with AI"}
-        </button>
 
         {/* Connections */}
         <div className="border-t border-white/8 pt-4">

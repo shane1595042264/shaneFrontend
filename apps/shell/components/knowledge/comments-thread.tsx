@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { MarkdownEditor } from "@shane/ui";
 import { useAuth } from "@/lib/auth-context";
 import {
   listKnowledgeComments,
@@ -10,6 +11,7 @@ import {
   deleteKnowledgeComment,
   type KnowledgeComment,
 } from "@/lib/api/knowledge-comments";
+import { uploadImage } from "@/lib/api/images";
 import { RelativeTime } from "@/lib/format-time";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
@@ -204,21 +206,28 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
               </button>
             </div>
           )}
-          <textarea
+          <MarkdownEditor
             value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Markdown supported. Be kind."
-            className="h-20 w-full resize-y rounded border border-white/10 bg-black/40 p-2 text-base text-white/90 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 sm:text-sm"
+            onChange={setText}
+            placeholder="Markdown supported. Paste or drop an image to embed it. Be kind."
+            minHeight="6rem"
+            onImageUpload={uploadImage}
+            onSubmit={submit}
           />
           {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
-          <button
-            type="button"
-            onClick={submit}
-            disabled={submitting || !text.trim()}
-            className="mt-2 inline-flex min-h-9 w-full items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            {submitting ? "Posting…" : "Post"}
-          </button>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="hidden text-[11px] text-gray-500 sm:inline">
+              Ctrl+Enter to post
+            </span>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={submitting || !text.trim()}
+              className="inline-flex min-h-9 w-full items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            >
+              {submitting ? "Posting…" : "Post"}
+            </button>
+          </div>
         </div>
       ) : (
         <p className="mt-4 text-sm text-gray-500">Sign in to comment.</p>

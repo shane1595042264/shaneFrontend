@@ -145,6 +145,32 @@ export async function createEntry(input: {
   return data.entry;
 }
 
+export async function updateEntry(
+  id: string,
+  body: {
+    word?: string;
+    language?: string;
+    category?: string;
+    definition?: string;
+    pronunciation?: string;
+    partOfSpeech?: string;
+    exampleSentence?: string;
+    labels?: string[];
+  }
+): Promise<KnowledgeEntry> {
+  const res = await fetch(`${API_URL}/api/knowledge/entries/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to update entry");
+  }
+  const data = await res.json();
+  return data.entry;
+}
+
 export async function deleteEntry(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/knowledge/entries/${id}`, {
     method: "DELETE",
