@@ -9,6 +9,7 @@ import {
   listComments,
   postComment,
   deleteComment,
+  editComment,
   type Comment,
 } from "@/lib/api/comments";
 import { getCommentReactions, toggleCommentReaction } from "@/lib/api/reactions";
@@ -34,6 +35,10 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editingSubmitting, setEditingSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -95,6 +100,35 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
     setDeleteError(null);
   };
 
+  const startEdit = (c: Comment) => {
+    setEditError(null);
+    setEditingId(c.id);
+    setEditText(c.content);
+  };
+
+  const cancelEdit = () => {
+    if (editingSubmitting) return;
+    setEditingId(null);
+    setEditText("");
+    setEditError(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editText.trim() || editingSubmitting) return;
+    setEditingSubmitting(true);
+    setEditError(null);
+    try {
+      await editComment(editingId, editText.trim());
+      setEditingId(null);
+      setEditText("");
+      await refresh();
+    } catch (e: unknown) {
+      setEditError(e instanceof Error ? e.message : "Failed to save edit");
+    } finally {
+      setEditingSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     if (!deleteConfirmId) return;
     function onKey(e: KeyboardEvent) {
@@ -116,6 +150,8 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
 
   const renderComment = (c: Comment, isReply: boolean) => {
     const canDelete = !!user && (user.id === c.authorId || user.id === entryAuthorId);
+    const canEdit = !!user && user.id === c.authorId;
+    const isEditing = editingId === c.id;
     const displayName = c.author?.name?.trim() || "Anonymous";
     const tzTag = timezoneTagFor(c.authorTimezone, viewerTz);
     return (
@@ -143,7 +179,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
             {c.editedAt && <span className="italic">edited</span>}
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            {!isReply && user && (
+            {!isReply && user && !isEditing && (
               <button
                 type="button"
                 onClick={() => setReplyTo(c.id)}
@@ -152,7 +188,16 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
                 reply
               </button>
             )}
-            {canDelete && (
+            {canEdit && !isEditing && (
+              <button
+                type="button"
+                onClick={() => startEdit(c)}
+                className="hover:text-gray-300"
+              >
+                edit
+              </button>
+            )}
+            {canDelete && !isEditing && (
               <button
                 type="button"
                 onClick={() => requestDelete(c.id)}
@@ -162,7 +207,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
                 {deletingId === c.id ? "deleting…" : "delete"}
               </button>
             )}
-            {user && (
+            {user && !isEditing && (
               <ReactionDisplay
                 size="sm"
                 initial={c.reactions}
@@ -172,9 +217,44 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
             )}
           </div>
         </div>
-        <div className="prose prose-invert prose-sm max-w-none prose-p:my-2">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{c.content}</ReactMarkdown>
-        </div>
+        {isEditing ? (
+          <div className="space-y-2">
+            <MarkdownEditor
+              value={editText}
+              onChange={setEditText}
+              minHeight="6rem"
+              autoFocus
+              onImageUpload={uploadImage}
+              onSubmit={saveEdit}
+              placeholder="Edit your comment in markdown. Ctrl+Enter to save."
+            />
+            {editError && (
+              <p role="alert" className="text-xs text-red-400">{editError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={cancelEdit}
+                disabled={editingSubmitting}
+                className="inline-flex min-h-8 items-center justify-center rounded bg-white/5 px-3 text-xs text-gray-300 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={editingSubmitting || !editText.trim()}
+                className="inline-flex min-h-8 items-center justify-center rounded bg-white px-3 text-xs font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {editingSubmitting ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="prose prose-invert prose-sm max-w-none prose-p:my-2">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{c.content}</ReactMarkdown>
+          </div>
+        )}
         {!isReply && (
           <ul className="mt-2 space-y-2 pl-4 border-l border-white/10">
             {repliesFor(c.id).map((r) => renderComment(r, true))}
