@@ -43,10 +43,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const trip = await fetchTrip(slug).catch(() => null);
-  // SHAN-224: notFound() here is what sets the actual 404 status on Vercel.
-  // Returning a Metadata object first commits the response as 200 even though
-  // the page below also calls notFound() to render the not-found UI.
-  if (!trip) notFound();
+  if (!trip) return { title: "Trip not found" };
   return {
     title: `${trip.title || slug} — Trips — Shane`,
     description: trip.title ? `${trip.title} — uploaded ${new Date(trip.createdAt).toLocaleDateString()}` : undefined,
