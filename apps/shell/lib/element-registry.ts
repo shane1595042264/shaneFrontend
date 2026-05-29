@@ -14,6 +14,7 @@ import rngCapitalistManifest from "@/app/rng-capitalist/manifest";
 import videoDownloaderManifest from "@/app/video-downloader/manifest";
 import knowledgeManifest from "@/app/knowledge/manifest";
 import tripsManifest from "@/app/trips/manifest";
+import whoOwesMeManifest from "@/app/who-owes-me/manifest";
 
 // External links and coming-soon elements that don't have route folders
 const externalElements: ElementConfig[] = [
@@ -72,5 +73,6 @@ export const allElements: ElementConfig[] = [
   videoDownloaderManifest,
   knowledgeManifest,
   tripsManifest,
+  whoOwesMeManifest,
   ...externalElements,
 ];
