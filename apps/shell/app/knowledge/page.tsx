@@ -340,6 +340,7 @@ export default function KnowledgePage() {
         <EntryDetail
           entryId={selectedEntryId}
           allEntries={entries}
+          currentUserId={currentUserId}
           onClose={() => setSelectedEntryId(null)}
           onEntryUpdated={() => {
             loadEntries();

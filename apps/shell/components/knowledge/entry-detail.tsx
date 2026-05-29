@@ -19,6 +19,7 @@ import { KnowledgeCommentsThread } from "./comments-thread";
 interface EntryDetailProps {
   entryId: string;
   allEntries: KnowledgeEntry[];
+  currentUserId: string | null;
   onClose: () => void;
   onEntryUpdated: () => void;
 }
@@ -34,6 +35,7 @@ const CONNECTION_TYPES = [
 export function EntryDetail({
   entryId,
   allEntries,
+  currentUserId,
   onClose,
   onEntryUpdated,
 }: EntryDetailProps) {
@@ -351,12 +353,18 @@ export function EntryDetail({
             <EntrySource source={entry.source} />
 
             <div className="mb-6 flex flex-wrap items-center gap-2">
-              <button
-                onClick={startEdit}
-                className="px-3 py-1.5 text-xs bg-white/5 border border-white/10 text-gray-300 rounded hover:bg-white/10 transition-colors"
-              >
-                Edit
-              </button>
+              {/* Mirrors backend ownership rule in PUT /api/knowledge/entries/:id
+                  (SHAN-222): must be signed in AND either the creator or a
+                  legacy entry whose createdBy is null. */}
+              {currentUserId &&
+                (entry.createdBy === null || entry.createdBy === currentUserId) && (
+                  <button
+                    onClick={startEdit}
+                    className="px-3 py-1.5 text-xs bg-white/5 border border-white/10 text-gray-300 rounded hover:bg-white/10 transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
               <button
                 onClick={handleEnrich}
                 disabled={enriching}
