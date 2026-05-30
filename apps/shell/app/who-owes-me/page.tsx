@@ -9,7 +9,10 @@ import {
   updateLoan,
   deleteLoan,
   type LoanEntry,
+  type UpdateLoanInput,
 } from "@/lib/loans-api";
+
+const AMOUNT_PATTERN = /^\d+(\.\d{1,2})?$/;
 
 export default function WhoOwesMePage() {
   return (
@@ -37,6 +40,7 @@ function WhoOwesMeContent() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -98,6 +102,12 @@ function WhoOwesMeContent() {
     } catch (e) {
       setError((e as Error).message);
     }
+  }
+
+  async function handleSave(entry: LoanEntry, patch: UpdateLoanInput) {
+    const updated = await updateLoan(entry.id, patch);
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? updated : e)));
+    setEditingId(null);
   }
 
   return (
@@ -174,6 +184,10 @@ function WhoOwesMeContent() {
               <LoanRow
                 key={entry.id}
                 entry={entry}
+                isEditing={editingId === entry.id}
+                onStartEdit={() => setEditingId(entry.id)}
+                onCancelEdit={() => setEditingId(null)}
+                onSave={(patch) => handleSave(entry, patch)}
                 onToggle={() => handleToggleRepaid(entry)}
                 onDelete={() => handleDelete(entry)}
               />
@@ -190,6 +204,10 @@ function WhoOwesMeContent() {
               <LoanRow
                 key={entry.id}
                 entry={entry}
+                isEditing={editingId === entry.id}
+                onStartEdit={() => setEditingId(entry.id)}
+                onCancelEdit={() => setEditingId(null)}
+                onSave={(patch) => handleSave(entry, patch)}
                 onToggle={() => handleToggleRepaid(entry)}
                 onDelete={() => handleDelete(entry)}
                 muted
@@ -204,17 +222,37 @@ function WhoOwesMeContent() {
 
 function LoanRow({
   entry,
+  isEditing,
+  onStartEdit,
+  onCancelEdit,
+  onSave,
   onToggle,
   onDelete,
   muted = false,
 }: {
   entry: LoanEntry;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+  onSave: (patch: UpdateLoanInput) => Promise<void>;
   onToggle: () => void;
   onDelete: () => void;
   muted?: boolean;
 }) {
   const created = new Date(entry.createdAt).toLocaleDateString();
   const repaidAt = entry.repaidAt ? new Date(entry.repaidAt).toLocaleDateString() : null;
+
+  if (isEditing) {
+    return (
+      <LoanRowEdit
+        entry={entry}
+        onSave={onSave}
+        onCancel={onCancelEdit}
+        muted={muted}
+      />
+    );
+  }
+
   return (
     <li
       className={`flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 bg-white/5 ${
@@ -240,6 +278,12 @@ function LoanRow({
       </div>
       <div className="flex gap-2 shrink-0">
         <button
+          onClick={onStartEdit}
+          className="px-3 py-1.5 rounded text-xs border border-white/10 hover:bg-white/10 text-gray-200"
+        >
+          Edit
+        </button>
+        <button
           onClick={onToggle}
           className="px-3 py-1.5 rounded text-xs border border-white/10 hover:bg-white/10 text-gray-200"
         >
@@ -252,6 +296,111 @@ function LoanRow({
           Delete
         </button>
       </div>
+    </li>
+  );
+}
+
+function LoanRowEdit({
+  entry,
+  onSave,
+  onCancel,
+  muted,
+}: {
+  entry: LoanEntry;
+  onSave: (patch: UpdateLoanInput) => Promise<void>;
+  onCancel: () => void;
+  muted: boolean;
+}) {
+  const [borrowerName, setBorrowerName] = useState(entry.borrowerName);
+  const [amount, setAmount] = useState(entry.amount.toString());
+  const [description, setDescription] = useState(entry.description ?? "");
+  const [saving, setSaving] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  async function handleSubmit(ev: FormEvent) {
+    ev.preventDefault();
+    const trimmedName = borrowerName.trim();
+    const trimmedAmount = amount.trim();
+    if (!trimmedName) {
+      setLocalError("Borrower name is required.");
+      return;
+    }
+    if (!AMOUNT_PATTERN.test(trimmedAmount)) {
+      setLocalError("Amount must be a non-negative number with up to 2 decimals.");
+      return;
+    }
+    const trimmedDesc = description.trim();
+    const currentDesc = entry.description ?? "";
+
+    const patch: UpdateLoanInput = {};
+    if (trimmedName !== entry.borrowerName) patch.borrowerName = trimmedName;
+    if (Number(trimmedAmount) !== entry.amount) patch.amount = trimmedAmount;
+    if (trimmedDesc !== currentDesc) patch.description = trimmedDesc.length > 0 ? trimmedDesc : null;
+
+    if (Object.keys(patch).length === 0) {
+      onCancel();
+      return;
+    }
+
+    setSaving(true);
+    setLocalError(null);
+    try {
+      await onSave(patch);
+    } catch (e) {
+      setLocalError((e as Error).message);
+      setSaving(false);
+    }
+  }
+
+  return (
+    <li className={`px-4 py-3 bg-white/5 ${muted ? "opacity-60" : ""}`}>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid gap-2 sm:grid-cols-[1fr_140px]">
+          <input
+            value={borrowerName}
+            onChange={(e) => setBorrowerName(e.target.value)}
+            placeholder="Who borrowed?"
+            maxLength={255}
+            aria-label="Borrower name"
+            className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
+          />
+          <input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Amount"
+            inputMode="decimal"
+            aria-label="Amount"
+            className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
+          />
+        </div>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Note (optional)"
+          rows={2}
+          maxLength={2000}
+          aria-label="Note"
+          className="w-full px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50 resize-y"
+        />
+        {localError && <p className="text-red-400 text-xs">{localError}</p>}
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-3 py-1.5 rounded text-xs bg-orange-500/90 hover:bg-orange-500 text-white disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            className="px-3 py-1.5 rounded text-xs border border-white/10 hover:bg-white/10 text-gray-200 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
     </li>
   );
 }
