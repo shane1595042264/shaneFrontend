@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { AuthGate } from "@/components/auth-gate";
+import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useAuth } from "@/lib/auth-context";
 import {
   fetchLoans,
@@ -42,6 +43,10 @@ function WhoOwesMeContent() {
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const [deleteTarget, setDeleteTarget] = useState<LoanEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!user) return;
     setLoading(true);
@@ -53,6 +58,18 @@ function WhoOwesMeContent() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [user]);
+
+  useEffect(() => {
+    if (!deleteTarget) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !deleting) {
+        setDeleteTarget(null);
+        setDeleteError(null);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [deleteTarget, deleting]);
 
   const outstanding = entries.filter((e) => e.status === "outstanding");
   const repaid = entries.filter((e) => e.status === "repaid");
@@ -94,13 +111,29 @@ function WhoOwesMeContent() {
     }
   }
 
-  async function handleDelete(entry: LoanEntry) {
-    if (!confirm(`Delete loan to ${entry.borrowerName}?`)) return;
+  function requestDelete(entry: LoanEntry) {
+    setDeleteError(null);
+    setDeleteTarget(entry);
+  }
+
+  function dismissDelete() {
+    if (deleting) return;
+    setDeleteTarget(null);
+    setDeleteError(null);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
     try {
-      await deleteLoan(entry.id);
-      setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+      await deleteLoan(deleteTarget.id);
+      setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (e) {
-      setError((e as Error).message);
+      setDeleteError((e as Error).message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -189,7 +222,7 @@ function WhoOwesMeContent() {
                 onCancelEdit={() => setEditingId(null)}
                 onSave={(patch) => handleSave(entry, patch)}
                 onToggle={() => handleToggleRepaid(entry)}
-                onDelete={() => handleDelete(entry)}
+                onDelete={() => requestDelete(entry)}
               />
             ))}
           </ul>
@@ -209,12 +242,55 @@ function WhoOwesMeContent() {
                 onCancelEdit={() => setEditingId(null)}
                 onSave={(patch) => handleSave(entry, patch)}
                 onToggle={() => handleToggleRepaid(entry)}
-                onDelete={() => handleDelete(entry)}
+                onDelete={() => requestDelete(entry)}
                 muted
               />
             ))}
           </ul>
         </section>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={dismissDelete}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="loan-delete-heading"
+        >
+          <FocusTrappedDiv
+            className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="loan-delete-heading" className="text-lg font-semibold text-white mb-2">
+              Delete loan to {deleteTarget.borrowerName}?
+            </h3>
+            <p className="text-sm text-gray-400 mb-4">
+              This removes the loan permanently. Cannot be undone.
+            </p>
+            {deleteError && (
+              <p role="alert" className="mb-4 text-sm text-red-400">{deleteError}</p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={dismissDelete}
+                disabled={deleting}
+                className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 disabled:opacity-50 text-gray-400 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </FocusTrappedDiv>
+        </div>
       )}
     </div>
   );
