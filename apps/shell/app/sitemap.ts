@@ -1,32 +1,20 @@
 import type { MetadataRoute } from "next";
+import { allElements } from "@/lib/element-registry";
 
 const SITE_URL = "https://shanejli.com";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 
-type ElementRow = {
-  symbol: string;
-  route: string | null;
-  type: "internal" | "external";
-  status: string;
-  updatedAt: string | null;
-};
+type InternalElement = { route: string };
 
 type JournalRow = { date: string; updatedAt: string | null };
 
 type TripRow = { slug: string; updatedAt: string | null };
 
-async function fetchLiveInternalRoutes(): Promise<ElementRow[]> {
-  try {
-    const res = await fetch(`${API_URL}/api/elements`, { next: { revalidate: 3600 } });
-    if (!res.ok) return [];
-    const data = (await res.json()) as { elements: ElementRow[] };
-    return data.elements.filter(
-      (e) => e.status === "live" && e.type === "internal" && typeof e.route === "string" && e.route.startsWith("/")
-    );
-  } catch {
-    return [];
-  }
+function liveInternalRoutes(): InternalElement[] {
+  return allElements
+    .filter((e) => e.type === "internal" && e.status === "live" && typeof e.route === "string" && e.route.startsWith("/"))
+    .map((e) => ({ route: e.route as string }));
 }
 
 async function fetchAllJournalDates(): Promise<JournalRow[]> {
@@ -68,11 +56,8 @@ async function fetchAllTrips(): Promise<TripRow[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [elements, journalDates, trips] = await Promise.all([
-    fetchLiveInternalRoutes(),
-    fetchAllJournalDates(),
-    fetchAllTrips(),
-  ]);
+  const [journalDates, trips] = await Promise.all([fetchAllJournalDates(), fetchAllTrips()]);
+  const elements = liveInternalRoutes();
 
   const now = new Date();
 
@@ -97,11 +82,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   for (const el of elements) {
-    const elUpdated = el.updatedAt ? new Date(el.updatedAt) : now;
-    let lastModified = elUpdated;
-    if (el.route === "/journal" && latestJournalUpdate && latestJournalUpdate > elUpdated) {
+    let lastModified: Date = now;
+    if (el.route === "/journal" && latestJournalUpdate) {
       lastModified = latestJournalUpdate;
-    } else if (el.route === "/trips" && latestTripUpdate && latestTripUpdate > elUpdated) {
+    } else if (el.route === "/trips" && latestTripUpdate) {
       lastModified = latestTripUpdate;
     }
     entries.push({
