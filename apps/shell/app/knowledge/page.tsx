@@ -16,6 +16,9 @@ import { NoteInput } from "@/components/knowledge/note-input";
 import { CategoryTabs } from "@/components/knowledge/category-tabs";
 import { EntryCard } from "@/components/knowledge/entry-card";
 import { EntryDetail } from "@/components/knowledge/entry-detail";
+import { PracticeButton } from "@/components/practice/practice-button";
+import { ProgressChip } from "@/components/practice/progress-chip";
+import { listPracticeableItems, type PracticeableItem } from "@/lib/api/practice";
 
 export default function KnowledgePage() {
   const { user } = useAuth();
@@ -44,6 +47,14 @@ export default function KnowledgePage() {
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const lastClickedIndexRef = useRef<number | null>(null);
+
+  const [practiceMap, setPracticeMap] = useState<Map<string, PracticeableItem>>(new Map());
+  useEffect(() => {
+    if (!user) return;
+    listPracticeableItems(null, true)
+      .then((arr) => setPracticeMap(new Map(arr.map((it) => [it.itemId, it]))))
+      .catch(() => {});
+  }, [user]);
 
   const abortRef = useRef<AbortController | null>(null);
   const hasLoaded = useRef(false);
@@ -331,6 +342,19 @@ export default function KnowledgePage() {
               editMode={editMode}
               selected={selectedIds.has(entry.id)}
               onToggleSelect={toggleSelectAt}
+              actions={
+                <>
+                  <PracticeButton itemId={entry.id} itemName={entry.word} />
+                  {practiceMap.get(entry.id) && (
+                    <ProgressChip
+                      itemId={entry.id}
+                      totalStrikes={practiceMap.get(entry.id)!.totalStrikes}
+                      loadedLocations={practiceMap.get(entry.id)!.loadedLocations}
+                      isSolidified={practiceMap.get(entry.id)!.isSolidified}
+                    />
+                  )}
+                </>
+              }
             />
           ))}
         </div>

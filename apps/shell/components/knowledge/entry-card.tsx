@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import type { KnowledgeEntry } from "@/lib/knowledge-api";
 
 const CATEGORY_BADGE: Record<string, string> = {
@@ -37,6 +37,7 @@ interface EntryCardProps {
   editMode: boolean;
   selected: boolean;
   onToggleSelect: (index: number, shiftKey: boolean) => void;
+  actions?: ReactNode;
 }
 
 export function EntryCard({
@@ -49,6 +50,7 @@ export function EntryCard({
   editMode,
   selected,
   onToggleSelect,
+  actions,
 }: EntryCardProps) {
   function handleCardClick(e: MouseEvent<HTMLDivElement>) {
     if (editMode) {
@@ -146,6 +148,11 @@ export function EntryCard({
               {label}
             </span>
           ))}
+        </div>
+      )}
+      {actions && (
+        <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {actions}
         </div>
       )}
     </div>
