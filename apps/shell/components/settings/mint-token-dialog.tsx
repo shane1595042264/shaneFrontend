@@ -10,6 +10,7 @@ const SCOPE_OPTIONS = [
   { value: "comments:write", label: "comments:write — post comments" },
   { value: "reactions:write", label: "reactions:write — add reactions" },
   { value: "knowledge:write", label: "knowledge:write — push vocab/notes (e.g. Nibbler)" },
+  { value: "practice:write", label: "practice:write — configure & log practice sessions" },
 ] as const;
 
 export function MintTokenDialog({ onClose }: { onClose: () => void }) {
