@@ -85,6 +85,17 @@ const TRIP_NOT_FOUND_HTML = `<!DOCTYPE html>
 // app/journal/ (feed.xml/route.ts, inbox/page.tsx, opengraph-image.tsx).
 const JOURNAL_NON_DATE_SEGMENTS = new Set(["feed.xml", "inbox", "opengraph-image"]);
 
+// Set of YYYY-MM-DD strings that could be "today" for any viewer worldwide:
+// UTC today plus the day on either side covers UTC-12 through UTC+14. We pass
+// these through to the page even when no entry exists yet, so the "Write
+// today's entry" CTA can land on a writeable page instead of an edge 404.
+function viewerTodayCandidates(): Set<string> {
+  const dayMs = 86_400_000;
+  const now = Date.now();
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  return new Set([iso(now - dayMs), iso(now), iso(now + dayMs)]);
+}
+
 // Sibling routes under /trips/ that are NOT trip detail pages. Matches the
 // folder layout in app/trips/ (new/page.tsx is the creation form; the route
 // has no opengraph-image yet but allowlisting it now is cheap insurance).
@@ -126,6 +137,11 @@ export async function middleware(req: NextRequest) {
       // SHAN-224 fast path: structurally invalid date, no backend call needed.
       return notFoundResponse(JOURNAL_NOT_FOUND_HTML);
     }
+    // "Write today's entry" lands on a date that legitimately has no backend
+    // entry yet — the user is about to create it. Skip the existence check
+    // for any date that could be "today" in any viewer's timezone so the
+    // page renders the write CTA instead of an edge 404.
+    if (viewerTodayCandidates().has(segment)) return NextResponse.next();
     // SHAN-231: format is valid — ask the backend whether an entry exists.
     const exists = await backendExists(`/api/journal/entries/${segment}`);
     if (exists === false) return notFoundResponse(JOURNAL_NOT_FOUND_HTML);
