@@ -50,9 +50,10 @@ function DoneContent({ sessionId }: { sessionId: string }) {
         })}
       </ul>
 
-      <div className="mt-8 flex gap-3">
+      <div className="mt-8 flex flex-wrap gap-3">
         <Link href="/practice" className="rounded bg-white px-4 py-2 text-sm text-black hover:bg-gray-200">Back to Practice</Link>
         <Link href="/practice/new" className="rounded border border-white/20 px-4 py-2 text-sm hover:bg-white/5">New session</Link>
+        <Link href="/practice/history" className="rounded border border-white/20 px-4 py-2 text-sm hover:bg-white/5">View history</Link>
       </div>
     </div>
   );

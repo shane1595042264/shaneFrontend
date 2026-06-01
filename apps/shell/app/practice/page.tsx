@@ -46,12 +46,20 @@ export default function PracticeIndexPage() {
               : `${items.length} practice-able · ${solidifiedCount} solidified · ${totalStrikes} strikes total`}
           </p>
         </div>
-        <Link
-          href="/practice/new"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
-        >
-          ✏️ New session
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/practice/history"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-white/20 px-4 text-sm hover:bg-white/5"
+          >
+            History
+          </Link>
+          <Link
+            href="/practice/new"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
+          >
+            ✏️ New session
+          </Link>
+        </div>
       </header>
 
       <label className="mb-4 flex items-center gap-2 text-sm text-gray-400">
