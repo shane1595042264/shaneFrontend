@@ -22,15 +22,19 @@ function HistoryContent() {
         <p className="text-sm text-gray-500">No sessions yet.</p>
       ) : (
         <ul className="space-y-2">
-          {sessions.map((s) => (
-            <li key={s.id}>
-              <Link href={`/practice/sessions/${s.id}/done`} className="block rounded border border-white/10 px-3 py-2 text-sm hover:bg-white/5">
-                {new Date(s.startedAt).toLocaleString()} · {s.nItemsRequested} items
-                {s.categoryFilter ? ` · ${s.categoryFilter}` : ""}
-                {!s.completedAt && <span className="ml-2 text-yellow-400">(in progress)</span>}
-              </Link>
-            </li>
-          ))}
+          {sessions.map((s) => {
+            const inProgress = !s.completedAt;
+            const href = inProgress ? `/practice/sessions/${s.id}` : `/practice/sessions/${s.id}/done`;
+            return (
+              <li key={s.id}>
+                <Link href={href} className="block rounded border border-white/10 px-3 py-2 text-sm hover:bg-white/5">
+                  {new Date(s.startedAt).toLocaleString()} · {s.nItemsRequested} items
+                  {s.categoryFilter ? ` · ${s.categoryFilter}` : ""}
+                  {inProgress && <span className="ml-2 text-yellow-400">(resume →)</span>}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
