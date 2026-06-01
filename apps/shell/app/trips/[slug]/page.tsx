@@ -44,9 +44,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const trip = await fetchTrip(slug).catch(() => null);
   if (!trip) return { title: "Trip not found" };
+  const title = `${trip.title || slug} — Trips — Shane`;
+  const description = trip.title
+    ? `${trip.title} — uploaded ${new Date(trip.createdAt).toLocaleDateString()}`
+    : undefined;
+  const url = `https://shanejli.com/trips/${slug}`;
   return {
-    title: `${trip.title || slug} — Trips — Shane`,
-    description: trip.title ? `${trip.title} — uploaded ${new Date(trip.createdAt).toLocaleDateString()}` : undefined,
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: "Shane — Periodic Table of Life",
+      type: "article",
+      images: ["/opengraph-image"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/opengraph-image"],
+    },
   };
 }
 

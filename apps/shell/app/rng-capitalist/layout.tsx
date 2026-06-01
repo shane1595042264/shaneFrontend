@@ -1,6 +1,29 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata = { title: "RNG Capitalist — Shane", description: "D20-based spending decision tool" };
+const TITLE = "RNG Capitalist — Shane";
+const DESCRIPTION = "D20-based spending decision tool.";
+const URL = "https://shanejli.com/rng-capitalist";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: URL },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: URL,
+    siteName: "Shane — Periodic Table of Life",
+    type: "website",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/opengraph-image"],
+  },
+};
 
 export default function RngLayout({ children }: { children: React.ReactNode }) {
   return (

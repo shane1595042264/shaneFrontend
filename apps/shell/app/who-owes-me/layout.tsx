@@ -1,8 +1,28 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Who Owes Me — Shane",
-  description: "Track money you've lent out",
+const TITLE = "Who Owes Me — Shane";
+const DESCRIPTION = "Track money you've lent out.";
+const URL = "https://shanejli.com/who-owes-me";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: URL },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: URL,
+    siteName: "Shane — Periodic Table of Life",
+    type: "website",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/opengraph-image"],
+  },
 };
 
 export default function WhoOwesMeLayout({ children }: { children: React.ReactNode }) {

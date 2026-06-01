@@ -1,8 +1,28 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Knowledge — Shane",
-  description: "AI-powered knowledge manager with automatic classification",
+const TITLE = "Knowledge — Shane";
+const DESCRIPTION = "AI-powered knowledge manager with automatic classification.";
+const URL = "https://shanejli.com/knowledge";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: URL },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: URL,
+    siteName: "Shane — Periodic Table of Life",
+    type: "website",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/opengraph-image"],
+  },
 };
 
 export default function KnowledgeLayout({
