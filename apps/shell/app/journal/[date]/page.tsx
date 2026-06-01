@@ -196,31 +196,32 @@ export default async function JournalEntryPage({ params }: PageProps) {
   const isToday = date === getTodayUtcStr();
 
   if (!data?.entry) {
-    if (isToday) {
-      return (
-        <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
-          <Link
-            href="/journal"
-            className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            &larr; All entries
-          </Link>
-          <article className="pb-8">
-            <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
-              <time dateTime={date}>{formatDate(date)}</time>
+    // No entry yet — render the write-CTA for any valid date. We used to
+    // notFound() for past dates, but the page is ISR-cached (revalidate=300),
+    // so a 404 rendered just before midnight CDT keeps serving the URL that
+    // is now "today", hiding the write CTA until the cache expires. Crawlers
+    // stay away via the robots:noindex header set in generateMetadata above.
+    return (
+      <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
+        <Link
+          href="/journal"
+          className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+        >
+          &larr; All entries
+        </Link>
+        <article className="pb-8">
+          <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
+            <time dateTime={date}>{formatDate(date)}</time>
+            {isToday && (
               <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
                 Today
               </span>
-            </h2>
-            <MissingEntryCta date={date} isToday={true} />
-          </article>
-        </div>
-      );
-    }
-    // Past dates with no entry: real 404. Friendly write-CTA UX lives in
-    // the route-scoped not-found.tsx, so users see the same affordance —
-    // they just get the right HTTP status under it.
-    notFound();
+            )}
+          </h2>
+          <MissingEntryCta date={date} isToday={isToday} />
+        </article>
+      </div>
+    );
   }
 
   // Appends render on the same page, so the reader-facing "N min read"
