@@ -9,7 +9,6 @@ const SOURCE_LABELS: Record<string, string> = {
   strava: "Strava",
   google_calendar: "Calendar",
   google_maps: "Locations",
-  owntracks: "Locations",
   twitch: "Twitch",
   wechat: "WeChat",
   discord: "Discord",
@@ -20,7 +19,6 @@ const SOURCE_ICONS: Record<string, string> = {
   strava: "🏃",
   google_calendar: "📅",
   google_maps: "📍",
-  owntracks: "📍",
   twitch: "📺",
   wechat: "💬",
   discord: "💬",
@@ -204,7 +202,7 @@ export async function ActivitySidebar({ date }: Props) {
       </h2>
       {[...grouped.entries()].map(([source, rawItems]) => {
         const items = source === "github" ? dedupeGithubBySha(rawItems) : rawItems;
-        const isLocation = source === "google_maps" || source === "owntracks";
+        const isLocation = source === "google_maps";
         const locationSummary = isLocation ? summarizeLocations(items) : null;
         const rows: Row[] = isLocation
           ? locationSummary!.rows
