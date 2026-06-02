@@ -4,7 +4,13 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toPlainExcerpt } from "@/lib/journal-text";
 import { useAuth } from "@/lib/auth-context";
-import { getTodayInTimezone, resolveViewerTimezone, timezoneTagFor } from "@/lib/timezone";
+import {
+  getTodayInTimezone,
+  relativeDayLabel,
+  resolveViewerTimezone,
+  timezoneTagFor,
+  weekdayShortLabel,
+} from "@/lib/timezone";
 
 const EXCERPT_LEN = 200;
 
@@ -240,6 +246,9 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
                         >
                           <div className="flex items-baseline justify-between">
                             <span className="flex items-center gap-2">
+                              <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                                {weekdayShortLabel(today)}
+                              </span>
                               <span className="font-mono text-sm tabular-nums text-muted-foreground">
                                 {today}
                               </span>
@@ -257,7 +266,8 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
                     {yearEntries.map((e) => {
                       const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
                       const authorName = e.author?.name?.trim() || "Anonymous";
-                      const isToday = e.date === today;
+                      const relLabel = relativeDayLabel(e.date, today);
+                      const isRecent = relLabel === "Today" || relLabel === "Yesterday";
                       const tzTag = timezoneTagFor(e.authorTimezone, viewerTz);
                       return (
                         <li key={e.id}>
@@ -267,6 +277,9 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
                           >
                             <div className="flex items-baseline justify-between">
                               <span className="flex items-center gap-2">
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                                  {weekdayShortLabel(e.date)}
+                                </span>
                                 <span className="font-mono text-sm tabular-nums">
                                   {highlightMatches(e.date, trimmed)}
                                 </span>
@@ -278,9 +291,15 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
                                     {tzTag}
                                   </span>
                                 )}
-                                {isToday && (
-                                  <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-blue-400">
-                                    Today
+                                {relLabel && (
+                                  <span
+                                    className={
+                                      isRecent
+                                        ? "rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-blue-400"
+                                        : "rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400"
+                                    }
+                                  >
+                                    {relLabel}
                                   </span>
                                 )}
                               </span>

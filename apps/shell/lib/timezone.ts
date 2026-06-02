@@ -56,3 +56,39 @@ export function timezoneTagFor(
   if (authorTimezone === viewerTimezone) return null;
   return authorTimezone;
 }
+
+/**
+ * Short weekday label ("Mon", "Tue", ...) for a YYYY-MM-DD calendar date.
+ * We pin formatting to UTC so the rendered weekday lines up with the
+ * date-of-life string regardless of where the viewer sits — otherwise a
+ * 2026-05-29 row could read "Thu" for someone west of UTC after parsing
+ * through their local zone.
+ */
+export function weekdayShortLabel(date: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      weekday: "short",
+    }).format(new Date(date + "T00:00:00Z"));
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Relative-day chip for the journal index. Returns "Today", "Yesterday",
+ * "N days ago" (2–6) or null. Past a week, the weekday label is enough.
+ * Inputs are both YYYY-MM-DD strings in the viewer's resolved timezone
+ * (today comes from getTodayInTimezone), so the diff is computed against
+ * UTC midnight to avoid DST jitter.
+ */
+export function relativeDayLabel(date: string, today: string): string | null {
+  const a = Date.parse(date + "T00:00:00Z");
+  const b = Date.parse(today + "T00:00:00Z");
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  const days = Math.round((b - a) / 86_400_000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days >= 2 && days <= 6) return `${days} days ago`;
+  return null;
+}
