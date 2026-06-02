@@ -31,6 +31,14 @@ function formatAmount(amount: number, currency: string): string {
   }
 }
 
+function daysAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "1d ago";
+  return `${days}d ago`;
+}
+
 function WhoOwesMeContent() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<LoanEntry[]>([]);
@@ -71,7 +79,11 @@ function WhoOwesMeContent() {
     return () => document.removeEventListener("keydown", onKey);
   }, [deleteTarget, deleting]);
 
-  const outstanding = entries.filter((e) => e.status === "outstanding");
+  // Outstanding sorted oldest-first so stale debts surface at the top —
+  // the API returns newest-first, which buries old loans that need chasing.
+  const outstanding = entries
+    .filter((e) => e.status === "outstanding")
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const repaid = entries.filter((e) => e.status === "repaid");
 
   const totalsByCurrency = outstanding.reduce<Record<string, number>>((acc, e) => {
@@ -349,6 +361,7 @@ function LoanRow({
         )}
         <div className="text-xs text-gray-500 mt-1">
           lent {created}
+          {entry.status === "outstanding" && ` · ${daysAgo(entry.createdAt)}`}
           {repaidAt && ` · repaid ${repaidAt}`}
         </div>
       </div>
