@@ -98,26 +98,10 @@ export function getDefaultElements(): ElementConfig[] {
 }
 
 export async function fetchElements(): Promise<ElementConfig[]> {
+  // Frontend manifest in element-registry.ts is the single source of truth.
+  // We used to merge backend /api/elements over it, but the DB silently
+  // diverged from the codebase (twice, see SHAN-228 and SHAN-237) and the
+  // merge let DB rows override manifest entries — exactly the wrong direction.
   const { allElements } = await import("./element-registry");
-
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-    const res = await fetch(`${apiUrl}/api/elements`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) throw new Error(`API returned ${res.status}`);
-    const data = await res.json();
-    const dbElements = ((data.elements ?? data) as ElementConfig[]).map(
-      (el) => ({ ...el, id: String(el.id) })
-    );
-
-    // Merge: local manifests are the base, DB elements override by symbol
-    const merged = new Map<string, ElementConfig>();
-    for (const el of allElements) merged.set(el.symbol, el);
-    for (const el of dbElements) merged.set(el.symbol, el);
-    return Array.from(merged.values());
-  } catch {
-    // API unavailable — use local manifests only
-    return allElements;
-  }
+  return allElements;
 }
