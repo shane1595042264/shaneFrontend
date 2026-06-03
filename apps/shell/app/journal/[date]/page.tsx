@@ -11,6 +11,7 @@ import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
 import { ActivitySidebar } from "@/components/journal/activity-sidebar";
 import { readingTimeMinutes, toPlainExcerpt } from "@/lib/journal-text";
 import { MissingEntryCta } from "@/components/journal/missing-entry-cta";
+import { relativeDayLabel } from "@/lib/timezone";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
@@ -193,7 +194,17 @@ export default async function JournalEntryPage({ params }: PageProps) {
 
   const prevDate = neighbors.prev;
   const nextDate = neighbors.next;
-  const isToday = date === getTodayUtcStr();
+  const todayChicago = getTodayUtcStr();
+  const isToday = date === todayChicago;
+  // Mirror the relative-day chip used by the journal index (SHAN-236) so the
+  // detail header carries the same temporal anchor when arriving via RSS,
+  // share link, or prev/next nav. Past 6 days the helper returns null and the
+  // long-formatted date already carries the weekday.
+  const relLabel = relativeDayLabel(date, todayChicago);
+  const isRecentRel = relLabel === "Today" || relLabel === "Yesterday";
+  const relChipClass = isRecentRel
+    ? "rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-blue-400"
+    : "rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400";
 
   if (!data?.entry) {
     // No entry yet — render the write-CTA for any valid date. We used to
@@ -212,11 +223,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
         <article className="pb-8">
           <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
             <time dateTime={date}>{formatDate(date)}</time>
-            {isToday && (
-              <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
-                Today
-              </span>
-            )}
+            {relLabel && <span className={relChipClass}>{relLabel}</span>}
           </h2>
           <MissingEntryCta date={date} isToday={isToday} />
         </article>
@@ -297,11 +304,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
           <article className="pb-8">
             <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
               <time dateTime={data.entry.date}>{formatDate(data.entry.date)}</time>
-              {isToday && (
-                <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
-                  Today
-                </span>
-              )}
+              {relLabel && <span className={relChipClass}>{relLabel}</span>}
               <span className="ml-auto text-xs font-normal text-gray-500">
                 {readingTimeMinutes(fullContent)} min read
               </span>
