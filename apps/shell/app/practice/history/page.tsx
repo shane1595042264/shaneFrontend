@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AuthGate } from "@/components/auth-gate";
 import { listMySessions, type Session } from "@/lib/api/practice";
+import { RelativeTime } from "@/lib/format-time";
+
+function formatSessionDuration(startedAt: string, completedAt: string): string {
+  const ms = new Date(completedAt).getTime() - new Date(startedAt).getTime();
+  const min = Math.max(1, Math.round(ms / 60000));
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
 
 function HistoryContent() {
   const [sessions, setSessions] = useState<Session[] | null>(null);
@@ -25,10 +35,12 @@ function HistoryContent() {
           {sessions.map((s) => {
             const inProgress = !s.completedAt;
             const href = inProgress ? `/practice/sessions/${s.id}` : `/practice/sessions/${s.id}/done`;
+            const duration = s.completedAt ? formatSessionDuration(s.startedAt, s.completedAt) : null;
             return (
               <li key={s.id}>
                 <Link href={href} className="block rounded border border-white/10 px-3 py-2 text-sm hover:bg-white/5">
-                  {new Date(s.startedAt).toLocaleString()} · {s.nItemsRequested} items
+                  <RelativeTime iso={s.startedAt} className="text-gray-300" /> · {s.nItemsRequested} items
+                  {duration && ` · ${duration}`}
                   {s.categoryFilter ? ` · ${s.categoryFilter}` : ""}
                   {inProgress && <span className="ml-2 text-yellow-400">(resume →)</span>}
                 </Link>
