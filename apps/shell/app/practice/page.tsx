@@ -14,10 +14,13 @@ export default function PracticeIndexPage() {
 
   useEffect(() => {
     if (!user) return;
-    listPracticeableItems(null, includeSolidified)
+    // Always fetch the full corpus (including solidified) so the header stats
+    // reflect every practice item the user owns. The visible list filters
+    // solidified out client-side when the checkbox is off.
+    listPracticeableItems(null, true)
       .then(setItems)
       .catch((e) => setError(e.message ?? "Failed to load"));
-  }, [user, includeSolidified]);
+  }, [user]);
 
   if (authLoading) {
     return <div className="mx-auto max-w-4xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
@@ -34,6 +37,8 @@ export default function PracticeIndexPage() {
 
   const totalStrikes = items?.reduce((sum, i) => sum + i.totalStrikes, 0) ?? 0;
   const solidifiedCount = items?.filter((i) => i.isSolidified).length ?? 0;
+  const practiceableCount = (items?.length ?? 0) - solidifiedCount;
+  const visibleItems = items ? (includeSolidified ? items : items.filter((i) => !i.isSolidified)) : null;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
@@ -43,7 +48,7 @@ export default function PracticeIndexPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             {items === null
               ? "Loading…"
-              : `${items.length} practice-able · ${solidifiedCount} solidified · ${totalStrikes} strikes total`}
+              : `${practiceableCount} practice-able · ${solidifiedCount} solidified · ${totalStrikes} strikes total`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -73,15 +78,19 @@ export default function PracticeIndexPage() {
 
       {error && <p role="alert" className="mb-4 text-sm text-red-400">{error}</p>}
 
-      {items === null ? (
+      {items === null || visibleItems === null ? (
         <p className="text-sm text-gray-500">Loading…</p>
       ) : items.length === 0 ? (
         <p className="text-sm text-gray-500">
           No practice-able items yet. <Link href="/knowledge" className="underline">Configure an item</Link>.
         </p>
+      ) : visibleItems.length === 0 ? (
+        <p className="text-sm text-gray-500">
+          All items are solidified. Toggle <span className="font-medium">Show solidified</span> above to view them.
+        </p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
-          {items.map((it) => (
+          {visibleItems.map((it) => (
             <li key={it.itemId}>
               <Link
                 href={`/practice/items/${it.itemId}`}
