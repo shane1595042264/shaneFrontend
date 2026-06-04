@@ -1,4 +1,5 @@
 import { getActivities, type Activity } from "@/lib/api/activities";
+import { DEFAULT_TIMEZONE } from "@/lib/timezone";
 
 interface Props {
   date: string;
@@ -47,7 +48,17 @@ function summarize(a: Activity): string {
     case "google_calendar": {
       const title = (d.title as string) ?? (d.summary as string) ?? "Event";
       const start = (d.startTime ?? d.start) as string | undefined;
-      return start ? `${title} @ ${start}` : title;
+      if (!start) return title;
+      // All-day events arrive as "YYYY-MM-DD" — the date is redundant on this page.
+      if (!start.includes("T")) return title;
+      const t = new Date(start);
+      if (Number.isNaN(t.getTime())) return title;
+      const formatted = t.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: DEFAULT_TIMEZONE,
+      });
+      return `${title} · ${formatted}`;
     }
     case "twitch": {
       const title = (d.title as string) ?? "Untitled stream";
