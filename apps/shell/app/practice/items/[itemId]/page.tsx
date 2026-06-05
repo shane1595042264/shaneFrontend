@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AuthGate } from "@/components/auth-gate";
 import { getItemProgress, createSessionFromItemIds, type ItemProgressDetail } from "@/lib/api/practice";
+import { RelativeTime } from "@/lib/format-time";
 
 function ItemProgressContent({ itemId }: { itemId: string }) {
   const router = useRouter();
@@ -39,6 +40,13 @@ function ItemProgressContent({ itemId }: { itemId: string }) {
           <span className="text-gray-300">
             {detail.totalStrikes} strikes · {detail.loadedLocationCount} loaded location{detail.loadedLocationCount === 1 ? "" : "s"}
           </span>
+        )}
+      </p>
+      <p className="mt-1 text-xs text-gray-500">
+        {detail.lastPracticedAt ? (
+          <>Last practiced <RelativeTime iso={detail.lastPracticedAt} /></>
+        ) : (
+          "Never practiced"
         )}
       </p>
 

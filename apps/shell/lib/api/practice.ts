@@ -77,6 +77,7 @@ export interface ItemProgressDetail {
   totalStrikes: number;
   isSolidified: boolean;
   loadedLocationCount: number;
+  lastPracticedAt: string | null;
   strikesByLocation: Array<{
     locationId: string | null;
     locationName: string | null;
