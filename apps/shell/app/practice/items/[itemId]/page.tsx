@@ -4,20 +4,23 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AuthGate } from "@/components/auth-gate";
-import { getItemProgress, createSessionFromItemIds, type ItemProgressDetail } from "@/lib/api/practice";
+import { getItemProgress, getSettings, createSessionFromItemIds, type ItemProgressDetail, type PracticeSettings } from "@/lib/api/practice";
 import { RelativeTime } from "@/lib/format-time";
 
 function ItemProgressContent({ itemId }: { itemId: string }) {
   const router = useRouter();
   const [detail, setDetail] = useState<ItemProgressDetail | null>(null);
+  const [settings, setSettings] = useState<PracticeSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getItemProgress(itemId).then(setDetail).catch((e) => setError(e.message));
+    Promise.all([getItemProgress(itemId), getSettings()])
+      .then(([d, s]) => { setDetail(d); setSettings(s); })
+      .catch((e) => setError(e.message));
   }, [itemId]);
 
   if (error) return <div className="p-6 text-sm text-red-400">{error}</div>;
-  if (!detail) return <div className="p-6 text-sm text-gray-400">Loading…</div>;
+  if (!detail || !settings) return <div className="p-6 text-sm text-gray-400">Loading…</div>;
 
   const startSingleItem = async () => {
     const { session } = await createSessionFromItemIds([detail.itemId]);
@@ -38,7 +41,7 @@ function ItemProgressContent({ itemId }: { itemId: string }) {
           <span className="text-emerald-400">✓ Solidified</span>
         ) : (
           <span className="text-gray-300">
-            {detail.totalStrikes} strikes · {detail.loadedLocationCount} loaded location{detail.loadedLocationCount === 1 ? "" : "s"}
+            {detail.totalStrikes} strikes · {detail.loadedLocationCount} / {settings.locationsToSolidify} loaded locations
           </span>
         )}
       </p>
@@ -59,7 +62,7 @@ function ItemProgressContent({ itemId }: { itemId: string }) {
             <li key={row.locationId ?? "none"} className="flex items-center justify-between rounded border border-white/10 px-3 py-2">
               <span>{row.locationName ?? "(deleted location)"}</span>
               <span>
-                {row.strikeCount} strike{row.strikeCount === 1 ? "" : "s"}
+                {row.strikeCount} / {settings.strikesPerLoadedLocation} strikes
                 {row.isLoaded && <span className="ml-2 text-emerald-400">✓ loaded</span>}
               </span>
             </li>
