@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { listPracticeableItems, type PracticeableItem } from "@/lib/api/practice";
 import { LoginButton } from "@/components/login-button";
+import { RelativeTime } from "@/lib/format-time";
 
 export default function PracticeIndexPage() {
   const { user, loading: authLoading } = useAuth();
@@ -109,6 +110,11 @@ export default function PracticeIndexPage() {
                     </span>
                   )}
                 </p>
+                {it.lastPracticedAt && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Last practiced <RelativeTime iso={it.lastPracticedAt} />
+                  </p>
+                )}
               </Link>
             </li>
           ))}

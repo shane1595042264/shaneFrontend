@@ -68,6 +68,7 @@ export interface PracticeableItem {
   totalStrikes: number;
   loadedLocations: number;
   isSolidified: boolean;
+  lastPracticedAt: string | null;
 }
 
 export interface ItemProgressDetail {
