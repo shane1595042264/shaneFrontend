@@ -1,8 +1,28 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Vocabulary — Shane",
-  description: "Graph-based multilingual vocabulary system",
+const TITLE = "Vocabulary — Shane";
+const DESCRIPTION = "Graph-based multilingual vocabulary system";
+const URL = "https://shanejli.com/vocabulary";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: URL },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: URL,
+    siteName: "Shane — Periodic Table of Life",
+    type: "website",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/opengraph-image"],
+  },
 };
 
 export default function VocabularyLayout({
