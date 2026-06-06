@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Decision } from "@/lib/rng-api";
+import { RelativeTime } from "@/lib/format-time";
 
 const RESULT_BADGE: Record<string, string> = {
   approved: "bg-green-500/20 text-green-400",
@@ -59,9 +60,10 @@ function HistoryItem({ decision }: { decision: Decision }) {
         <span className={`text-xs px-2 py-0.5 rounded font-medium flex-shrink-0 ${RESULT_BADGE[decision.result] || ""}`}>
           {RESULT_LABELS[decision.result] || decision.result}
         </span>
-        <span className="hidden sm:inline text-xs text-gray-600 flex-shrink-0">
-          {new Date(decision.createdAt).toLocaleDateString()}
-        </span>
+        <RelativeTime
+          iso={decision.createdAt}
+          className="hidden sm:inline text-xs text-gray-600 flex-shrink-0"
+        />
         <span className="text-gray-600 text-xs flex-shrink-0">{expanded ? "▴" : "▾"}</span>
       </button>
 
@@ -128,9 +130,7 @@ function HistoryItem({ decision }: { decision: Decision }) {
               </div>
 
               {/* Date (shown inline above on >=sm, here on mobile) */}
-              <div className="sm:hidden text-gray-500">
-                {new Date(decision.createdAt).toLocaleString()}
-              </div>
+              <RelativeTime iso={decision.createdAt} className="block sm:hidden text-gray-500" />
 
               {/* Verdict explanation */}
               <div className="pt-1 border-t border-white/5 text-gray-400">
