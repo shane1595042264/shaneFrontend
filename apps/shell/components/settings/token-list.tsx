@@ -1,4 +1,5 @@
 import type { ApiToken } from "@/lib/api/tokens";
+import { RelativeTime } from "@/lib/format-time";
 
 export function TokenList({ tokens, onRevoke }: { tokens: ApiToken[]; onRevoke: (id: string) => void }) {
   if (tokens.length === 0) return <p className="text-sm text-gray-500">No tokens yet.</p>;
@@ -9,7 +10,7 @@ export function TokenList({ tokens, onRevoke }: { tokens: ApiToken[]; onRevoke: 
           <div>
             <div className="font-medium">{t.name}</div>
             <div className="text-xs text-gray-500">
-              {t.scopes.join(", ") || "no scopes"} · last used {t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleDateString() : "never"}
+              {t.scopes.join(", ") || "no scopes"} · last used {t.lastUsedAt ? <RelativeTime iso={t.lastUsedAt} /> : "never"}
               {t.revokedAt && " · REVOKED"}
             </div>
           </div>
