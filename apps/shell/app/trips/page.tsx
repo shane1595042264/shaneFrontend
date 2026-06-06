@@ -34,10 +34,6 @@ async function fetchTrips(): Promise<TripListItem[]> {
   }
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
-
 export default async function TripsIndexPage() {
   const trips = await fetchTrips();
 
@@ -75,7 +71,7 @@ export default async function TripsIndexPage() {
                   {t.title || <span className="italic text-gray-400">Untitled</span>}
                 </h2>
                 <p className="mt-1 text-xs text-gray-500">
-                  {formatDate(t.createdAt)}
+                  <RelativeTime iso={t.createdAt} />
                   {" · "}
                   {t.ownerName ?? <span className="italic text-gray-600">Anonymous</span>}
                   {wasMateriallyEdited(t.createdAt, t.updatedAt) && (
