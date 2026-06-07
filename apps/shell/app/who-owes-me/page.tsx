@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { AuthGate } from "@/components/auth-gate";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useAuth } from "@/lib/auth-context";
+import { RelativeTime } from "@/lib/format-time";
 import {
   fetchLoans,
   createLoan,
@@ -29,14 +30,6 @@ function formatAmount(amount: number, currency: string): string {
   } catch {
     return `${currency} ${amount.toFixed(2)}`;
   }
-}
-
-function daysAgo(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(ms / 86400000);
-  if (days <= 0) return "today";
-  if (days === 1) return "1d ago";
-  return `${days}d ago`;
 }
 
 function WhoOwesMeContent() {
@@ -327,9 +320,6 @@ function LoanRow({
   onDelete: () => void;
   muted?: boolean;
 }) {
-  const created = new Date(entry.createdAt).toLocaleDateString();
-  const repaidAt = entry.repaidAt ? new Date(entry.repaidAt).toLocaleDateString() : null;
-
   if (isEditing) {
     return (
       <LoanRowEdit
@@ -360,9 +350,13 @@ function LoanRow({
           </div>
         )}
         <div className="text-xs text-gray-500 mt-1">
-          lent {created}
-          {entry.status === "outstanding" && ` · ${daysAgo(entry.createdAt)}`}
-          {repaidAt && ` · repaid ${repaidAt}`}
+          lent <RelativeTime iso={entry.createdAt} />
+          {entry.repaidAt && (
+            <>
+              {" · repaid "}
+              <RelativeTime iso={entry.repaidAt} />
+            </>
+          )}
         </div>
       </div>
       <div className="flex gap-2 shrink-0">
