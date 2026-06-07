@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { RelativeTime } from "@/lib/format-time";
 import { getSettings, updateSettings, type PracticeSettings } from "@/lib/api/practice";
 
 const ADMIN_EMAIL = "a1595042264@gmail.com"; // matches ADMIN_EMAILS on Railway
@@ -83,7 +84,7 @@ export default function PracticeSettingsPage() {
       )}
 
       {settings && (
-        <p className="mt-6 text-xs text-gray-500">Last updated {new Date(settings.updatedAt).toLocaleString()}{settings.updatedBy ? ` by ${settings.updatedBy}` : ""}</p>
+        <p className="mt-6 text-xs text-gray-500">Last updated <RelativeTime iso={settings.updatedAt} />{settings.updatedBy ? ` by ${settings.updatedBy}` : ""}</p>
       )}
     </div>
   );
