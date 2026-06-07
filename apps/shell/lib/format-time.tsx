@@ -9,12 +9,14 @@ export function formatRelativeTime(iso: string | Date): string {
   if (Number.isNaN(t)) return "";
 
   const now = Date.now();
-  const delta = Math.max(0, now - t);
+  const signedDelta = now - t;
+  const isFuture = signedDelta < 0;
+  const delta = Math.abs(signedDelta);
 
   if (delta < MINUTE) return "just now";
-  if (delta < HOUR) return `${Math.floor(delta / MINUTE)}m ago`;
-  if (delta < DAY) return `${Math.floor(delta / HOUR)}h ago`;
-  if (delta < 7 * DAY) return `${Math.floor(delta / DAY)}d ago`;
+  if (delta < HOUR) return isFuture ? `in ${Math.floor(delta / MINUTE)}m` : `${Math.floor(delta / MINUTE)}m ago`;
+  if (delta < DAY) return isFuture ? `in ${Math.floor(delta / HOUR)}h` : `${Math.floor(delta / HOUR)}h ago`;
+  if (delta < 7 * DAY) return isFuture ? `in ${Math.floor(delta / DAY)}d` : `${Math.floor(delta / DAY)}d ago`;
 
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
   if (date.getFullYear() !== new Date(now).getFullYear()) {

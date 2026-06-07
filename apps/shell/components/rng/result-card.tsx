@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { EvaluationResult } from "@/lib/rng-api";
+import { RelativeTime } from "@/lib/format-time";
 import { DiceRoller } from "./dice-roller";
 
 const VERDICT_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -47,7 +48,7 @@ export function ResultCard({ result }: { result: EvaluationResult }) {
               >
                 <span className={`text-2xl font-black ${style.text}`}>{style.label}</span>
                 {result.result === "denied" && result.banned_until && <p className="text-sm text-gray-400 mt-1">Category &quot;{result.generic_category}&quot; banned for 30 days</p>}
-                {result.result === "banned" && result.banned_until && <p className="text-sm text-gray-400 mt-1">Banned until {new Date(result.banned_until).toLocaleDateString()}</p>}
+                {result.result === "banned" && result.banned_until && <p className="text-sm text-gray-400 mt-1">Unbans <RelativeTime iso={result.banned_until} /></p>}
                 {result.result === "necessity" && <p className="text-sm text-gray-400 mt-1">Necessities are auto-approved</p>}
               </motion.div>
             )}
