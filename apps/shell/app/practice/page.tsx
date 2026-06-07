@@ -110,11 +110,13 @@ export default function PracticeIndexPage() {
                     </span>
                   )}
                 </p>
-                {it.lastPracticedAt && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Last practiced <RelativeTime iso={it.lastPracticedAt} />
-                  </p>
-                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  {it.lastPracticedAt ? (
+                    <>Last practiced <RelativeTime iso={it.lastPracticedAt} /></>
+                  ) : (
+                    "Never practiced"
+                  )}
+                </p>
               </Link>
             </li>
           ))}
