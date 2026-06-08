@@ -12,6 +12,8 @@ function ItemProgressContent({ itemId }: { itemId: string }) {
   const [detail, setDetail] = useState<ItemProgressDetail | null>(null);
   const [settings, setSettings] = useState<PracticeSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([getItemProgress(itemId), getSettings()])
@@ -23,8 +25,15 @@ function ItemProgressContent({ itemId }: { itemId: string }) {
   if (!detail || !settings) return <div className="p-6 text-sm text-gray-400">Loading…</div>;
 
   const startSingleItem = async () => {
-    const { session } = await createSessionFromItemIds([detail.itemId]);
-    router.push(`/practice/sessions/${session.id}`);
+    setStarting(true);
+    setStartError(null);
+    try {
+      const { session } = await createSessionFromItemIds([detail.itemId]);
+      router.push(`/practice/sessions/${session.id}`);
+    } catch (e) {
+      setStartError((e as Error).message ?? "Failed to start session");
+      setStarting(false);
+    }
   };
 
   return (
@@ -70,7 +79,16 @@ function ItemProgressContent({ itemId }: { itemId: string }) {
         </ul>
       )}
 
-      <button type="button" onClick={startSingleItem} className="mt-8 rounded bg-white px-4 py-2 text-sm font-medium text-black hover:bg-gray-200">Practice this now</button>
+      {startError && <p role="alert" className="mt-6 text-sm text-red-400">{startError}</p>}
+
+      <button
+        type="button"
+        onClick={startSingleItem}
+        disabled={starting}
+        className="mt-8 rounded bg-white px-4 py-2 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {starting ? "Starting…" : "Practice this now"}
+      </button>
     </div>
   );
 }
