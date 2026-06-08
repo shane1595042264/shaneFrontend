@@ -17,17 +17,21 @@ function formatSessionDuration(startedAt: string, completedAt: string): string {
 
 function HistoryContent() {
   const [sessions, setSessions] = useState<Session[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listMySessions().then(setSessions).catch(() => setSessions([]));
+    listMySessions()
+      .then(setSessions)
+      .catch((e) => setError(e.message ?? "Failed to load"));
   }, []);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <Link href="/practice" className="text-sm text-gray-500 hover:text-gray-300">← back</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">Session history</h1>
+      {error && <p role="alert" className="mb-4 text-sm text-red-400">{error}</p>}
       {sessions === null ? (
-        <p className="text-sm text-gray-400">Loading…</p>
+        error ? null : <p className="text-sm text-gray-400">Loading…</p>
       ) : sessions.length === 0 ? (
         <p className="text-sm text-gray-500">No sessions yet.</p>
       ) : (
