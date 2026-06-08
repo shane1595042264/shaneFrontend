@@ -47,9 +47,11 @@ export default function PracticeIndexPage() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Practice</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {items === null
-              ? "Loading…"
-              : `${practiceableCount} practice-able · ${solidifiedCount} solidified · ${totalStrikes} strikes total`}
+            {items !== null
+              ? `${practiceableCount} practice-able · ${solidifiedCount} solidified · ${totalStrikes} strikes total`
+              : error
+                ? "—"
+                : "Loading…"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -80,7 +82,7 @@ export default function PracticeIndexPage() {
       {error && <p role="alert" className="mb-4 text-sm text-red-400">{error}</p>}
 
       {items === null || visibleItems === null ? (
-        <p className="text-sm text-gray-500">Loading…</p>
+        error ? null : <p className="text-sm text-gray-500">Loading…</p>
       ) : items.length === 0 ? (
         <p className="text-sm text-gray-500">
           No practice-able items yet. <Link href="/knowledge" className="underline">Configure an item</Link>.
