@@ -97,9 +97,11 @@ function viewerTodayCandidates(): Set<string> {
 }
 
 // Sibling routes under /trips/ that are NOT trip detail pages. Matches the
-// folder layout in app/trips/ (new/page.tsx is the creation form; the route
-// has no opengraph-image yet but allowlisting it now is cheap insurance).
-const TRIPS_NON_SLUG_SEGMENTS = new Set(["new", "opengraph-image"]);
+// folder layout in app/trips/ (new/page.tsx is the creation form; groups/
+// is the SHAN-268 trip-planning groups feature with its own index page).
+// Anything in this set passes through to Next.js routing instead of being
+// HEAD-probed against /api/trips/:segment (which would 404).
+const TRIPS_NON_SLUG_SEGMENTS = new Set(["new", "groups", "opengraph-image"]);
 
 function notFoundResponse(html: string): NextResponse {
   return new NextResponse(html, {
