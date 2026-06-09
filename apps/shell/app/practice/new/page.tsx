@@ -114,10 +114,14 @@ export default function NewSessionPage() {
         </label>
       </div>
 
-      <section className="mt-8">
-        <h2 className="mb-2 text-sm font-medium text-gray-400">Preview ({preview?.length ?? "…"} items)</h2>
+      {error && <p role="alert" className="mt-8 mb-4 text-sm text-red-400">{error}</p>}
+
+      <section className={error ? "" : "mt-8"}>
+        <h2 className="mb-2 text-sm font-medium text-gray-400">
+          Preview ({preview !== null ? preview.length : error ? "—" : "…"} items)
+        </h2>
         {preview === null ? (
-          <p className="text-xs text-gray-500">Loading…</p>
+          error ? null : <p className="text-xs text-gray-500">Loading…</p>
         ) : preview.length === 0 ? (
           <p className="text-xs text-gray-500">No items match. Try a different filter or configure more items in /knowledge.</p>
         ) : (
@@ -133,8 +137,6 @@ export default function NewSessionPage() {
           </ol>
         )}
       </section>
-
-      {error && <p role="alert" className="mt-4 text-sm text-red-400">{error}</p>}
 
       <div className="mt-8 flex gap-3">
         <button
