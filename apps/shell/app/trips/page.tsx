@@ -55,6 +55,19 @@ export default async function TripsIndexPage() {
         </Link>
       </header>
 
+      <Link
+        href="/trips/groups"
+        className="mb-8 block rounded-md border border-blue-500/30 bg-blue-950/20 p-4 transition-colors hover:bg-blue-950/30"
+      >
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-base font-medium text-white">Plan a trip with your group →</h2>
+          <span className="rounded bg-blue-500/30 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-blue-200">new</span>
+        </div>
+        <p className="mt-1 text-xs text-blue-200/80">
+          Async brainstorming inbox. Drop fragments as ideas spawn during the day; consolidate later.
+        </p>
+      </Link>
+
       {trips.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No trips yet. <Link href="/trips/new" className="underline">Upload your first one.</Link>
