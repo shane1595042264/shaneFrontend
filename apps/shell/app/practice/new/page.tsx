@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   previewSession,
   createSessionFromGenerator,
+  listPracticeableItems,
   type PracticeableItem,
 } from "@/lib/api/practice";
 import { LoginButton } from "@/components/login-button";
@@ -18,6 +19,9 @@ export default function NewSessionPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [includeSolidified, setIncludeSolidified] = useState(false);
   const [preview, setPreview] = useState<PracticeableItem[] | null>(null);
+  // Distinct categories from the user's full corpus, alphabetical. null = loading,
+  // [] = loaded-but-empty OR fetch failed (degrade to "Any category" only).
+  const [categories, setCategories] = useState<string[] | null>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +33,20 @@ export default function NewSessionPage() {
       .catch((e) => { if (!cancelled) setError(e.message); });
     return () => { cancelled = true; };
   }, [user, n, categoryFilter, includeSolidified]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    // Derive options from the full corpus (includeSolidified=true) so the dropdown
+    // stays stable across the "Include solidified" toggle.
+    listPracticeableItems(null, true)
+      .then((items) => {
+        if (cancelled) return;
+        setCategories(Array.from(new Set(items.map((i) => i.category))).sort());
+      })
+      .catch(() => { if (!cancelled) setCategories([]); });
+    return () => { cancelled = true; };
+  }, [user]);
 
   if (authLoading) return <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
   if (!user) {
@@ -77,13 +95,17 @@ export default function NewSessionPage() {
 
         <label className="block">
           <span className="block text-sm text-gray-400">Category filter (optional)</span>
-          <input
-            type="text"
+          <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            placeholder="e.g. dance_move (blank = any)"
-            className="mt-1 block w-full max-w-xs rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm focus:border-white/40 focus:outline-none"
-          />
+            disabled={categories === null}
+            className="mt-1 block w-full max-w-xs rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm focus:border-white/40 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">Any category</option>
+            {(categories ?? []).map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </label>
 
         <label className="flex items-center gap-2 text-sm text-gray-400">
