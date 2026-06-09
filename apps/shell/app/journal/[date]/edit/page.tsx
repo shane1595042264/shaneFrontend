@@ -21,6 +21,7 @@ export default function EditEntryPage() {
   const [entryExists, setEntryExists] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   // Set right before router.push on a successful save so the beforeunload
@@ -113,6 +114,7 @@ export default function EditEntryPage() {
   }
 
   const submit = async () => {
+    if (uploading) return;
     setSaving(true);
     setError(null);
     try {
@@ -136,15 +138,20 @@ export default function EditEntryPage() {
         ← back to entry
       </Link>
       <h1 className="mt-3 mb-4 font-mono text-2xl">{date} — create</h1>
-      <MarkdownEditor value={content} onChange={setContent} onImageUpload={uploadImage} />
+      <MarkdownEditor
+        value={content}
+        onChange={setContent}
+        onImageUpload={uploadImage}
+        onUploadingChange={setUploading}
+      />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-2">
         <button
           onClick={submit}
-          disabled={saving || !content.trim()}
+          disabled={saving || uploading || !content.trim()}
           className="inline-flex min-h-11 w-full items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
-          {saving ? "Saving…" : "Publish"}
+          {saving ? "Saving…" : uploading ? "Waiting for upload…" : "Publish"}
         </button>
         <button
           onClick={requestCancel}

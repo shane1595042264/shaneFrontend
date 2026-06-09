@@ -23,6 +23,7 @@ export default function SuggestPage() {
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const skipPromptRef = useRef(false);
@@ -128,6 +129,7 @@ export default function SuggestPage() {
   }
 
   const submit = async () => {
+    if (uploading) return;
     setSaving(true);
     setError(null);
     try {
@@ -151,15 +153,20 @@ export default function SuggestPage() {
       <p className="mb-4 text-sm text-gray-400">
         The author will review and approve or reject. If the author edits the entry before deciding, your base will be out of date and the diff vs current may shift.
       </p>
-      <MarkdownEditor value={content} onChange={setContent} onImageUpload={uploadImage} />
+      <MarkdownEditor
+        value={content}
+        onChange={setContent}
+        onImageUpload={uploadImage}
+        onUploadingChange={setUploading}
+      />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-2">
         <button
           onClick={submit}
-          disabled={saving || !content.trim() || content === ""}
+          disabled={saving || uploading || !content.trim() || content === ""}
           className="inline-flex min-h-11 w-full items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
-          {saving ? "Submitting…" : "Submit suggestion"}
+          {saving ? "Submitting…" : uploading ? "Waiting for upload…" : "Submit suggestion"}
         </button>
         <button
           onClick={requestCancel}

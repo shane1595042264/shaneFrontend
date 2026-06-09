@@ -20,6 +20,7 @@ export default function AppendEntryPage() {
   const [entryMissing, setEntryMissing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const skipPromptRef = useRef(false);
@@ -127,6 +128,7 @@ export default function AppendEntryPage() {
   }
 
   const submit = async () => {
+    if (uploading) return;
     setSaving(true);
     setError(null);
     try {
@@ -153,15 +155,20 @@ export default function AppendEntryPage() {
       <p className="mb-4 text-sm text-gray-400">
         Entries are append-only. Each append is timestamped and added below the existing content.
       </p>
-      <MarkdownEditor value={content} onChange={setContent} onImageUpload={uploadImage} />
+      <MarkdownEditor
+        value={content}
+        onChange={setContent}
+        onImageUpload={uploadImage}
+        onUploadingChange={setUploading}
+      />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-2">
         <button
           onClick={submit}
-          disabled={saving || !content.trim()}
+          disabled={saving || uploading || !content.trim()}
           className="inline-flex min-h-11 w-full items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
-          {saving ? "Appending…" : "Append"}
+          {saving ? "Appending…" : uploading ? "Waiting for upload…" : "Append"}
         </button>
         <button
           onClick={requestCancel}

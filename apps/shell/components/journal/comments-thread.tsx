@@ -31,6 +31,8 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [editUploading, setEditUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
   }, [date]);
 
   const submit = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || uploading) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -114,7 +116,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
   };
 
   const saveEdit = async () => {
-    if (!editingId || !editText.trim() || editingSubmitting) return;
+    if (!editingId || !editText.trim() || editingSubmitting || editUploading) return;
     setEditingSubmitting(true);
     setEditError(null);
     try {
@@ -225,6 +227,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
               minHeight="6rem"
               autoFocus
               onImageUpload={uploadImage}
+              onUploadingChange={setEditUploading}
               onSubmit={saveEdit}
               placeholder="Edit your comment in markdown. Ctrl+Enter to save."
             />
@@ -243,10 +246,10 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
               <button
                 type="button"
                 onClick={saveEdit}
-                disabled={editingSubmitting || !editText.trim()}
+                disabled={editingSubmitting || editUploading || !editText.trim()}
                 className="inline-flex min-h-8 items-center justify-center rounded bg-white px-3 text-xs font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {editingSubmitting ? "Saving…" : "Save"}
+                {editingSubmitting ? "Saving…" : editUploading ? "Uploading…" : "Save"}
               </button>
             </div>
           </div>
@@ -321,15 +324,16 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
             minHeight="6rem"
             onSubmit={submit}
             onImageUpload={uploadImage}
+            onUploadingChange={setUploading}
           />
           {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
           <button
             type="button"
             onClick={submit}
-            disabled={submitting || !text.trim()}
+            disabled={submitting || uploading || !text.trim()}
             className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
-            {submitting ? "Posting…" : "Post"}
+            {submitting ? "Posting…" : uploading ? "Uploading…" : "Post"}
           </button>
         </div>
       ) : (

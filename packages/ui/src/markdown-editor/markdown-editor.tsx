@@ -47,6 +47,14 @@ export interface MarkdownEditorProps {
    * accepts pasted URLs as before).
    */
   onImageUpload?: (file: Blob, filename: string) => Promise<{ url: string }>;
+  /**
+   * Fires when the editor has at least one image upload in flight, or when
+   * the last upload settles. Parents use this to disable submit until the
+   * placeholder token in the textarea has been swapped for the real URL —
+   * otherwise the user can publish content referencing a never-resolved
+   * `uploading-…` token (SHAN-264).
+   */
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 type Mode = "write" | "preview";
@@ -61,6 +69,7 @@ export function MarkdownEditor({
   autoFocus,
   onSubmit,
   onImageUpload,
+  onUploadingChange,
 }: MarkdownEditorProps) {
   const [mode, setMode] = React.useState<Mode>("write");
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
@@ -74,6 +83,14 @@ export function MarkdownEditor({
   }, [value]);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [uploadsInFlight, setUploadsInFlight] = React.useState(0);
+
+  // Notify parents on transitions between 0 and >0 in-flight uploads so they
+  // can gate submit. Effect (not inline) so we only fire on actual transitions
+  // and survive React 18 strict-mode double-invokes.
+  const uploading = uploadsInFlight > 0;
+  React.useEffect(() => {
+    onUploadingChange?.(uploading);
+  }, [uploading, onUploadingChange]);
 
   // Apply a pure action to the textarea, preserving the native undo stack
   // by replacing only the differing region via document.execCommand.
@@ -149,6 +166,10 @@ export function MarkdownEditor({
     if (mod && (e.key === "Enter")) {
       if (onSubmit) {
         e.preventDefault();
+        // Block submit while an image is still uploading — otherwise the
+        // content reaching onSubmit still contains the `uploading-…`
+        // placeholder token and gets saved with a broken image (SHAN-264).
+        if (uploadsInFlight > 0) return;
         onSubmit();
         return;
       }
