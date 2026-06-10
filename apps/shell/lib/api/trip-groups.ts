@@ -118,9 +118,27 @@ export async function postIdea(slug: string, body: string): Promise<TripIdea> {
   return (await res.json()).idea;
 }
 
-export async function consolidateItinerary(slug: string): Promise<{
+export interface TripItinerarySuggestion {
+  id: string;
+  authorId: string;
+  authorName: string | null;
   itinerary: TripItinerary;
-  itineraryGeneratedAt: string;
+  changedDays: number[];
+  note: string | null;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  resolvedAt: string | null;
+  conflictsWith?: string[];
+}
+
+/**
+ * Owner result carries `itinerary` (direct write); non-owner member result
+ * carries `suggestion` (pending owner approval) — SHAN-273.
+ */
+export async function consolidateItinerary(slug: string): Promise<{
+  itinerary?: TripItinerary;
+  itineraryGeneratedAt?: string;
+  suggestion?: TripItinerarySuggestion;
 }> {
   const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary/consolidate`, {
     method: "POST",
@@ -128,6 +146,35 @@ export async function consolidateItinerary(slug: string): Promise<{
   });
   if (!res.ok) await unwrap(res, "Failed to consolidate itinerary");
   return res.json();
+}
+
+export async function listSuggestions(slug: string): Promise<TripItinerarySuggestion[]> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary/suggestions`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) await unwrap(res, "Failed to load suggestions");
+  return (await res.json()).suggestions;
+}
+
+export async function approveSuggestion(
+  slug: string,
+  suggestionId: string,
+): Promise<{ itinerary: TripItinerary; itineraryGeneratedAt: string }> {
+  const res = await fetch(
+    `${API_URL}/api/trip-groups/${slug}/itinerary/suggestions/${suggestionId}/approve`,
+    { method: "POST", headers: getAuthHeaders() },
+  );
+  if (!res.ok) await unwrap(res, "Failed to approve suggestion");
+  return res.json();
+}
+
+export async function rejectSuggestion(slug: string, suggestionId: string): Promise<void> {
+  const res = await fetch(
+    `${API_URL}/api/trip-groups/${slug}/itinerary/suggestions/${suggestionId}/reject`,
+    { method: "POST", headers: getAuthHeaders() },
+  );
+  if (!res.ok) await unwrap(res, "Failed to reject suggestion");
 }
 
 export async function deleteIdea(slug: string, ideaId: string): Promise<void> {

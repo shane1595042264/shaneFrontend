@@ -12,9 +12,13 @@ import {
   postIdea,
   deleteIdea,
   consolidateItinerary,
+  listSuggestions,
+  approveSuggestion,
+  rejectSuggestion,
   type TripGroupDetail,
   type TripIdea,
   type TripItinerary,
+  type TripItinerarySuggestion,
 } from "@/lib/api/trip-groups";
 
 function InviteLinkBox({ slug }: { slug: string }) {
@@ -140,6 +144,21 @@ function GroupDetail() {
 
   const [consolidating, setConsolidating] = useState(false);
   const [consolidateError, setConsolidateError] = useState<string | null>(null);
+  const [consolidateNotice, setConsolidateNotice] = useState<string | null>(null);
+
+  const [suggestions, setSuggestions] = useState<TripItinerarySuggestion[]>([]);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+
+  const refetchSuggestions = useCallback(async () => {
+    if (!slug) return;
+    try {
+      setSuggestions(await listSuggestions(slug));
+      setSuggestionError(null);
+    } catch (err) {
+      setSuggestionError((err as Error).message);
+    }
+  }, [slug]);
 
   const refetch = useCallback(async () => {
     if (!slug) return;
@@ -149,6 +168,7 @@ function GroupDetail() {
       setDetail(d);
       setForbidden(false);
       setError(null);
+      void refetchSuggestions();
     } catch (err) {
       const message = (err as Error).message;
       if (message.toLowerCase().includes("not a member")) {
@@ -162,7 +182,7 @@ function GroupDetail() {
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [slug, refetchSuggestions]);
 
   useEffect(() => {
     void refetch();
@@ -205,13 +225,48 @@ function GroupDetail() {
     if (!slug) return;
     setConsolidating(true);
     setConsolidateError(null);
+    setConsolidateNotice(null);
     try {
-      const { itinerary, itineraryGeneratedAt } = await consolidateItinerary(slug);
-      setDetail((prev) => (prev ? { ...prev, itinerary, itineraryGeneratedAt } : prev));
+      const result = await consolidateItinerary(slug);
+      if (result.itinerary && result.itineraryGeneratedAt) {
+        // Owner path: direct write.
+        setDetail((prev) =>
+          prev
+            ? {
+                ...prev,
+                itinerary: result.itinerary ?? prev.itinerary,
+                itineraryGeneratedAt: result.itineraryGeneratedAt ?? prev.itineraryGeneratedAt,
+              }
+            : prev,
+        );
+      } else if (result.suggestion) {
+        // Member path: pending suggestion awaiting owner approval.
+        setConsolidateNotice("Suggestion submitted — the group owner can approve it below.");
+        await refetchSuggestions();
+      }
     } catch (err) {
       setConsolidateError((err as Error).message);
     } finally {
       setConsolidating(false);
+    }
+  }
+
+  async function handleResolve(suggestionId: string, action: "approve" | "reject") {
+    if (!slug) return;
+    setResolvingId(suggestionId);
+    setSuggestionError(null);
+    try {
+      if (action === "approve") {
+        const { itinerary, itineraryGeneratedAt } = await approveSuggestion(slug, suggestionId);
+        setDetail((prev) => (prev ? { ...prev, itinerary, itineraryGeneratedAt } : prev));
+      } else {
+        await rejectSuggestion(slug, suggestionId);
+      }
+      await refetchSuggestions();
+    } catch (err) {
+      setSuggestionError((err as Error).message);
+    } finally {
+      setResolvingId(null);
     }
   }
 
@@ -315,24 +370,29 @@ function GroupDetail() {
               </span>
             )}
           </h2>
-          {detail.isOwner && (
-            <button
-              type="button"
-              onClick={handleConsolidate}
-              disabled={consolidating || detail.ideas.length === 0}
-              className="inline-flex min-h-9 shrink-0 items-center justify-center rounded bg-blue-500/90 px-3 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {consolidating
-                ? "Consolidating… (~30s)"
-                : detail.itinerary
+          <button
+            type="button"
+            onClick={handleConsolidate}
+            disabled={consolidating || detail.ideas.length === 0}
+            className="inline-flex min-h-9 shrink-0 items-center justify-center rounded bg-blue-500/90 px-3 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {consolidating
+              ? "Consolidating… (~30s)"
+              : detail.isOwner
+                ? detail.itinerary
                   ? "Re-consolidate from ideas"
-                  : "Consolidate ideas into itinerary"}
-            </button>
-          )}
+                  : "Consolidate ideas into itinerary"
+                : "Suggest AI re-consolidation"}
+          </button>
         </div>
         {consolidateError && (
           <p role="alert" className="mb-2 text-sm text-red-400">
             Couldn&apos;t consolidate: {consolidateError}
+          </p>
+        )}
+        {consolidateNotice && (
+          <p role="status" className="mb-2 text-sm text-green-400">
+            {consolidateNotice}
           </p>
         )}
         {detail.itinerary ? (
@@ -347,6 +407,68 @@ function GroupDetail() {
           </p>
         )}
       </section>
+
+      {suggestions.some((s) => s.status === "pending") && (
+        <section className="mb-8">
+          <h2 className="mb-2 text-sm font-medium text-gray-300">
+            Pending suggestions
+            <span className="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-300">
+              {suggestions.filter((s) => s.status === "pending").length}
+            </span>
+          </h2>
+          {suggestionError && (
+            <p role="alert" className="mb-2 text-sm text-red-400">{suggestionError}</p>
+          )}
+          <ul className="space-y-2">
+            {suggestions
+              .filter((s) => s.status === "pending")
+              .map((s) => (
+                <li key={s.id} className="rounded-md border border-amber-500/20 bg-black/20 p-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-sm text-white/90">
+                      {s.authorName ?? "Anonymous"} suggested a new itinerary
+                      <span className="ml-2 text-xs text-gray-500">
+                        <RelativeTime iso={s.createdAt} />
+                        {" · "}
+                        {s.changedDays.length === 0
+                          ? "no day changes"
+                          : `changes day${s.changedDays.length > 1 ? "s" : ""} ${s.changedDays.join(", ")}`}
+                      </span>
+                    </span>
+                    {detail.isOwner && (
+                      <span className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleResolve(s.id, "approve")}
+                          disabled={resolvingId === s.id}
+                          className="inline-flex min-h-8 items-center rounded bg-green-600/90 px-2.5 text-xs font-medium text-white hover:bg-green-600 disabled:opacity-50"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleResolve(s.id, "reject")}
+                          disabled={resolvingId === s.id}
+                          className="inline-flex min-h-8 items-center rounded border border-white/20 px-2.5 text-xs font-medium text-gray-300 hover:bg-white/10 disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                  {(s.conflictsWith?.length ?? 0) > 0 && (
+                    <p className="mt-1.5 text-xs text-amber-400">
+                      ⚠ Conflicts with another pending suggestion on the same day
+                      {s.changedDays.length > 1 ? "s" : ""} — approving one may invalidate the
+                      other.
+                    </p>
+                  )}
+                  <p className="mt-1.5 text-xs text-gray-500">{s.itinerary.summary}</p>
+                </li>
+              ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mb-8">
         <h2 className="mb-2 text-sm font-medium text-gray-300">Post an idea</h2>
