@@ -38,7 +38,11 @@ export interface ItineraryActivity {
 export interface ItineraryDay {
   day: number;
   title: string;
+  /** Calendar date "YYYY-MM-DD", or null for floating trips (SHAN-277). */
+  date?: string | null;
   location: string | null;
+  /** Country for collapsible grouping (SHAN-277). */
+  country?: string | null;
   activities: ItineraryActivity[];
 }
 

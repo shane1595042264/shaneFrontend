@@ -23,9 +23,11 @@ import {
   type TripGroupDetail,
   type TripIdea,
   type TripItinerary,
+  type ItineraryDay,
   type TripItinerarySuggestion,
   type TripGroupPhoto,
 } from "@/lib/api/trip-groups";
+import { ItineraryCalendar, fmtDayDate } from "@/components/trips/itinerary-calendar";
 
 function InviteLinkBox({ slug }: { slug: string }) {
   const [url, setUrl] = useState(`https://shanejli.com/trips/groups/${slug}`);
@@ -229,6 +231,20 @@ function ItineraryEditor({
                 aria-label={`Day ${d.day} location`}
                 className={`${inputCls} w-32`}
               />
+              <input
+                type="date"
+                value={d.date ?? ""}
+                onChange={(e) => patchDay(di, { date: e.target.value || null })}
+                aria-label={`Day ${d.day} date`}
+                className={`${inputCls} w-36`}
+              />
+              <input
+                value={d.country ?? ""}
+                onChange={(e) => patchDay(di, { country: e.target.value || null })}
+                placeholder="country"
+                aria-label={`Day ${d.day} country`}
+                className={`${inputCls} w-28`}
+              />
               <span className="flex gap-1">
                 <button
                   type="button"
@@ -312,40 +328,76 @@ function ItineraryView({
   onUploadPhoto: (day: number, file: File) => void;
   onDeletePhoto: (photoId: string) => void;
 }) {
+  const groups: { country: string | null; days: ItineraryDay[] }[] = [];
+  for (const d of itinerary.days) {
+    const c = d.country ?? null;
+    const last = groups[groups.length - 1];
+    if (last && last.country === c) last.days.push(d);
+    else groups.push({ country: c, days: [d] });
+  }
+
+  const renderDay = (d: ItineraryDay) => (
+    <li key={d.day} className="rounded-md border border-white/10 bg-black/20 p-3">
+      <h3 className="text-sm font-medium text-white/90">
+        Day {d.day}
+        {fmtDayDate(d.date) && (
+          <span className="ml-1.5 text-xs font-normal text-blue-300">{fmtDayDate(d.date)}</span>
+        )}
+        {": "}
+        {d.title}
+        {d.location && <span className="ml-2 text-xs font-normal text-gray-500">{d.location}</span>}
+      </h3>
+      <ul className="mt-2 space-y-1.5">
+        {d.activities.map((a, i) => (
+          <li key={i} className="flex gap-2 text-sm">
+            <span className="w-12 shrink-0 font-mono text-xs leading-5 text-gray-500">
+              {a.time ?? "—"}
+            </span>
+            <span className="text-white/85">
+              {a.title}
+              {a.notes && <span className="ml-1 text-xs text-gray-500">— {a.notes}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <DayPhotoStrip
+        day={d.day}
+        photos={photos.filter((p) => p.day === d.day)}
+        canDeletePhoto={canDeletePhoto}
+        uploading={uploadingDay === d.day}
+        onUpload={onUploadPhoto}
+        onDelete={onDeletePhoto}
+      />
+    </li>
+  );
+
   return (
     <div>
       <p className="text-sm text-gray-400">{itinerary.summary}</p>
-      <ol className="mt-3 space-y-4">
-        {itinerary.days.map((d) => (
-          <li key={d.day} className="rounded-md border border-white/10 bg-black/20 p-3">
-            <h3 className="text-sm font-medium text-white/90">
-              Day {d.day}: {d.title}
-              {d.location && <span className="ml-2 text-xs font-normal text-gray-500">{d.location}</span>}
-            </h3>
-            <ul className="mt-2 space-y-1.5">
-              {d.activities.map((a, i) => (
-                <li key={i} className="flex gap-2 text-sm">
-                  <span className="w-12 shrink-0 font-mono text-xs leading-5 text-gray-500">
-                    {a.time ?? "—"}
-                  </span>
-                  <span className="text-white/85">
-                    {a.title}
-                    {a.notes && <span className="ml-1 text-xs text-gray-500">— {a.notes}</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <DayPhotoStrip
-              day={d.day}
-              photos={photos.filter((p) => p.day === d.day)}
-              canDeletePhoto={canDeletePhoto}
-              uploading={uploadingDay === d.day}
-              onUpload={onUploadPhoto}
-              onDelete={onDeletePhoto}
-            />
-          </li>
-        ))}
-      </ol>
+      <div className="mt-3 space-y-4">
+        {groups.map((g, gi) =>
+          g.country ? (
+            <details key={gi} open className="group rounded-md border border-white/15 bg-white/[0.03]">
+              <summary className="cursor-pointer select-none px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/5">
+                <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
+                {g.country}
+                <span className="ml-2 text-xs font-normal text-gray-500">
+                  {g.days.length} {g.days.length === 1 ? "day" : "days"}
+                  {fmtDayDate(g.days[0]?.date) &&
+                    ` · ${fmtDayDate(g.days[0]?.date)}${
+                      g.days.length > 1 ? ` – ${fmtDayDate(g.days[g.days.length - 1]?.date)}` : ""
+                    }`}
+                </span>
+              </summary>
+              <ol className="space-y-4 p-3 pt-1">{g.days.map(renderDay)}</ol>
+            </details>
+          ) : (
+            <ol key={gi} className="space-y-4">
+              {g.days.map(renderDay)}
+            </ol>
+          ),
+        )}
+      </div>
     </div>
   );
 }
@@ -391,6 +443,7 @@ function GroupDetail() {
 
   const [draft, setDraft] = useState<TripItinerary | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [view, setView] = useState<"list" | "calendar">("list");
 
   const refetchPhotos = useCallback(async () => {
     if (!slug) return;
@@ -546,6 +599,35 @@ function GroupDetail() {
     }
   }
 
+  async function handleSaveItinerary(next: TripItinerary) {
+    if (!slug) return;
+    setSavingDraft(true);
+    setConsolidateError(null);
+    setConsolidateNotice(null);
+    try {
+      const result = await updateItinerary(slug, next);
+      if (result.itinerary && result.itineraryGeneratedAt) {
+        setDetail((prev) =>
+          prev
+            ? {
+                ...prev,
+                itinerary: result.itinerary ?? prev.itinerary,
+                itineraryGeneratedAt: result.itineraryGeneratedAt ?? prev.itineraryGeneratedAt,
+              }
+            : prev,
+        );
+      } else if (result.suggestion) {
+        setConsolidateNotice("Edit submitted as a suggestion — the group owner can approve it below.");
+        await refetchSuggestions();
+      }
+    } catch (err) {
+      setConsolidateError((err as Error).message);
+      throw err;
+    } finally {
+      setSavingDraft(false);
+    }
+  }
+
   async function handleSaveDraft() {
     if (!slug || !draft) return;
     if (draft.days.length === 0 || !draft.summary.trim()) {
@@ -689,6 +771,68 @@ function GroupDetail() {
       </section>
 
       <section className="mb-8">
+        <h2 className="mb-2 text-sm font-medium text-gray-300">Post an idea</h2>
+        <form onSubmit={handlePost}>
+          <textarea
+            value={ideaBody}
+            onChange={(e) => setIdeaBody(e.target.value)}
+            placeholder="What's on your mind? A restaurant, neighborhood, transit tip, vibe…"
+            rows={3}
+            maxLength={4000}
+            className="block w-full rounded border border-white/15 bg-black/30 px-3 py-2 text-sm text-white/90 focus:border-white/40 focus:outline-none"
+          />
+          {postError && <p role="alert" className="mt-2 text-sm text-red-400">{postError}</p>}
+          <div className="mt-2 flex justify-end">
+            <button
+              type="submit"
+              disabled={!ideaBody.trim() || posting}
+              className="inline-flex min-h-9 items-center justify-center rounded bg-white px-3 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {posting ? "Posting…" : "Post"}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-2 text-sm font-medium text-gray-300">Idea inbox</h2>
+        {deleteError && (
+          <p role="alert" className="mb-2 text-sm text-red-400">
+            Couldn't delete that idea: {deleteError}
+          </p>
+        )}
+        {detail.ideas.length === 0 ? (
+          <p className="text-sm text-gray-500">No ideas yet. Drop the first one above.</p>
+        ) : (
+          <ul className="space-y-2">
+            {detail.ideas.map((idea) => (
+              <li
+                key={idea.id}
+                className="rounded-md border border-white/10 bg-black/20 p-3"
+              >
+                <p className="whitespace-pre-wrap text-sm text-white/90">{idea.body}</p>
+                <div className="mt-2 flex items-baseline justify-between text-xs text-gray-500">
+                  <span>
+                    {idea.authorName ?? "Anonymous"}
+                    {" · "}
+                    <RelativeTime iso={idea.createdAt} />
+                  </span>
+                  {user?.id === idea.authorId && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(idea.id)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      delete
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="mb-8">
         <div className="mb-2 flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-medium text-gray-300">
             Itinerary
@@ -699,6 +843,26 @@ function GroupDetail() {
             )}
           </h2>
           <span className="flex shrink-0 gap-2">
+            {detail.itinerary && !draft && (
+              <span className="flex overflow-hidden rounded border border-white/20" role="group" aria-label="Itinerary view">
+                <button
+                  type="button"
+                  onClick={() => setView("list")}
+                  aria-pressed={view === "list"}
+                  className={`px-2.5 py-1 text-xs ${view === "list" ? "bg-white/15 text-white" : "text-gray-400 hover:bg-white/10"}`}
+                >
+                  List
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView("calendar")}
+                  aria-pressed={view === "calendar"}
+                  className={`px-2.5 py-1 text-xs ${view === "calendar" ? "bg-white/15 text-white" : "text-gray-400 hover:bg-white/10"}`}
+                >
+                  Calendar
+                </button>
+              </span>
+            )}
             {detail.itinerary && !draft && (
               <button
                 type="button"
@@ -779,6 +943,13 @@ function GroupDetail() {
         )}
         {draft ? (
           <ItineraryEditor draft={draft} onChange={setDraft} />
+        ) : detail.itinerary && view === "calendar" ? (
+          <ItineraryCalendar
+            itinerary={detail.itinerary}
+            canEdit
+            saving={savingDraft}
+            onSave={handleSaveItinerary}
+          />
         ) : detail.itinerary ? (
           <ItineraryView
             itinerary={detail.itinerary}
@@ -861,68 +1032,6 @@ function GroupDetail() {
         </section>
       )}
 
-      <section className="mb-8">
-        <h2 className="mb-2 text-sm font-medium text-gray-300">Post an idea</h2>
-        <form onSubmit={handlePost}>
-          <textarea
-            value={ideaBody}
-            onChange={(e) => setIdeaBody(e.target.value)}
-            placeholder="What's on your mind? A restaurant, neighborhood, transit tip, vibe…"
-            rows={3}
-            maxLength={4000}
-            className="block w-full rounded border border-white/15 bg-black/30 px-3 py-2 text-sm text-white/90 focus:border-white/40 focus:outline-none"
-          />
-          {postError && <p role="alert" className="mt-2 text-sm text-red-400">{postError}</p>}
-          <div className="mt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={!ideaBody.trim() || posting}
-              className="inline-flex min-h-9 items-center justify-center rounded bg-white px-3 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {posting ? "Posting…" : "Post"}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-gray-300">Idea inbox</h2>
-        {deleteError && (
-          <p role="alert" className="mb-2 text-sm text-red-400">
-            Couldn't delete that idea: {deleteError}
-          </p>
-        )}
-        {detail.ideas.length === 0 ? (
-          <p className="text-sm text-gray-500">No ideas yet. Drop the first one above.</p>
-        ) : (
-          <ul className="space-y-2">
-            {detail.ideas.map((idea) => (
-              <li
-                key={idea.id}
-                className="rounded-md border border-white/10 bg-black/20 p-3"
-              >
-                <p className="whitespace-pre-wrap text-sm text-white/90">{idea.body}</p>
-                <div className="mt-2 flex items-baseline justify-between text-xs text-gray-500">
-                  <span>
-                    {idea.authorName ?? "Anonymous"}
-                    {" · "}
-                    <RelativeTime iso={idea.createdAt} />
-                  </span>
-                  {user?.id === idea.authorId && (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(idea.id)}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      delete
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </div>
   );
 }
