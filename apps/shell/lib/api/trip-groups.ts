@@ -247,3 +247,24 @@ export async function unsplashFill(slug: string): Promise<{
     skipped: body.skipped ?? [],
   };
 }
+
+/**
+ * Manual itinerary edit (SHAN-276). Owner result carries `itinerary`
+ * (direct write); member result carries `suggestion` (pending approval).
+ */
+export async function updateItinerary(
+  slug: string,
+  itinerary: TripItinerary,
+): Promise<{
+  itinerary?: TripItinerary;
+  itineraryGeneratedAt?: string;
+  suggestion?: TripItinerarySuggestion;
+}> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ itinerary }),
+  });
+  if (!res.ok) await unwrap(res, "Failed to save itinerary");
+  return res.json();
+}

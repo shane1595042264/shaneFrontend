@@ -19,6 +19,7 @@ import {
   uploadPhoto,
   deletePhoto,
   unsplashFill,
+  updateItinerary,
   type TripGroupDetail,
   type TripIdea,
   type TripItinerary,
@@ -152,6 +153,150 @@ function DayPhotoStrip({
   );
 }
 
+const inputCls =
+  "rounded border border-white/15 bg-black/30 px-2 py-1 text-sm text-white/90 focus:border-white/40 focus:outline-none";
+
+function ItineraryEditor({
+  draft,
+  onChange,
+}: {
+  draft: TripItinerary;
+  onChange: (next: TripItinerary) => void;
+}) {
+  function patchDay(idx: number, patch: Partial<TripItinerary["days"][number]>) {
+    const days = draft.days.map((d, i) => (i === idx ? { ...d, ...patch } : d));
+    onChange({ ...draft, days });
+  }
+  function patchActivity(
+    dayIdx: number,
+    actIdx: number,
+    patch: Partial<TripItinerary["days"][number]["activities"][number]>,
+  ) {
+    const days = draft.days.map((d, i) =>
+      i === dayIdx
+        ? { ...d, activities: d.activities.map((a, j) => (j === actIdx ? { ...a, ...patch } : a)) }
+        : d,
+    );
+    onChange({ ...draft, days });
+  }
+  function addActivity(dayIdx: number) {
+    const days = draft.days.map((d, i) =>
+      i === dayIdx
+        ? { ...d, activities: [...d.activities, { time: null, title: "New activity", notes: null }] }
+        : d,
+    );
+    onChange({ ...draft, days });
+  }
+  function removeActivity(dayIdx: number, actIdx: number) {
+    const days = draft.days.map((d, i) =>
+      i === dayIdx ? { ...d, activities: d.activities.filter((_, j) => j !== actIdx) } : d,
+    );
+    onChange({ ...draft, days });
+  }
+  function moveDay(idx: number, dir: -1 | 1) {
+    const target = idx + dir;
+    if (target < 0 || target >= draft.days.length) return;
+    const days = [...draft.days];
+    [days[idx], days[target]] = [days[target], days[idx]];
+    // Renumber sequentially so day numbers always match position.
+    onChange({ ...draft, days: days.map((d, i) => ({ ...d, day: i + 1 })) });
+  }
+
+  return (
+    <div>
+      <textarea
+        value={draft.summary}
+        onChange={(e) => onChange({ ...draft, summary: e.target.value })}
+        rows={2}
+        aria-label="Trip summary"
+        className={`${inputCls} block w-full`}
+      />
+      <ol className="mt-3 space-y-4">
+        {draft.days.map((d, di) => (
+          <li key={di} className="rounded-md border border-blue-400/30 bg-black/20 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-gray-500">Day {d.day}</span>
+              <input
+                value={d.title}
+                onChange={(e) => patchDay(di, { title: e.target.value })}
+                aria-label={`Day ${d.day} title`}
+                className={`${inputCls} min-w-0 flex-1`}
+              />
+              <input
+                value={d.location ?? ""}
+                onChange={(e) => patchDay(di, { location: e.target.value || null })}
+                placeholder="location"
+                aria-label={`Day ${d.day} location`}
+                className={`${inputCls} w-32`}
+              />
+              <span className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => moveDay(di, -1)}
+                  disabled={di === 0}
+                  aria-label={`Move day ${d.day} up`}
+                  className="rounded border border-white/20 px-2 py-1 text-xs text-gray-300 hover:bg-white/10 disabled:opacity-30"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveDay(di, 1)}
+                  disabled={di === draft.days.length - 1}
+                  aria-label={`Move day ${d.day} down`}
+                  className="rounded border border-white/20 px-2 py-1 text-xs text-gray-300 hover:bg-white/10 disabled:opacity-30"
+                >
+                  ↓
+                </button>
+              </span>
+            </div>
+            <ul className="mt-2 space-y-1.5">
+              {d.activities.map((a, ai) => (
+                <li key={ai} className="flex flex-wrap items-center gap-2">
+                  <input
+                    value={a.time ?? ""}
+                    onChange={(e) => patchActivity(di, ai, { time: e.target.value || null })}
+                    placeholder="HH:MM"
+                    aria-label="Activity time"
+                    className={`${inputCls} w-20 font-mono text-xs`}
+                  />
+                  <input
+                    value={a.title}
+                    onChange={(e) => patchActivity(di, ai, { title: e.target.value })}
+                    aria-label="Activity title"
+                    className={`${inputCls} min-w-0 flex-1`}
+                  />
+                  <input
+                    value={a.notes ?? ""}
+                    onChange={(e) => patchActivity(di, ai, { notes: e.target.value || null })}
+                    placeholder="notes"
+                    aria-label="Activity notes"
+                    className={`${inputCls} min-w-0 flex-1`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeActivity(di, ai)}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => addActivity(di)}
+              className="mt-2 text-xs text-blue-300 hover:text-blue-200"
+            >
+              + add activity
+            </button>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function ItineraryView({
   itinerary,
   photos,
@@ -243,6 +388,9 @@ function GroupDetail() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [uploadingDay, setUploadingDay] = useState<number | null>(null);
   const [filling, setFilling] = useState(false);
+
+  const [draft, setDraft] = useState<TripItinerary | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const refetchPhotos = useCallback(async () => {
     if (!slug) return;
@@ -398,6 +546,39 @@ function GroupDetail() {
     }
   }
 
+  async function handleSaveDraft() {
+    if (!slug || !draft) return;
+    if (draft.days.length === 0 || !draft.summary.trim()) {
+      setConsolidateError("An itinerary needs a summary and at least one day.");
+      return;
+    }
+    setSavingDraft(true);
+    setConsolidateError(null);
+    setConsolidateNotice(null);
+    try {
+      const result = await updateItinerary(slug, draft);
+      if (result.itinerary && result.itineraryGeneratedAt) {
+        setDetail((prev) =>
+          prev
+            ? {
+                ...prev,
+                itinerary: result.itinerary ?? prev.itinerary,
+                itineraryGeneratedAt: result.itineraryGeneratedAt ?? prev.itineraryGeneratedAt,
+              }
+            : prev,
+        );
+      } else if (result.suggestion) {
+        setConsolidateNotice("Edit submitted as a suggestion — the group owner can approve it below.");
+        await refetchSuggestions();
+      }
+      setDraft(null);
+    } catch (err) {
+      setConsolidateError((err as Error).message);
+    } finally {
+      setSavingDraft(false);
+    }
+  }
+
   async function handleResolve(suggestionId: string, action: "approve" | "reject") {
     if (!slug) return;
     setResolvingId(suggestionId);
@@ -517,20 +698,59 @@ function GroupDetail() {
               </span>
             )}
           </h2>
-          <button
-            type="button"
-            onClick={handleConsolidate}
-            disabled={consolidating || detail.ideas.length === 0}
-            className="inline-flex min-h-9 shrink-0 items-center justify-center rounded bg-blue-500/90 px-3 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {consolidating
-              ? "Consolidating… (~30s)"
-              : detail.isOwner
-                ? detail.itinerary
-                  ? "Re-consolidate from ideas"
-                  : "Consolidate ideas into itinerary"
-                : "Suggest AI re-consolidation"}
-          </button>
+          <span className="flex shrink-0 gap-2">
+            {detail.itinerary && !draft && (
+              <button
+                type="button"
+                onClick={() =>
+                  setDraft(JSON.parse(JSON.stringify(detail.itinerary)) as TripItinerary)
+                }
+                className="inline-flex min-h-9 items-center justify-center rounded border border-white/20 px-3 text-xs font-medium text-gray-300 hover:bg-white/10"
+              >
+                Edit
+              </button>
+            )}
+            {draft && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  disabled={savingDraft}
+                  className="inline-flex min-h-9 items-center justify-center rounded bg-green-600/90 px-3 text-xs font-medium text-white hover:bg-green-600 disabled:opacity-50"
+                >
+                  {savingDraft
+                    ? "Saving…"
+                    : detail.isOwner
+                      ? "Save itinerary"
+                      : "Submit edit as suggestion"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDraft(null)}
+                  disabled={savingDraft}
+                  className="inline-flex min-h-9 items-center justify-center rounded border border-white/20 px-3 text-xs font-medium text-gray-300 hover:bg-white/10 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+            {!draft && (
+              <button
+                type="button"
+                onClick={handleConsolidate}
+                disabled={consolidating || detail.ideas.length === 0}
+                className="inline-flex min-h-9 items-center justify-center rounded bg-blue-500/90 px-3 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {consolidating
+                  ? "Consolidating… (~30s)"
+                  : detail.isOwner
+                    ? detail.itinerary
+                      ? "Re-consolidate from ideas"
+                      : "Consolidate ideas into itinerary"
+                    : "Suggest AI re-consolidation"}
+              </button>
+            )}
+          </span>
         </div>
         {consolidateError && (
           <p role="alert" className="mb-2 text-sm text-red-400">
@@ -545,7 +765,7 @@ function GroupDetail() {
         {photoError && (
           <p role="alert" className="mb-2 text-sm text-amber-400">{photoError}</p>
         )}
-        {detail.itinerary && detail.isOwner && (
+        {detail.itinerary && detail.isOwner && !draft && (
           <div className="mb-3">
             <button
               type="button"
@@ -557,7 +777,9 @@ function GroupDetail() {
             </button>
           </div>
         )}
-        {detail.itinerary ? (
+        {draft ? (
+          <ItineraryEditor draft={draft} onChange={setDraft} />
+        ) : detail.itinerary ? (
           <ItineraryView
             itinerary={detail.itinerary}
             photos={photos}
