@@ -29,6 +29,24 @@ export interface TripIdea {
   createdAt: string;
 }
 
+export interface ItineraryActivity {
+  time: string | null;
+  title: string;
+  notes: string | null;
+}
+
+export interface ItineraryDay {
+  day: number;
+  title: string;
+  location: string | null;
+  activities: ItineraryActivity[];
+}
+
+export interface TripItinerary {
+  summary: string;
+  days: ItineraryDay[];
+}
+
 export interface TripGroupDetail {
   id: string;
   slug: string;
@@ -37,6 +55,8 @@ export interface TripGroupDetail {
   isOwner: boolean;
   createdAt: string;
   updatedAt: string;
+  itinerary: TripItinerary | null;
+  itineraryGeneratedAt: string | null;
   members: TripGroupMember[];
   ideas: TripIdea[];
 }
@@ -96,6 +116,18 @@ export async function postIdea(slug: string, body: string): Promise<TripIdea> {
   });
   if (!res.ok) await unwrap(res, "Failed to post idea");
   return (await res.json()).idea;
+}
+
+export async function consolidateItinerary(slug: string): Promise<{
+  itinerary: TripItinerary;
+  itineraryGeneratedAt: string;
+}> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary/consolidate`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) await unwrap(res, "Failed to consolidate itinerary");
+  return res.json();
 }
 
 export async function deleteIdea(slug: string, ideaId: string): Promise<void> {

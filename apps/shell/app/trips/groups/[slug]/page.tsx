@@ -11,8 +11,10 @@ import {
   joinGroup,
   postIdea,
   deleteIdea,
+  consolidateItinerary,
   type TripGroupDetail,
   type TripIdea,
+  type TripItinerary,
 } from "@/lib/api/trip-groups";
 
 function InviteLinkBox({ slug }: { slug: string }) {
@@ -79,6 +81,37 @@ function InviteLinkBox({ slug }: { slug: string }) {
   );
 }
 
+function ItineraryView({ itinerary }: { itinerary: TripItinerary }) {
+  return (
+    <div>
+      <p className="text-sm text-gray-400">{itinerary.summary}</p>
+      <ol className="mt-3 space-y-4">
+        {itinerary.days.map((d) => (
+          <li key={d.day} className="rounded-md border border-white/10 bg-black/20 p-3">
+            <h3 className="text-sm font-medium text-white/90">
+              Day {d.day}: {d.title}
+              {d.location && <span className="ml-2 text-xs font-normal text-gray-500">{d.location}</span>}
+            </h3>
+            <ul className="mt-2 space-y-1.5">
+              {d.activities.map((a, i) => (
+                <li key={i} className="flex gap-2 text-sm">
+                  <span className="w-12 shrink-0 font-mono text-xs leading-5 text-gray-500">
+                    {a.time ?? "—"}
+                  </span>
+                  <span className="text-white/85">
+                    {a.title}
+                    {a.notes && <span className="ml-1 text-xs text-gray-500">— {a.notes}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export default function GroupDetailPage() {
   return (
     <AuthGate>
@@ -104,6 +137,9 @@ function GroupDetail() {
 
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+
+  const [consolidating, setConsolidating] = useState(false);
+  const [consolidateError, setConsolidateError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
     if (!slug) return;
@@ -162,6 +198,20 @@ function GroupDetail() {
       setDeleteError(null);
     } catch (err) {
       setDeleteError((err as Error).message);
+    }
+  }
+
+  async function handleConsolidate() {
+    if (!slug) return;
+    setConsolidating(true);
+    setConsolidateError(null);
+    try {
+      const { itinerary, itineraryGeneratedAt } = await consolidateItinerary(slug);
+      setDetail((prev) => (prev ? { ...prev, itinerary, itineraryGeneratedAt } : prev));
+    } catch (err) {
+      setConsolidateError((err as Error).message);
+    } finally {
+      setConsolidating(false);
     }
   }
 
@@ -253,6 +303,49 @@ function GroupDetail() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="mb-8">
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-medium text-gray-300">
+            Itinerary
+            {detail.itineraryGeneratedAt && (
+              <span className="ml-2 text-xs font-normal text-gray-500">
+                generated <RelativeTime iso={detail.itineraryGeneratedAt} />
+              </span>
+            )}
+          </h2>
+          {detail.isOwner && (
+            <button
+              type="button"
+              onClick={handleConsolidate}
+              disabled={consolidating || detail.ideas.length === 0}
+              className="inline-flex min-h-9 shrink-0 items-center justify-center rounded bg-blue-500/90 px-3 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {consolidating
+                ? "Consolidating… (~30s)"
+                : detail.itinerary
+                  ? "Re-consolidate from ideas"
+                  : "Consolidate ideas into itinerary"}
+            </button>
+          )}
+        </div>
+        {consolidateError && (
+          <p role="alert" className="mb-2 text-sm text-red-400">
+            Couldn&apos;t consolidate: {consolidateError}
+          </p>
+        )}
+        {detail.itinerary ? (
+          <ItineraryView itinerary={detail.itinerary} />
+        ) : (
+          <p className="text-sm text-gray-500">
+            {detail.isOwner
+              ? detail.ideas.length === 0
+                ? "No itinerary yet. Post some ideas below, then consolidate."
+                : "No itinerary yet. Consolidate the idea inbox to draft one."
+              : "No itinerary yet. The group owner can consolidate the idea inbox into one."}
+          </p>
+        )}
       </section>
 
       <section className="mb-8">
