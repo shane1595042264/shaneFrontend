@@ -15,6 +15,70 @@ import {
   type TripIdea,
 } from "@/lib/api/trip-groups";
 
+function InviteLinkBox({ slug }: { slug: string }) {
+  const [url, setUrl] = useState(`https://shanejli.com/trips/groups/${slug}`);
+  const [feedback, setFeedback] = useState<"copied" | "error" | null>(null);
+
+  useEffect(() => {
+    setUrl(`${window.location.origin}/trips/groups/${slug}`);
+  }, [slug]);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setFeedback("copied");
+    } catch {
+      setFeedback("error");
+    }
+    setTimeout(() => setFeedback(null), 2000);
+  }
+
+  const srMessage =
+    feedback === "copied"
+      ? "Invite link copied to clipboard"
+      : feedback === "error"
+        ? "Failed to copy invite link"
+        : "";
+
+  return (
+    <div>
+      <label htmlFor={`invite-${slug}`} className="block text-[10px] uppercase tracking-wider text-gray-500">
+        Invite link
+      </label>
+      <div className="mt-1 flex items-stretch gap-2">
+        <input
+          id={`invite-${slug}`}
+          type="text"
+          readOnly
+          value={url}
+          onFocus={(e) => e.currentTarget.select()}
+          className="min-w-0 flex-1 rounded border border-white/15 bg-black/30 px-2 py-1.5 font-mono text-xs text-gray-300 focus:border-white/40 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex min-h-9 shrink-0 items-center justify-center rounded bg-white px-3 text-xs font-medium text-black hover:bg-gray-200"
+        >
+          Copy
+        </button>
+      </div>
+      {feedback === "copied" && (
+        <p className="mt-1 text-xs text-green-400" aria-hidden="true">
+          Copied!
+        </p>
+      )}
+      {feedback === "error" && (
+        <p className="mt-1 text-xs text-red-400" aria-hidden="true">
+          Copy failed — select the link and copy manually.
+        </p>
+      )}
+      <div role="status" aria-live="polite" className="sr-only">
+        {srMessage}
+      </div>
+    </div>
+  );
+}
+
 export default function GroupDetailPage() {
   return (
     <AuthGate>
@@ -118,7 +182,7 @@ function GroupDetail() {
     );
   }
 
-  if (forbidden) {
+  if (forbidden && slug) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
         <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
@@ -126,6 +190,9 @@ function GroupDetail() {
         <p className="mb-4 text-sm text-gray-400">
           You haven't joined this group. Join to see members and ideas.
         </p>
+        <div className="mb-4">
+          <InviteLinkBox slug={slug} />
+        </div>
         {joinError && <p role="alert" className="mb-3 text-sm text-red-400">{joinError}</p>}
         <button
           type="button"
@@ -160,10 +227,11 @@ function GroupDetail() {
           {detail.members.length} {detail.members.length === 1 ? "member" : "members"}
           {detail.isOwner && <span className="ml-2 rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] text-blue-300">you own this</span>}
         </p>
-        <p className="mt-2 font-mono text-[11px] text-gray-600">
-          Share this slug: <span className="text-gray-400">{detail.slug}</span>
-        </p>
       </header>
+
+      <section className="mb-8">
+        <InviteLinkBox slug={detail.slug} />
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-2 text-sm font-medium text-gray-300">Members</h2>
@@ -175,6 +243,9 @@ function GroupDetail() {
             >
               {m.name ?? "Anonymous"}
               {m.role === "owner" && <span className="ml-1 text-blue-400">·owner</span>}
+              <span className="ml-1 text-gray-500">
+                · joined <RelativeTime iso={m.joinedAt} />
+              </span>
             </li>
           ))}
         </ul>
