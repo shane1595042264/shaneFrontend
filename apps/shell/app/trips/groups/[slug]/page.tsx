@@ -94,66 +94,64 @@ function InviteLinkBox({ slug }: { slug: string }) {
   );
 }
 
-function DayPhotoStrip({
+/**
+ * Photos are part of the UI, not attachments (SHAN-279): a location's
+ * photo renders as a shaded card/section background. This control is the
+ * only visible chrome — a subtle set-photo input plus the attribution
+ * credit (Unsplash terms) and a remove link for the uploader/owner.
+ */
+function PhotoCredit({
+  photo,
   day,
-  photos,
-  canDeletePhoto,
+  canDelete,
   uploading,
   onUpload,
   onDelete,
 }: {
+  photo: TripGroupPhoto | null;
   day: number;
-  photos: TripGroupPhoto[];
-  canDeletePhoto: (p: TripGroupPhoto) => boolean;
+  canDelete: boolean;
   uploading: boolean;
   onUpload: (day: number, file: File) => void;
   onDelete: (photoId: string) => void;
 }) {
   return (
-    <div className="mt-3">
-      <div className="flex flex-wrap items-start gap-2">
-        {photos.map((p) => (
-          <figure key={p.id} className="w-28">
-            {/* eslint-disable-next-line @next/next/no-img-element -- bytes come
-                from our API / Unsplash hotlink; next/image can't optimize either */}
-            <img
-              src={p.url}
-              alt={p.attribution ?? `Day ${day} photo`}
-              loading="lazy"
-              className="h-20 w-28 rounded object-cover"
-            />
-            <figcaption className="mt-0.5 flex items-baseline justify-between gap-1 text-[10px] text-gray-500">
-              <span className="truncate">{p.attribution ?? "member photo"}</span>
-              {canDeletePhoto(p) && (
-                <button
-                  type="button"
-                  onClick={() => onDelete(p.id)}
-                  className="shrink-0 text-red-400/80 hover:text-red-300"
-                  aria-label="Remove photo"
-                >
-                  remove
-                </button>
-              )}
-            </figcaption>
-          </figure>
-        ))}
-        <label className="flex h-20 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-white/20 text-xs text-gray-500 hover:border-white/40 hover:text-gray-300">
-          {uploading ? "Uploading…" : "+ photo"}
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/gif,image/webp"
-            className="sr-only"
-            disabled={uploading}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onUpload(day, f);
-              e.target.value = "";
-            }}
-          />
-        </label>
-      </div>
+    <div className="mt-2 flex items-baseline justify-end gap-2 text-[10px] text-gray-500">
+      {photo?.attribution && <span className="truncate">{photo.attribution}</span>}
+      {photo && canDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(photo.id)}
+          className="shrink-0 text-red-400/70 hover:text-red-300"
+        >
+          remove
+        </button>
+      )}
+      <label className="shrink-0 cursor-pointer text-gray-500 hover:text-gray-300">
+        {uploading ? "uploading…" : photo ? "replace photo" : "set photo"}
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          className="sr-only"
+          disabled={uploading}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onUpload(day, f);
+            e.target.value = "";
+          }}
+        />
+      </label>
     </div>
   );
+}
+
+/** Shaded photo background layer for cards and group sections. */
+function photoBgStyle(url: string, darkness: [number, number]) {
+  return {
+    backgroundImage: `linear-gradient(rgba(8,8,12,${darkness[0]}), rgba(8,8,12,${darkness[1]})), url(${url})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  } as const;
 }
 
 const inputCls =
@@ -337,67 +335,107 @@ function ItineraryView({
     else groups.push({ country: c, days: [d] });
   }
 
-  const renderDay = (d: ItineraryDay) => (
-    <li key={d.day} className="rounded-md border border-white/10 bg-black/20 p-3">
-      <h3 className="text-sm font-medium text-white/90">
-        Day {d.day}
-        {fmtDayDate(d.date) && (
-          <span className="ml-1.5 text-xs font-normal text-blue-300">{fmtDayDate(d.date)}</span>
-        )}
-        {": "}
-        {d.title}
-        {d.location && <span className="ml-2 text-xs font-normal text-gray-500">{d.location}</span>}
-      </h3>
-      <ul className="mt-2 space-y-1.5">
-        {d.activities.map((a, i) => (
-          <li key={i} className="flex gap-2 text-sm">
-            <span className="w-12 shrink-0 font-mono text-xs leading-5 text-gray-500">
-              {a.time ?? "—"}
-            </span>
-            <span className="text-white/85">
-              {a.title}
-              {a.notes && <span className="ml-1 text-xs text-gray-500">— {a.notes}</span>}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <DayPhotoStrip
-        day={d.day}
-        photos={photos.filter((p) => p.day === d.day)}
-        canDeletePhoto={canDeletePhoto}
-        uploading={uploadingDay === d.day}
-        onUpload={onUploadPhoto}
-        onDelete={onDeletePhoto}
-      />
-    </li>
-  );
+  const photoForDay = (day: number) => photos.find((p) => p.day === day) ?? null;
+
+  const renderDay = (d: ItineraryDay, groupRepUrl: string | null) => {
+    const dayPhoto = photoForDay(d.day);
+    // A day only paints its own background when its photo differs from the
+    // group hero — that's the "different city" signal.
+    const ownBg = dayPhoto && dayPhoto.url !== groupRepUrl ? dayPhoto : null;
+    return (
+      <li
+        key={d.day}
+        className={`relative overflow-hidden rounded-md border border-white/10 p-3 ${ownBg ? "" : "bg-black/30"}`}
+        style={ownBg ? photoBgStyle(ownBg.url, [0.62, 0.85]) : undefined}
+      >
+        <h3 className="text-sm font-medium text-white/90">
+          Day {d.day}
+          {fmtDayDate(d.date) && (
+            <span className="ml-1.5 text-xs font-normal text-blue-300">{fmtDayDate(d.date)}</span>
+          )}
+          {": "}
+          {d.title}
+          {d.location && <span className="ml-2 text-xs font-normal text-gray-400">{d.location}</span>}
+        </h3>
+        <ul className="mt-2 space-y-1.5">
+          {d.activities.map((a, i) => (
+            <li key={i} className="flex gap-2 text-sm">
+              <span className="w-12 shrink-0 font-mono text-xs leading-5 text-gray-400">
+                {a.time ?? "—"}
+              </span>
+              <span className="text-white/90">
+                {a.title}
+                {a.notes && <span className="ml-1 text-xs text-gray-400">— {a.notes}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <PhotoCredit
+          photo={ownBg}
+          day={d.day}
+          canDelete={!!ownBg && canDeletePhoto(ownBg)}
+          uploading={uploadingDay === d.day}
+          onUpload={onUploadPhoto}
+          onDelete={onDeletePhoto}
+        />
+      </li>
+    );
+  };
 
   return (
     <div>
       <p className="text-sm text-gray-400">{itinerary.summary}</p>
       <div className="mt-3 space-y-4">
-        {groups.map((g, gi) =>
-          g.country ? (
-            <details key={gi} open className="group rounded-md border border-white/15 bg-white/[0.03]">
-              <summary className="cursor-pointer select-none px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/5">
+        {groups.map((g, gi) => {
+          // Group hero: the first photo among the group's days.
+          const rep =
+            g.days.map((d) => photoForDay(d.day)).find((p): p is TripGroupPhoto => !!p) ?? null;
+          if (!g.country) {
+            return (
+              <ol key={gi} className="space-y-4">
+                {g.days.map((d) => renderDay(d, null))}
+              </ol>
+            );
+          }
+          return (
+            <details
+              key={gi}
+              open
+              className="group relative overflow-hidden rounded-lg border border-white/15"
+              style={rep ? photoBgStyle(rep.url, [0.7, 0.9]) : undefined}
+            >
+              <summary className="cursor-pointer select-none px-3 py-2.5 text-sm font-medium text-white hover:bg-white/5">
                 <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
                 {g.country}
-                <span className="ml-2 text-xs font-normal text-gray-500">
+                <span className="ml-2 text-xs font-normal text-gray-300">
                   {g.days.length} {g.days.length === 1 ? "day" : "days"}
                   {fmtDayDate(g.days[0]?.date) &&
                     ` · ${fmtDayDate(g.days[0]?.date)}${
                       g.days.length > 1 ? ` – ${fmtDayDate(g.days[g.days.length - 1]?.date)}` : ""
                     }`}
                 </span>
+                {rep?.attribution && (
+                  <span className="float-right text-[10px] font-normal text-gray-400">
+                    {rep.attribution}
+                    {canDeletePhoto(rep) && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onDeletePhoto(rep.id);
+                        }}
+                        className="ml-2 text-red-400/70 hover:text-red-300"
+                      >
+                        remove
+                      </button>
+                    )}
+                  </span>
+                )}
               </summary>
-              <ol className="space-y-4 p-3 pt-1">{g.days.map(renderDay)}</ol>
+              <ol className="space-y-4 p-3 pt-1">{g.days.map((d) => renderDay(d, rep?.url ?? null))}</ol>
             </details>
-          ) : (
-            <ol key={gi} className="space-y-4">
-              {g.days.map(renderDay)}
-            </ol>
-          ),
-        )}
+          );
+        })}
       </div>
     </div>
   );
