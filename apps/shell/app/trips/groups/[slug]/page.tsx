@@ -20,6 +20,7 @@ import {
   deletePhoto,
   unsplashFill,
   updateItinerary,
+  resetItinerary,
   type TripGroupDetail,
   type TripIdea,
   type TripItinerary,
@@ -611,6 +612,29 @@ function GroupDetail() {
     }
   }
 
+  async function handleResetItinerary() {
+    if (!slug || !detail?.itinerary) return;
+    if (
+      !confirm(
+        "Reset the itinerary to empty? The next consolidation will start fresh from the current idea inbox instead of building on the old draft.",
+      )
+    )
+      return;
+    setConsolidateError(null);
+    setConsolidateNotice(null);
+    try {
+      await resetItinerary(slug);
+      setDetail((prev) =>
+        prev ? { ...prev, itinerary: null, itineraryGeneratedAt: null } : prev,
+      );
+      setDraft(null);
+      setView("list");
+      setConsolidateNotice("Itinerary reset — consolidate to draft a fresh one from the inbox.");
+    } catch (err) {
+      setConsolidateError((err as Error).message);
+    }
+  }
+
   async function handleSaveDraft() {
     if (!slug || !draft) return;
     if (draft.days.length === 0 || !draft.summary.trim()) {
@@ -941,6 +965,16 @@ function GroupDetail() {
                   Cancel
                 </button>
               </>
+            )}
+            {detail.isOwner && detail.itinerary && !draft && (
+              <button
+                type="button"
+                onClick={handleResetItinerary}
+                title="Wipe the itinerary so the next consolidation starts fresh from the idea inbox"
+                className="inline-flex min-h-9 items-center justify-center rounded border border-red-400/40 px-3 text-xs font-medium text-red-300 hover:bg-red-500/10"
+              >
+                Reset
+              </button>
             )}
             {!draft && (
               <button
