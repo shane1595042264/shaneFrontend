@@ -86,6 +86,9 @@ function DayDetail() {
   >(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  // Click-based swap fallback (works on touch, where HTML5 DnD doesn't):
+  // tap one handle to arm, tap another activity's handle to swap.
+  const [swapArm, setSwapArm] = useState<number | null>(null);
 
   const refetch = useCallback(async () => {
     if (!slug) return;
@@ -257,10 +260,12 @@ function DayDetail() {
     }
 
     const isEditing = editing?.kind === "activity" && editing.actIdx === row.actIdx;
+    const highlighted =
+      (dragOverIdx === row.actIdx && dragIdx !== row.actIdx) || swapArm === row.actIdx;
     return (
       <li
         key={`act-${row.actIdx}`}
-        className={`flex gap-3 ${dragOverIdx === row.actIdx && dragIdx !== row.actIdx ? "rounded bg-blue-500/15 ring-1 ring-blue-400/50" : ""}`}
+        className={`flex gap-3 ${highlighted ? "rounded bg-blue-500/15 ring-1 ring-blue-400/50" : ""}`}
         draggable={!isEditing}
         onDragStart={(e) => {
           setDragIdx(row.actIdx);
@@ -297,16 +302,45 @@ function DayDetail() {
             <div className="group/row flex items-start justify-between gap-2">
               <button
                 type="button"
-                onClick={() => setEditing({ kind: "activity", actIdx: row.actIdx })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (swapArm === null) setSwapArm(row.actIdx);
+                  else if (swapArm === row.actIdx) setSwapArm(null);
+                  else {
+                    swapActivities(swapArm, row.actIdx);
+                    setSwapArm(null);
+                  }
+                }}
+                aria-label={
+                  swapArm === row.actIdx
+                    ? "Cancel swap"
+                    : swapArm !== null
+                      ? `Swap with ${row.activity.title}`
+                      : `Arm swap for ${row.activity.title}`
+                }
+                title={swapArm === null ? "Tap to swap with another activity (or drag)" : "Tap to swap here"}
+                className={`shrink-0 cursor-grab rounded px-1 pt-1 text-sm leading-none ${swapArm === row.actIdx ? "text-blue-300" : "text-gray-600 hover:text-gray-300"}`}
+              >
+                ⇅
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (swapArm !== null && swapArm !== row.actIdx) {
+                    swapActivities(swapArm, row.actIdx);
+                    setSwapArm(null);
+                    return;
+                  }
+                  setEditing({ kind: "activity", actIdx: row.actIdx });
+                }}
                 className="block flex-1 cursor-pointer rounded px-1 py-0.5 text-left hover:bg-white/5"
                 title="Click to edit · drag onto another activity to swap"
               >
                 <span className="block text-base text-white">
-                  <span aria-hidden="true" className="mr-1.5 cursor-grab text-gray-600">⋮⋮</span>
                   {row.activity.title}
                 </span>
                 {row.activity.notes && (
-                  <span className="mt-0.5 block pl-5 text-sm text-gray-400">{row.activity.notes}</span>
+                  <span className="mt-0.5 block text-sm text-gray-400">{row.activity.notes}</span>
                 )}
               </button>
               <button
@@ -366,9 +400,14 @@ function DayDetail() {
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-sm font-medium text-gray-300">Timeline</h2>
             <span className="text-[10px] text-gray-500">
-              click to edit · drag to swap (times stay put)
+              click to edit · ⇅ or drag to swap (times stay put)
             </span>
           </div>
+          {swapArm !== null && (
+            <p role="status" className="mb-2 text-xs text-blue-300">
+              Swap armed — tap another activity to trade places (times stay put), or tap ⇅ again to cancel.
+            </p>
+          )}
           <ol className="space-y-3">{timed.map(renderRow)}</ol>
           {anytime.length > 0 && (
             <>
