@@ -313,3 +313,109 @@ export async function exportToCalendar(slug: string): Promise<{
   if (!res.ok) await unwrap(res, "Failed to export itinerary");
   return res.json();
 }
+
+// --- Margin notes + sections (SHAN-283) ---
+
+export interface TripGroupNote {
+  id: string;
+  authorId: string;
+  authorName: string | null;
+  anchorType: "group" | "day" | "activity";
+  anchorDay: number | null;
+  anchorActivity: string | null;
+  body: string;
+  createdAt: string;
+}
+
+export async function listNotes(slug: string): Promise<TripGroupNote[]> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/notes`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) await unwrap(res, "Failed to load notes");
+  return (await res.json()).notes;
+}
+
+export async function createNote(
+  slug: string,
+  input: {
+    anchorType: "group" | "day" | "activity";
+    anchorDay?: number | null;
+    anchorActivity?: string | null;
+    body: string;
+  },
+): Promise<TripGroupNote> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) await unwrap(res, "Failed to add note");
+  return (await res.json()).note;
+}
+
+export async function deleteNote(slug: string, noteId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/notes/${noteId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok && res.status !== 404) await unwrap(res, "Failed to delete note");
+}
+
+export interface SectionItem {
+  id: string;
+  text: string;
+  done: boolean;
+  addedBy: string | null;
+}
+
+export interface TripGroupSection {
+  id: string;
+  createdBy: string;
+  title: string;
+  kind: "todo";
+  items: SectionItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function listSections(slug: string): Promise<TripGroupSection[]> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/sections`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) await unwrap(res, "Failed to load sections");
+  return (await res.json()).sections;
+}
+
+export async function createSection(slug: string, title: string): Promise<TripGroupSection> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/sections`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ title, kind: "todo" }),
+  });
+  if (!res.ok) await unwrap(res, "Failed to create section");
+  return (await res.json()).section;
+}
+
+export async function updateSection(
+  slug: string,
+  sectionId: string,
+  patch: { title?: string; items?: SectionItem[] },
+): Promise<TripGroupSection> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/sections/${sectionId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) await unwrap(res, "Failed to update section");
+  return (await res.json()).section;
+}
+
+export async function deleteSection(slug: string, sectionId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/sections/${sectionId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok && res.status !== 404) await unwrap(res, "Failed to delete section");
+}

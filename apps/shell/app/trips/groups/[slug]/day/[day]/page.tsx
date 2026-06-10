@@ -19,6 +19,13 @@ import {
 } from "@/lib/api/trip-groups";
 import { fmtDayDate } from "@/components/trips/itinerary-calendar";
 import { buildPhotoResolver, photoBgStyle, PhotoCredit } from "@/components/trips/trip-photos";
+import { NotesMargin, type NoteAnchorOption } from "@/components/trips/margin-notes";
+import {
+  listNotes as apiListNotes,
+  createNote as apiCreateNote,
+  deleteNote as apiDeleteNote,
+  type TripGroupNote,
+} from "@/lib/api/trip-groups";
 
 /**
  * Day detail page (SHAN-281), interactive timeline (SHAN-282).
@@ -90,13 +97,22 @@ function DayDetail() {
   // tap one handle to arm, tap another activity's handle to swap.
   const [swapArm, setSwapArm] = useState<number | null>(null);
 
+  const [notes, setNotes] = useState<TripGroupNote[]>([]);
+  const [noteAnchor, setNoteAnchor] = useState("day");
+  const [noteBusy, setNoteBusy] = useState(false);
+
   const refetch = useCallback(async () => {
     if (!slug) return;
     setLoading(true);
     try {
-      const [d, p] = await Promise.all([getGroupDetail(slug), listPhotos(slug)]);
+      const [d, p, n] = await Promise.all([
+        getGroupDetail(slug),
+        listPhotos(slug),
+        apiListNotes(slug).catch(() => [] as TripGroupNote[]),
+      ]);
       setDetail(d);
       setPhotos(p);
+      setNotes(n);
       setError(null);
     } catch (err) {
       setError((err as Error).message);
@@ -345,6 +361,15 @@ function DayDetail() {
               </button>
               <button
                 type="button"
+                onClick={() => setNoteAnchor(`act-${row.actIdx}`)}
+                aria-label={`Add note to ${row.activity.title}`}
+                title="Add a margin note for this activity"
+                className="shrink-0 pt-1 text-xs text-amber-300/70 hover:text-amber-200"
+              >
+                ✎
+              </button>
+              <button
+                type="button"
                 onClick={() => {
                   if (confirm(`Delete "${row.activity.title}"?`)) patchActivity(row.actIdx, null);
                 }}
@@ -361,9 +386,24 @@ function DayDetail() {
     );
   };
 
+  const dayNotes = notes.filter(
+    (n) => n.anchorType !== "group" && n.anchorDay === day.day,
+  );
+  const noteAnchorOptions: NoteAnchorOption[] = [
+    { value: "day", label: `This day (Day ${day.day})`, anchorType: "day", anchorDay: day.day },
+    ...day.activities.map((a, i) => ({
+      value: `act-${i}`,
+      label: `@ ${a.title}`,
+      anchorType: "activity" as const,
+      anchorDay: day.day,
+      anchorActivity: a.title,
+    })),
+  ];
+
   return (
     <div className="min-h-screen" style={photo ? photoBgStyle(photo.url, [0.6, 0.92]) : undefined}>
-      <div className="mx-auto max-w-3xl px-4 py-12">
+      <div className="mx-auto max-w-6xl px-4 py-12 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
+      <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-3">
           <Link href={`/trips/groups/${detail.slug}`} className="text-sm text-gray-300 hover:text-white">
             ← {detail.title}
@@ -437,6 +477,36 @@ function DayDetail() {
           onUpload={handleUpload}
           onDelete={handleDeletePhoto}
         />
+      </div>
+
+      <div className="mt-8 lg:mt-0">
+        <NotesMargin
+          notes={dayNotes}
+          anchorOptions={noteAnchorOptions}
+          selectedAnchor={noteAnchor}
+          onSelectAnchor={setNoteAnchor}
+          canDelete={(n) => detail.isOwner || n.authorId === user?.id}
+          busy={noteBusy}
+          onCreate={async (anchor, body) => {
+            setNoteBusy(true);
+            try {
+              const note = await apiCreateNote(detail.slug, {
+                anchorType: anchor.anchorType,
+                anchorDay: anchor.anchorDay ?? null,
+                anchorActivity: anchor.anchorActivity ?? null,
+                body,
+              });
+              setNotes((prev) => [...prev, note]);
+            } finally {
+              setNoteBusy(false);
+            }
+          }}
+          onDelete={async (noteId) => {
+            await apiDeleteNote(detail.slug, noteId);
+            setNotes((prev) => prev.filter((n) => n.id !== noteId));
+          }}
+        />
+      </div>
       </div>
     </div>
   );

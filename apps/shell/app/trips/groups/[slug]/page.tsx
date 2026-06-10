@@ -30,6 +30,14 @@ import {
 import { ItineraryCalendar, fmtDayDate } from "@/components/trips/itinerary-calendar";
 import { AddToCalendarButton } from "@/components/trips/add-to-calendar-button";
 import { buildPhotoResolver, photoBgStyle, PhotoCredit } from "@/components/trips/trip-photos";
+import { NotesMargin, type NoteAnchorOption } from "@/components/trips/margin-notes";
+import { GroupSections } from "@/components/trips/group-sections";
+import {
+  listNotes as apiListNotes,
+  createNote as apiCreateNote,
+  deleteNote as apiDeleteNote,
+  type TripGroupNote,
+} from "@/lib/api/trip-groups";
 
 function InviteLinkBox({ slug }: { slug: string }) {
   const [url, setUrl] = useState(`https://shanejli.com/trips/groups/${slug}`);
@@ -415,6 +423,19 @@ function GroupDetail() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [view, setView] = useState<"list" | "calendar">("list");
 
+  const [notes, setNotes] = useState<TripGroupNote[]>([]);
+  const [noteAnchor, setNoteAnchor] = useState("group");
+  const [noteBusy, setNoteBusy] = useState(false);
+
+  const refetchNotes = useCallback(async () => {
+    if (!slug) return;
+    try {
+      setNotes(await apiListNotes(slug));
+    } catch {
+      /* margin notes are non-critical; the composer surfaces its own errors */
+    }
+  }, [slug]);
+
   const refetchPhotos = useCallback(async () => {
     if (!slug) return;
     try {
@@ -444,6 +465,7 @@ function GroupDetail() {
       setError(null);
       void refetchSuggestions();
       void refetchPhotos();
+      void refetchNotes();
     } catch (err) {
       const message = (err as Error).message;
       if (message.toLowerCase().includes("not a member")) {
@@ -457,7 +479,7 @@ function GroupDetail() {
     } finally {
       setLoading(false);
     }
-  }, [slug, refetchSuggestions, refetchPhotos]);
+  }, [slug, refetchSuggestions, refetchPhotos, refetchNotes]);
 
   useEffect(() => {
     void refetch();
@@ -693,8 +715,19 @@ function GroupDetail() {
     );
   }
 
+  const noteAnchorOptions: NoteAnchorOption[] = [
+    { value: "group", label: "Whole group", anchorType: "group" },
+    ...(detail.itinerary?.days.map((d) => ({
+      value: `day-${d.day}`,
+      label: `Day ${d.day}${d.title ? ` — ${d.title}` : ""}`,
+      anchorType: "day" as const,
+      anchorDay: d.day,
+    })) ?? []),
+  ];
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
+    <div className="mx-auto max-w-6xl px-4 py-12 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
+    <div className="min-w-0">
       <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
 
       <header className="mt-3 mb-6">
@@ -791,6 +824,8 @@ function GroupDetail() {
           </ul>
         )}
       </section>
+      <GroupSections slug={detail.slug} isOwner={detail.isOwner} />
+
       <section className="mb-8">
         <div className="mb-2 flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-medium text-gray-300">
@@ -997,7 +1032,36 @@ function GroupDetail() {
           </ul>
         </section>
       )}
+    </div>
 
+    <div className="mt-8 lg:mt-0">
+      <NotesMargin
+        notes={notes}
+        anchorOptions={noteAnchorOptions}
+        selectedAnchor={noteAnchor}
+        onSelectAnchor={setNoteAnchor}
+        canDelete={(n) => detail.isOwner || n.authorId === user?.id}
+        busy={noteBusy}
+        onCreate={async (anchor, body) => {
+          setNoteBusy(true);
+          try {
+            const note = await apiCreateNote(detail.slug, {
+              anchorType: anchor.anchorType,
+              anchorDay: anchor.anchorDay ?? null,
+              anchorActivity: anchor.anchorActivity ?? null,
+              body,
+            });
+            setNotes((prev) => [...prev, note]);
+          } finally {
+            setNoteBusy(false);
+          }
+        }}
+        onDelete={async (noteId) => {
+          await apiDeleteNote(detail.slug, noteId);
+          setNotes((prev) => prev.filter((n) => n.id !== noteId));
+        }}
+      />
+    </div>
     </div>
   );
 }
