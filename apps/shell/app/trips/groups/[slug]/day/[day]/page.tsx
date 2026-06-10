@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { useAuth } from "@/lib/auth-context";
-import { useDocumentTitle } from "@/lib/use-document-title";
 import {
   getGroupDetail,
   listPhotos,
@@ -79,9 +78,6 @@ function DayDetail() {
   const { user } = useAuth();
 
   const [detail, setDetail] = useState<TripGroupDetail | null>(null);
-  useDocumentTitle(
-    detail && Number.isFinite(dayNum) ? `Day ${dayNum} · ${detail.title} — Shane` : null,
-  );
   const [photos, setPhotos] = useState<TripGroupPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -406,6 +402,7 @@ function DayDetail() {
 
   return (
     <div className="min-h-screen" style={photo ? photoBgStyle(photo.url, [0.6, 0.92]) : undefined}>
+      <title>{`Day ${day.day} · ${detail.title} — Shane`}</title>
       <div className="mx-auto max-w-6xl px-4 py-12 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
       <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-3">

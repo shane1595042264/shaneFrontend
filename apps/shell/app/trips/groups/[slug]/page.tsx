@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
-import { useDocumentTitle } from "@/lib/use-document-title";
 import {
   getGroupDetail,
   joinGroup,
@@ -21,6 +20,7 @@ import {
   deletePhoto,
   unsplashFill,
   updateItinerary,
+  resetItinerary,
   type TripGroupDetail,
   type TripIdea,
   type TripItinerary,
@@ -397,7 +397,6 @@ function GroupDetail() {
   const slug = params?.slug;
   const { user } = useAuth();
   const [detail, setDetail] = useState<TripGroupDetail | null>(null);
-  useDocumentTitle(detail ? `${detail.title} — Shane` : null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
@@ -613,6 +612,29 @@ function GroupDetail() {
     }
   }
 
+  async function handleResetItinerary() {
+    if (!slug || !detail?.itinerary) return;
+    if (
+      !confirm(
+        "Reset the itinerary to empty? The next consolidation will start fresh from the current idea inbox instead of building on the old draft.",
+      )
+    )
+      return;
+    setConsolidateError(null);
+    setConsolidateNotice(null);
+    try {
+      await resetItinerary(slug);
+      setDetail((prev) =>
+        prev ? { ...prev, itinerary: null, itineraryGeneratedAt: null } : prev,
+      );
+      setDraft(null);
+      setView("list");
+      setConsolidateNotice("Itinerary reset — consolidate to draft a fresh one from the inbox.");
+    } catch (err) {
+      setConsolidateError((err as Error).message);
+    }
+  }
+
   async function handleSaveDraft() {
     if (!slug || !draft) return;
     if (draft.days.length === 0 || !draft.summary.trim()) {
@@ -766,6 +788,7 @@ function GroupDetail() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 lg:grid lg:grid-cols-[170px_minmax(0,1fr)_300px] lg:gap-8">
+    <title>{detail.title} — Shane</title>
     <PageToc entries={tocEntries} />
     <div className="min-w-0">
       <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
@@ -942,6 +965,16 @@ function GroupDetail() {
                   Cancel
                 </button>
               </>
+            )}
+            {detail.isOwner && detail.itinerary && !draft && (
+              <button
+                type="button"
+                onClick={handleResetItinerary}
+                title="Wipe the itinerary so the next consolidation starts fresh from the idea inbox"
+                className="inline-flex min-h-9 items-center justify-center rounded border border-red-400/40 px-3 text-xs font-medium text-red-300 hover:bg-red-500/10"
+              >
+                Reset
+              </button>
             )}
             {!draft && (
               <button

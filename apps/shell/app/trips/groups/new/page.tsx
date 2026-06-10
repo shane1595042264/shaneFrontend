@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { createGroup } from "@/lib/api/trip-groups";
-import { useDocumentTitle } from "@/lib/use-document-title";
 
 export default function NewGroupPage() {
   return (
@@ -16,7 +15,6 @@ export default function NewGroupPage() {
 }
 
 function NewGroupForm() {
-  useDocumentTitle("New trip group — Shane");
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [creating, setCreating] = useState(false);
@@ -39,6 +37,7 @@ function NewGroupForm() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
+      <title>New trip group — Shane</title>
       <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">New trip group</h1>
 

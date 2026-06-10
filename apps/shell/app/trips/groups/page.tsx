@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { RelativeTime } from "@/lib/format-time";
-import { useDocumentTitle } from "@/lib/use-document-title";
 import {
   listMyGroups,
   joinGroup,
@@ -45,7 +44,6 @@ export default function GroupsIndexPage() {
 }
 
 function GroupsIndex() {
-  useDocumentTitle("Trip groups — Shane");
   const router = useRouter();
   const [groups, setGroups] = useState<TripGroupSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +82,7 @@ function GroupsIndex() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
+      <title>Trip groups — Shane</title>
       <Link href="/trips" className="text-sm text-gray-500 hover:text-gray-300">← back to trips</Link>
       <header className="mt-3 mb-8 flex flex-wrap items-baseline justify-between gap-3">
         <div>
