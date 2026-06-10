@@ -37,7 +37,6 @@ function NewGroupForm() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <title>New trip group — Shane</title>
       <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">New trip group</h1>
 

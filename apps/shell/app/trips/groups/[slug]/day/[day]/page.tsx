@@ -402,7 +402,6 @@ function DayDetail() {
 
   return (
     <div className="min-h-screen" style={photo ? photoBgStyle(photo.url, [0.6, 0.92]) : undefined}>
-      <title>{`Day ${day.day} · ${detail.title} — Shane`}</title>
       <div className="mx-auto max-w-6xl px-4 py-12 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
       <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-3">

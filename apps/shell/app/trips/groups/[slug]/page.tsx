@@ -788,7 +788,6 @@ function GroupDetail() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 lg:grid lg:grid-cols-[170px_minmax(0,1fr)_300px] lg:gap-8">
-    <title>{detail.title} — Shane</title>
     <PageToc entries={tocEntries} />
     <div className="min-w-0">
       <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>

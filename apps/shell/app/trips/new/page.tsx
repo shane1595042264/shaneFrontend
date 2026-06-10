@@ -41,7 +41,6 @@ export default function NewTripPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <title>Upload trip — Shane</title>
       <Link href="/trips" className="text-sm text-gray-500 hover:text-gray-300">← back to trips</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">Upload a trip</h1>
 
