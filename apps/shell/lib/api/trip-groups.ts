@@ -184,3 +184,66 @@ export async function deleteIdea(slug: string, ideaId: string): Promise<void> {
   });
   if (!res.ok && res.status !== 404) await unwrap(res, "Failed to delete idea");
 }
+
+export interface TripGroupPhoto {
+  id: string;
+  day: number;
+  source: "user" | "unsplash";
+  uploaderId: string | null;
+  /** Absolute URL, ready for an <img src>. */
+  url: string;
+  attribution: string | null;
+  createdAt: string;
+}
+
+function absolutePhotoUrl(url: string): string {
+  return url.startsWith("http") ? url : `${API_URL}${url}`;
+}
+
+export async function listPhotos(slug: string): Promise<TripGroupPhoto[]> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary/photos`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) await unwrap(res, "Failed to load photos");
+  const { photos } = await res.json();
+  return photos.map((p: TripGroupPhoto) => ({ ...p, url: absolutePhotoUrl(p.url) }));
+}
+
+export async function uploadPhoto(slug: string, day: number, file: File): Promise<TripGroupPhoto> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("day", String(day));
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary/photos`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: form,
+  });
+  if (!res.ok) await unwrap(res, "Failed to upload photo");
+  const { photo } = await res.json();
+  return { ...photo, url: absolutePhotoUrl(photo.url) };
+}
+
+export async function deletePhoto(slug: string, photoId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary/photos/${photoId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok && res.status !== 404) await unwrap(res, "Failed to delete photo");
+}
+
+export async function unsplashFill(slug: string): Promise<{
+  photos: TripGroupPhoto[];
+  skipped: { day: number; reason: string }[];
+}> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary/photos/unsplash-fill`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) await unwrap(res, "Failed to fill photos from Unsplash");
+  const body = await res.json();
+  return {
+    photos: (body.photos ?? []).map((p: TripGroupPhoto) => ({ ...p, url: absolutePhotoUrl(p.url) })),
+    skipped: body.skipped ?? [],
+  };
+}

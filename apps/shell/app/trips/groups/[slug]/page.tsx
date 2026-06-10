@@ -15,10 +15,15 @@ import {
   listSuggestions,
   approveSuggestion,
   rejectSuggestion,
+  listPhotos,
+  uploadPhoto,
+  deletePhoto,
+  unsplashFill,
   type TripGroupDetail,
   type TripIdea,
   type TripItinerary,
   type TripItinerarySuggestion,
+  type TripGroupPhoto,
 } from "@/lib/api/trip-groups";
 
 function InviteLinkBox({ slug }: { slug: string }) {
@@ -85,7 +90,83 @@ function InviteLinkBox({ slug }: { slug: string }) {
   );
 }
 
-function ItineraryView({ itinerary }: { itinerary: TripItinerary }) {
+function DayPhotoStrip({
+  day,
+  photos,
+  canDeletePhoto,
+  uploading,
+  onUpload,
+  onDelete,
+}: {
+  day: number;
+  photos: TripGroupPhoto[];
+  canDeletePhoto: (p: TripGroupPhoto) => boolean;
+  uploading: boolean;
+  onUpload: (day: number, file: File) => void;
+  onDelete: (photoId: string) => void;
+}) {
+  return (
+    <div className="mt-3">
+      <div className="flex flex-wrap items-start gap-2">
+        {photos.map((p) => (
+          <figure key={p.id} className="w-28">
+            {/* eslint-disable-next-line @next/next/no-img-element -- bytes come
+                from our API / Unsplash hotlink; next/image can't optimize either */}
+            <img
+              src={p.url}
+              alt={p.attribution ?? `Day ${day} photo`}
+              loading="lazy"
+              className="h-20 w-28 rounded object-cover"
+            />
+            <figcaption className="mt-0.5 flex items-baseline justify-between gap-1 text-[10px] text-gray-500">
+              <span className="truncate">{p.attribution ?? "member photo"}</span>
+              {canDeletePhoto(p) && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(p.id)}
+                  className="shrink-0 text-red-400/80 hover:text-red-300"
+                  aria-label="Remove photo"
+                >
+                  remove
+                </button>
+              )}
+            </figcaption>
+          </figure>
+        ))}
+        <label className="flex h-20 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-white/20 text-xs text-gray-500 hover:border-white/40 hover:text-gray-300">
+          {uploading ? "Uploading…" : "+ photo"}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            className="sr-only"
+            disabled={uploading}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onUpload(day, f);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function ItineraryView({
+  itinerary,
+  photos,
+  canDeletePhoto,
+  uploadingDay,
+  onUploadPhoto,
+  onDeletePhoto,
+}: {
+  itinerary: TripItinerary;
+  photos: TripGroupPhoto[];
+  canDeletePhoto: (p: TripGroupPhoto) => boolean;
+  uploadingDay: number | null;
+  onUploadPhoto: (day: number, file: File) => void;
+  onDeletePhoto: (photoId: string) => void;
+}) {
   return (
     <div>
       <p className="text-sm text-gray-400">{itinerary.summary}</p>
@@ -109,6 +190,14 @@ function ItineraryView({ itinerary }: { itinerary: TripItinerary }) {
                 </li>
               ))}
             </ul>
+            <DayPhotoStrip
+              day={d.day}
+              photos={photos.filter((p) => p.day === d.day)}
+              canDeletePhoto={canDeletePhoto}
+              uploading={uploadingDay === d.day}
+              onUpload={onUploadPhoto}
+              onDelete={onDeletePhoto}
+            />
           </li>
         ))}
       </ol>
@@ -150,6 +239,20 @@ function GroupDetail() {
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
 
+  const [photos, setPhotos] = useState<TripGroupPhoto[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [uploadingDay, setUploadingDay] = useState<number | null>(null);
+  const [filling, setFilling] = useState(false);
+
+  const refetchPhotos = useCallback(async () => {
+    if (!slug) return;
+    try {
+      setPhotos(await listPhotos(slug));
+    } catch (err) {
+      setPhotoError((err as Error).message);
+    }
+  }, [slug]);
+
   const refetchSuggestions = useCallback(async () => {
     if (!slug) return;
     try {
@@ -169,6 +272,7 @@ function GroupDetail() {
       setForbidden(false);
       setError(null);
       void refetchSuggestions();
+      void refetchPhotos();
     } catch (err) {
       const message = (err as Error).message;
       if (message.toLowerCase().includes("not a member")) {
@@ -182,7 +286,7 @@ function GroupDetail() {
     } finally {
       setLoading(false);
     }
-  }, [slug, refetchSuggestions]);
+  }, [slug, refetchSuggestions, refetchPhotos]);
 
   useEffect(() => {
     void refetch();
@@ -248,6 +352,49 @@ function GroupDetail() {
       setConsolidateError((err as Error).message);
     } finally {
       setConsolidating(false);
+    }
+  }
+
+  async function handleUploadPhoto(day: number, file: File) {
+    if (!slug) return;
+    setUploadingDay(day);
+    setPhotoError(null);
+    try {
+      const photo = await uploadPhoto(slug, day, file);
+      setPhotos((prev) => [...prev, photo]);
+    } catch (err) {
+      setPhotoError((err as Error).message);
+    } finally {
+      setUploadingDay(null);
+    }
+  }
+
+  async function handleDeletePhoto(photoId: string) {
+    if (!slug) return;
+    try {
+      await deletePhoto(slug, photoId);
+      setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+    } catch (err) {
+      setPhotoError((err as Error).message);
+    }
+  }
+
+  async function handleUnsplashFill() {
+    if (!slug) return;
+    setFilling(true);
+    setPhotoError(null);
+    try {
+      const { photos: created, skipped } = await unsplashFill(slug);
+      if (created.length > 0) setPhotos((prev) => [...prev, ...created]);
+      if (skipped.length > 0) {
+        setPhotoError(
+          `Some days were skipped: ${skipped.map((s) => `day ${s.day} (${s.reason})`).join("; ")}`,
+        );
+      }
+    } catch (err) {
+      setPhotoError((err as Error).message);
+    } finally {
+      setFilling(false);
     }
   }
 
@@ -395,8 +542,30 @@ function GroupDetail() {
             {consolidateNotice}
           </p>
         )}
+        {photoError && (
+          <p role="alert" className="mb-2 text-sm text-amber-400">{photoError}</p>
+        )}
+        {detail.itinerary && detail.isOwner && (
+          <div className="mb-3">
+            <button
+              type="button"
+              onClick={handleUnsplashFill}
+              disabled={filling}
+              className="inline-flex min-h-8 items-center rounded border border-white/20 px-2.5 text-xs font-medium text-gray-300 hover:bg-white/10 disabled:opacity-50"
+            >
+              {filling ? "Fetching from Unsplash…" : "Fill missing days with Unsplash photos"}
+            </button>
+          </div>
+        )}
         {detail.itinerary ? (
-          <ItineraryView itinerary={detail.itinerary} />
+          <ItineraryView
+            itinerary={detail.itinerary}
+            photos={photos}
+            canDeletePhoto={(p) => detail.isOwner || (!!user?.id && p.uploaderId === user.id)}
+            uploadingDay={uploadingDay}
+            onUploadPhoto={handleUploadPhoto}
+            onDeletePhoto={handleDeletePhoto}
+          />
         ) : (
           <p className="text-sm text-gray-500">
             {detail.isOwner
