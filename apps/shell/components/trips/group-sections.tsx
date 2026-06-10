@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { CollapsibleSection } from "@/components/trips/page-toc";
 import { useAuth } from "@/lib/auth-context";
 import {
   listSections,
@@ -17,7 +18,16 @@ import {
  * check them off, and remove them; the section creator or group owner
  * can delete the whole section.
  */
-export function GroupSections({ slug, isOwner }: { slug: string; isOwner: boolean }) {
+export function GroupSections({
+  slug,
+  isOwner,
+  onSectionsChange,
+}: {
+  slug: string;
+  isOwner: boolean;
+  /** Bubbles {id,title} up so the page TOC can list user sections (SHAN-284). */
+  onSectionsChange?: (sections: { id: string; title: string }[]) => void;
+}) {
   const { user } = useAuth();
   const [sections, setSections] = useState<TripGroupSection[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +40,11 @@ export function GroupSections({ slug, isOwner }: { slug: string; isOwner: boolea
       .then(setSections)
       .catch((err) => setError((err as Error).message));
   }, [slug]);
+
+  useEffect(() => {
+    onSectionsChange?.(sections.map((s) => ({ id: s.id, title: s.title })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- callback identity churn
+  }, [sections]);
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -74,8 +89,15 @@ export function GroupSections({ slug, isOwner }: { slug: string; isOwner: boolea
   }
 
   return (
-    <section className="mb-8">
-      <h2 className="mb-2 text-sm font-medium text-gray-300">Sections</h2>
+    <CollapsibleSection
+      id="sections"
+      title="Sections"
+      right={
+        sections.length > 0 ? (
+          <span className="text-xs font-normal text-gray-500">{sections.length}</span>
+        ) : undefined
+      }
+    >
       {error && <p role="alert" className="mb-2 text-sm text-red-400">{error}</p>}
 
       <form onSubmit={handleCreate} className="mb-3 flex gap-2">
@@ -115,7 +137,7 @@ export function GroupSections({ slug, isOwner }: { slug: string; isOwner: boolea
           ))}
         </div>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }
 
@@ -153,9 +175,14 @@ function TodoSection({
   }
 
   return (
-    <div className="rounded-md border border-white/10 bg-black/20 p-3">
-      <div className="flex items-baseline justify-between gap-2">
+    <details
+      id={`sec-${section.id}`}
+      open
+      className="group/todo scroll-mt-6 rounded-md border border-white/10 bg-black/20 p-3"
+    >
+      <summary className="flex cursor-pointer select-none items-baseline justify-between gap-2 [&::-webkit-details-marker]:hidden">
         <h3 className="text-sm font-medium text-white/90">
+          <span className="mr-1.5 inline-block transition-transform group-open/todo:rotate-90">›</span>
           ☑ {section.title}
           <span className="ml-2 text-xs font-normal text-gray-500">
             {doneCount}/{section.items.length}
@@ -164,13 +191,16 @@ function TodoSection({
         {canDeleteSection && (
           <button
             type="button"
-            onClick={onDeleteSection}
+            onClick={(e) => {
+              e.preventDefault();
+              onDeleteSection();
+            }}
             className="shrink-0 text-xs text-red-400/70 hover:text-red-300"
           >
             delete section
           </button>
         )}
-      </div>
+      </summary>
 
       <ul className="mt-2 space-y-1">
         {section.items.map((item) => (
@@ -224,6 +254,6 @@ function TodoSection({
           add
         </button>
       </form>
-    </div>
+    </details>
   );
 }

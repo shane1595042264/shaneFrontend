@@ -32,6 +32,7 @@ import { AddToCalendarButton } from "@/components/trips/add-to-calendar-button";
 import { buildPhotoResolver, photoBgStyle, PhotoCredit } from "@/components/trips/trip-photos";
 import { NotesMargin, type NoteAnchorOption } from "@/components/trips/margin-notes";
 import { GroupSections } from "@/components/trips/group-sections";
+import { PageToc, CollapsibleSection, type TocEntry } from "@/components/trips/page-toc";
 import {
   listNotes as apiListNotes,
   createNote as apiCreateNote,
@@ -340,8 +341,9 @@ function ItineraryView({
           return (
             <details
               key={gi}
+              id={`country-${gi}`}
               open
-              className="group relative overflow-hidden rounded-lg border border-white/15"
+              className="group relative scroll-mt-6 overflow-hidden rounded-lg border border-white/15"
               style={rep ? photoBgStyle(rep.url, [0.7, 0.9]) : undefined}
             >
               <summary className="cursor-pointer select-none px-3 py-2.5 text-sm font-medium text-white hover:bg-white/5">
@@ -423,6 +425,7 @@ function GroupDetail() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [view, setView] = useState<"list" | "calendar">("list");
 
+  const [tocSections, setTocSections] = useState<{ id: string; title: string }[]>([]);
   const [notes, setNotes] = useState<TripGroupNote[]>([]);
   const [noteAnchor, setNoteAnchor] = useState("group");
   const [noteBusy, setNoteBusy] = useState(false);
@@ -715,6 +718,40 @@ function GroupDetail() {
     );
   }
 
+  // Same consecutive-country grouping as ItineraryView — keep in sync.
+  const tocCountryGroups: { label: string; idx: number }[] = [];
+  if (detail.itinerary) {
+    let last: string | null | undefined;
+    let gi = -1;
+    for (const d of detail.itinerary.days) {
+      const c = d.country ?? null;
+      if (gi === -1 || c !== last) {
+        gi += 1;
+        last = c;
+        if (c) tocCountryGroups.push({ label: c, idx: gi });
+      }
+    }
+  }
+  const tocEntries: TocEntry[] = [
+    { id: "invite", label: "Invite link" },
+    { id: "members", label: "Members" },
+    { id: "post-idea", label: "Post an idea" },
+    { id: "inbox", label: "Idea inbox" },
+    {
+      id: "sections",
+      label: "Sections",
+      sub: tocSections.map((t) => ({ id: `sec-${t.id}`, label: t.title })),
+    },
+    ...(suggestions.some((x) => x.status === "pending")
+      ? [{ id: "suggestions", label: "Pending suggestions" }]
+      : []),
+    {
+      id: "itinerary",
+      label: "Itinerary",
+      sub: tocCountryGroups.map((g) => ({ id: `country-${g.idx}`, label: g.label })),
+    },
+  ];
+
   const noteAnchorOptions: NoteAnchorOption[] = [
     { value: "group", label: "Whole group", anchorType: "group" },
     ...(detail.itinerary?.days.map((d) => ({
@@ -726,7 +763,8 @@ function GroupDetail() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
+    <div className="mx-auto max-w-7xl px-4 py-12 lg:grid lg:grid-cols-[170px_minmax(0,1fr)_300px] lg:gap-8">
+    <PageToc entries={tocEntries} />
     <div className="min-w-0">
       <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
 
@@ -740,12 +778,15 @@ function GroupDetail() {
         </p>
       </header>
 
-      <section className="mb-8">
+      <CollapsibleSection id="invite" title="Invite link">
         <InviteLinkBox slug={detail.slug} />
-      </section>
+      </CollapsibleSection>
 
-      <section className="mb-8">
-        <h2 className="mb-2 text-sm font-medium text-gray-300">Members</h2>
+      <CollapsibleSection
+        id="members"
+        title="Members"
+        right={<span className="text-xs font-normal text-gray-500">{detail.members.length}</span>}
+      >
         <ul className="flex flex-wrap gap-2">
           {detail.members.map((m) => (
             <li
@@ -760,10 +801,9 @@ function GroupDetail() {
             </li>
           ))}
         </ul>
-      </section>
+      </CollapsibleSection>
 
-      <section className="mb-8">
-        <h2 className="mb-2 text-sm font-medium text-gray-300">Post an idea</h2>
+      <CollapsibleSection id="post-idea" title="Post an idea">
         <form onSubmit={handlePost}>
           <textarea
             value={ideaBody}
@@ -784,10 +824,17 @@ function GroupDetail() {
             </button>
           </div>
         </form>
-      </section>
+      </CollapsibleSection>
 
-      <section className="mb-8">
-        <h2 className="mb-2 text-sm font-medium text-gray-300">Idea inbox</h2>
+      <CollapsibleSection
+        id="inbox"
+        title="Idea inbox"
+        right={
+          detail.ideas.length > 0 ? (
+            <span className="text-xs font-normal text-gray-500">{detail.ideas.length}</span>
+          ) : undefined
+        }
+      >
         {deleteError && (
           <p role="alert" className="mb-2 text-sm text-red-400">
             Couldn't delete that idea: {deleteError}
@@ -823,19 +870,21 @@ function GroupDetail() {
             ))}
           </ul>
         )}
-      </section>
-      <GroupSections slug={detail.slug} isOwner={detail.isOwner} />
+      </CollapsibleSection>
 
-      <section className="mb-8">
-        <div className="mb-2 flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-medium text-gray-300">
-            Itinerary
-            {detail.itineraryGeneratedAt && (
-              <span className="ml-2 text-xs font-normal text-gray-500">
-                generated <RelativeTime iso={detail.itineraryGeneratedAt} />
-              </span>
-            )}
-          </h2>
+      <GroupSections slug={detail.slug} isOwner={detail.isOwner} onSectionsChange={setTocSections} />
+
+      <details id="itinerary" open className="group/sec mb-8 scroll-mt-6">
+        <summary className="mb-2 cursor-pointer select-none text-sm font-medium text-gray-300 [&::-webkit-details-marker]:hidden">
+          <span className="mr-1.5 inline-block transition-transform group-open/sec:rotate-90">›</span>
+          Itinerary
+          {detail.itineraryGeneratedAt && (
+            <span className="ml-2 text-xs font-normal text-gray-500">
+              generated <RelativeTime iso={detail.itineraryGeneratedAt} />
+            </span>
+          )}
+        </summary>
+        <div className="mb-2 flex items-baseline justify-end gap-3">
           <span className="flex shrink-0 gap-2">
             {detail.itinerary && !draft && (
               <span className="flex overflow-hidden rounded border border-white/20" role="group" aria-label="Itinerary view">
@@ -969,16 +1018,18 @@ function GroupDetail() {
               : "No itinerary yet. The group owner can consolidate the idea inbox into one."}
           </p>
         )}
-      </section>
+      </details>
 
       {suggestions.some((s) => s.status === "pending") && (
-        <section className="mb-8">
-          <h2 className="mb-2 text-sm font-medium text-gray-300">
-            Pending suggestions
-            <span className="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-300">
+        <CollapsibleSection
+          id="suggestions"
+          title="Pending suggestions"
+          right={
+            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-300">
               {suggestions.filter((s) => s.status === "pending").length}
             </span>
-          </h2>
+          }
+        >
           {suggestionError && (
             <p role="alert" className="mb-2 text-sm text-red-400">{suggestionError}</p>
           )}
@@ -1030,7 +1081,7 @@ function GroupDetail() {
                 </li>
               ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
     </div>
 
