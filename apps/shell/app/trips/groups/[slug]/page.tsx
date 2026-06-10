@@ -29,6 +29,7 @@ import {
 } from "@/lib/api/trip-groups";
 import { ItineraryCalendar, fmtDayDate } from "@/components/trips/itinerary-calendar";
 import { AddToCalendarButton } from "@/components/trips/add-to-calendar-button";
+import { buildPhotoResolver, photoBgStyle, PhotoCredit } from "@/components/trips/trip-photos";
 
 function InviteLinkBox({ slug }: { slug: string }) {
   const [url, setUrl] = useState(`https://shanejli.com/trips/groups/${slug}`);
@@ -92,90 +93,6 @@ function InviteLinkBox({ slug }: { slug: string }) {
       </div>
     </div>
   );
-}
-
-/**
- * Photos are part of the UI, not attachments (SHAN-279): a location's
- * photo renders as a shaded card/section background. This control is the
- * only visible chrome — a subtle set-photo input plus the attribution
- * credit (Unsplash terms) and a remove link for the uploader/owner.
- */
-function PhotoCredit({
-  photo,
-  day,
-  canDelete,
-  uploading,
-  onUpload,
-  onDelete,
-}: {
-  photo: TripGroupPhoto | null;
-  day: number;
-  canDelete: boolean;
-  uploading: boolean;
-  onUpload: (day: number, file: File) => void;
-  onDelete: (photoId: string) => void;
-}) {
-  return (
-    <div className="mt-2 flex items-baseline justify-end gap-2 text-[10px] text-gray-500">
-      {photo?.attribution && <span className="truncate">{photo.attribution}</span>}
-      {photo && canDelete && (
-        <button
-          type="button"
-          onClick={() => onDelete(photo.id)}
-          className="shrink-0 text-red-400/70 hover:text-red-300"
-        >
-          remove
-        </button>
-      )}
-      <label className="shrink-0 cursor-pointer text-gray-500 hover:text-gray-300">
-        {uploading ? "uploading…" : photo ? "replace photo" : "set photo"}
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/gif,image/webp"
-          className="sr-only"
-          disabled={uploading}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) onUpload(day, f);
-            e.target.value = "";
-          }}
-        />
-      </label>
-    </div>
-  );
-}
-
-/**
- * City-first, country-fallback photo resolution (SHAN-280). Photos are
- * keyed by day; a day's background is the first photo found for its city
- * (location), else the first photo for its country.
- */
-function buildPhotoResolver(itinerary: TripItinerary, photos: TripGroupPhoto[]) {
-  const meta = new Map(itinerary.days.map((d) => [d.day, d]));
-  const byLocation = new Map<string, TripGroupPhoto>();
-  const byCountry = new Map<string, TripGroupPhoto>();
-  for (const p of photos) {
-    const m = meta.get(p.day);
-    if (!m) continue;
-    if (m.location && !byLocation.has(m.location)) byLocation.set(m.location, p);
-    if (m.country && !byCountry.has(m.country)) byCountry.set(m.country, p);
-  }
-  return {
-    forDay: (d: ItineraryDay): TripGroupPhoto | null =>
-      (d.location ? byLocation.get(d.location) : undefined) ??
-      (d.country ? byCountry.get(d.country) : undefined) ??
-      null,
-    forCountry: (c: string): TripGroupPhoto | null => byCountry.get(c) ?? null,
-  };
-}
-
-/** Shaded photo background layer for cards and group sections. */
-function photoBgStyle(url: string, darkness: [number, number]) {
-  return {
-    backgroundImage: `linear-gradient(rgba(8,8,12,${darkness[0]}), rgba(8,8,12,${darkness[1]})), url(${url})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-  } as const;
 }
 
 const inputCls =
@@ -337,18 +254,16 @@ function ItineraryEditor({
 }
 
 function ItineraryView({
+  slug,
   itinerary,
   photos,
   canDeletePhoto,
-  uploadingDay,
-  onUploadPhoto,
   onDeletePhoto,
 }: {
+  slug: string;
   itinerary: TripItinerary;
   photos: TripGroupPhoto[];
   canDeletePhoto: (p: TripGroupPhoto) => boolean;
-  uploadingDay: number | null;
-  onUploadPhoto: (day: number, file: File) => void;
   onDeletePhoto: (photoId: string) => void;
 }) {
   const groups: { country: string | null; days: ItineraryDay[] }[] = [];
@@ -361,25 +276,25 @@ function ItineraryView({
 
   const resolver = buildPhotoResolver(itinerary, photos);
 
-  const renderDay = (d: ItineraryDay, groupRepUrl: string | null) => {
-    const dayPhoto = resolver.forDay(d);
-    // A day only paints its own background when its resolved photo differs
-    // from the group hero — that's the "different city" signal.
-    const ownBg = dayPhoto && dayPhoto.url !== groupRepUrl ? dayPhoto : null;
-    return (
-      <li
-        key={d.day}
-        className={`relative overflow-hidden rounded-md border border-white/10 p-3 ${ownBg ? "" : "bg-black/30"}`}
-        style={ownBg ? photoBgStyle(ownBg.url, [0.62, 0.85]) : undefined}
+  // Flat cards on purpose (SHAN-281): only the country group paints a
+  // background here. The day-specific photo lives on the day detail page.
+  const renderDay = (d: ItineraryDay) => (
+    <li key={d.day}>
+      <Link
+        href={`/trips/groups/${slug}/day/${d.day}`}
+        className="block rounded-md border border-white/10 bg-black/40 p-3 transition-colors hover:border-white/30 hover:bg-black/55"
       >
-        <h3 className="text-sm font-medium text-white/90">
-          Day {d.day}
-          {fmtDayDate(d.date) && (
-            <span className="ml-1.5 text-xs font-normal text-blue-300">{fmtDayDate(d.date)}</span>
-          )}
-          {": "}
-          {d.title}
-          {d.location && <span className="ml-2 text-xs font-normal text-gray-400">{d.location}</span>}
+        <h3 className="flex items-baseline justify-between gap-2 text-sm font-medium text-white/90">
+          <span>
+            Day {d.day}
+            {fmtDayDate(d.date) && (
+              <span className="ml-1.5 text-xs font-normal text-blue-300">{fmtDayDate(d.date)}</span>
+            )}
+            {": "}
+            {d.title}
+            {d.location && <span className="ml-2 text-xs font-normal text-gray-400">{d.location}</span>}
+          </span>
+          <span aria-hidden="true" className="shrink-0 text-xs text-gray-500">→</span>
         </h3>
         <ul className="mt-2 space-y-1.5">
           {d.activities.map((a, i) => (
@@ -394,24 +309,15 @@ function ItineraryView({
             </li>
           ))}
         </ul>
-        <PhotoCredit
-          photo={ownBg}
-          day={d.day}
-          canDelete={!!ownBg && canDeletePhoto(ownBg)}
-          uploading={uploadingDay === d.day}
-          onUpload={onUploadPhoto}
-          onDelete={onDeletePhoto}
-        />
-      </li>
-    );
-  };
+      </Link>
+    </li>
+  );
 
   return (
     <div>
       <p className="text-sm text-gray-400">{itinerary.summary}</p>
       <div className="mt-3 space-y-4">
         {groups.map((g, gi) => {
-          // Group hero: the country photo, else the first day's resolved photo.
           const rep =
             (g.country ? resolver.forCountry(g.country) : null) ??
             g.days.map((d) => resolver.forDay(d)).find((p): p is TripGroupPhoto => !!p) ??
@@ -419,7 +325,7 @@ function ItineraryView({
           if (!g.country) {
             return (
               <ol key={gi} className="space-y-4">
-                {g.days.map((d) => renderDay(d, null))}
+                {g.days.map(renderDay)}
               </ol>
             );
           }
@@ -458,7 +364,7 @@ function ItineraryView({
                   </span>
                 )}
               </summary>
-              <ol className="space-y-4 p-3 pt-1">{g.days.map((d) => renderDay(d, rep?.url ?? null))}</ol>
+              <ol className="space-y-4 p-3 pt-1">{g.days.map(renderDay)}</ol>
             </details>
           );
         })}
@@ -503,7 +409,6 @@ function GroupDetail() {
 
   const [photos, setPhotos] = useState<TripGroupPhoto[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const [uploadingDay, setUploadingDay] = useState<number | null>(null);
   const [filling, setFilling] = useState(false);
 
   const [draft, setDraft] = useState<TripItinerary | null>(null);
@@ -619,20 +524,6 @@ function GroupDetail() {
       setConsolidateError((err as Error).message);
     } finally {
       setConsolidating(false);
-    }
-  }
-
-  async function handleUploadPhoto(day: number, file: File) {
-    if (!slug) return;
-    setUploadingDay(day);
-    setPhotoError(null);
-    try {
-      const photo = await uploadPhoto(slug, day, file);
-      setPhotos((prev) => [...prev, photo]);
-    } catch (err) {
-      setPhotoError((err as Error).message);
-    } finally {
-      setUploadingDay(null);
     }
   }
 
@@ -1028,11 +919,10 @@ function GroupDetail() {
           />
         ) : detail.itinerary ? (
           <ItineraryView
+            slug={detail.slug}
             itinerary={detail.itinerary}
             photos={photos}
             canDeletePhoto={(p) => detail.isOwner || (!!user?.id && p.uploaderId === user.id)}
-            uploadingDay={uploadingDay}
-            onUploadPhoto={handleUploadPhoto}
             onDeletePhoto={handleDeletePhoto}
           />
         ) : (
