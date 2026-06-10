@@ -11,6 +11,30 @@ import {
   type TripGroupSummary,
 } from "@/lib/api/trip-groups";
 
+// Accept either a bare slug ("tokyo-2026") or the full invite URL that
+// /trips/groups/[slug]'s InviteLinkBox tells users to share.
+function parseGroupSlug(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const isAbsolute = /^https?:\/\//i.test(trimmed);
+  const isRootRelative = trimmed.startsWith("/");
+  try {
+    const url = new URL(trimmed, "https://shanejli.com");
+    const match = url.pathname.match(/^\/trips\/groups\/([^/]+)\/?$/i);
+    if (match) {
+      try {
+        return decodeURIComponent(match[1]).toLowerCase();
+      } catch {
+        return match[1].toLowerCase();
+      }
+    }
+    if (isAbsolute || isRootRelative) return null;
+  } catch {
+    if (isAbsolute || isRootRelative) return null;
+  }
+  return trimmed.toLowerCase();
+}
+
 export default function GroupsIndexPage() {
   return (
     <AuthGate>
@@ -40,8 +64,11 @@ function GroupsIndex() {
 
   async function handleJoin(e: FormEvent) {
     e.preventDefault();
-    const slug = joinSlug.trim().toLowerCase();
-    if (!slug) return;
+    const slug = parseGroupSlug(joinSlug);
+    if (!slug) {
+      setJoinError("Enter a group slug like tokyo-2026, or paste the invite link.");
+      return;
+    }
     setJoining(true);
     setJoinError(null);
     try {
