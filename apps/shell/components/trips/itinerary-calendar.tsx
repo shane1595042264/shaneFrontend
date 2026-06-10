@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import type { TripItinerary, ItineraryActivity } from "@/lib/api/trip-groups";
+import type { TripItinerary, ItineraryActivity, ItineraryDay } from "@/lib/api/trip-groups";
 
 /**
  * Google-Calendar-style week grid over the trip itinerary (SHAN-277).
@@ -31,11 +31,14 @@ export function ItineraryCalendar({
   canEdit,
   saving,
   onSave,
+  photoUrlForDay,
 }: {
   itinerary: TripItinerary;
   canEdit: boolean;
   saving: boolean;
   onSave: (next: TripItinerary) => Promise<void>;
+  /** City-first/country-fallback background photo for a day (SHAN-280). */
+  photoUrlForDay?: (day: ItineraryDay) => string | null;
 }) {
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Selected | null>(null);
@@ -61,6 +64,16 @@ export function ItineraryCalendar({
   }, [itinerary]);
 
   const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
+
+  function columnBg(d: ItineraryDay) {
+    const url = photoUrlForDay?.(d);
+    if (!url) return undefined;
+    return {
+      backgroundImage: `linear-gradient(rgba(8,8,12,0.8), rgba(8,8,12,0.92)), url(${url})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    } as const;
+  }
 
   function activityTop(time: string): number {
     const [h, m] = time.split(":").map(Number);
@@ -105,6 +118,7 @@ export function ItineraryCalendar({
             <div
               key={d.day}
               className="border-b border-l border-white/10 px-1.5 py-2 text-center"
+              style={columnBg(d)}
             >
               <div className="text-[11px] font-medium text-white/90">
                 {fmtDayDate(d.date) ?? `Day ${d.day}`}
@@ -157,7 +171,7 @@ export function ItineraryCalendar({
               <div
                 key={d.day}
                 className="relative border-l border-white/10"
-                style={{ height: hours.length * HOUR_PX }}
+                style={{ height: hours.length * HOUR_PX, ...columnBg(d) }}
               >
                 {hours.map((h) => (
                   <div

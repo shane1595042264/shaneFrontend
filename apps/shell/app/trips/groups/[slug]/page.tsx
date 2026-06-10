@@ -145,6 +145,30 @@ function PhotoCredit({
   );
 }
 
+/**
+ * City-first, country-fallback photo resolution (SHAN-280). Photos are
+ * keyed by day; a day's background is the first photo found for its city
+ * (location), else the first photo for its country.
+ */
+function buildPhotoResolver(itinerary: TripItinerary, photos: TripGroupPhoto[]) {
+  const meta = new Map(itinerary.days.map((d) => [d.day, d]));
+  const byLocation = new Map<string, TripGroupPhoto>();
+  const byCountry = new Map<string, TripGroupPhoto>();
+  for (const p of photos) {
+    const m = meta.get(p.day);
+    if (!m) continue;
+    if (m.location && !byLocation.has(m.location)) byLocation.set(m.location, p);
+    if (m.country && !byCountry.has(m.country)) byCountry.set(m.country, p);
+  }
+  return {
+    forDay: (d: ItineraryDay): TripGroupPhoto | null =>
+      (d.location ? byLocation.get(d.location) : undefined) ??
+      (d.country ? byCountry.get(d.country) : undefined) ??
+      null,
+    forCountry: (c: string): TripGroupPhoto | null => byCountry.get(c) ?? null,
+  };
+}
+
 /** Shaded photo background layer for cards and group sections. */
 function photoBgStyle(url: string, darkness: [number, number]) {
   return {
@@ -335,12 +359,12 @@ function ItineraryView({
     else groups.push({ country: c, days: [d] });
   }
 
-  const photoForDay = (day: number) => photos.find((p) => p.day === day) ?? null;
+  const resolver = buildPhotoResolver(itinerary, photos);
 
   const renderDay = (d: ItineraryDay, groupRepUrl: string | null) => {
-    const dayPhoto = photoForDay(d.day);
-    // A day only paints its own background when its photo differs from the
-    // group hero — that's the "different city" signal.
+    const dayPhoto = resolver.forDay(d);
+    // A day only paints its own background when its resolved photo differs
+    // from the group hero — that's the "different city" signal.
     const ownBg = dayPhoto && dayPhoto.url !== groupRepUrl ? dayPhoto : null;
     return (
       <li
@@ -387,9 +411,11 @@ function ItineraryView({
       <p className="text-sm text-gray-400">{itinerary.summary}</p>
       <div className="mt-3 space-y-4">
         {groups.map((g, gi) => {
-          // Group hero: the first photo among the group's days.
+          // Group hero: the country photo, else the first day's resolved photo.
           const rep =
-            g.days.map((d) => photoForDay(d.day)).find((p): p is TripGroupPhoto => !!p) ?? null;
+            (g.country ? resolver.forCountry(g.country) : null) ??
+            g.days.map((d) => resolver.forDay(d)).find((p): p is TripGroupPhoto => !!p) ??
+            null;
           if (!g.country) {
             return (
               <ol key={gi} className="space-y-4">
@@ -588,6 +614,7 @@ function GroupDetail() {
         setConsolidateNotice("Suggestion submitted — the group owner can approve it below.");
         await refetchSuggestions();
       }
+      void refetchPhotos();
     } catch (err) {
       setConsolidateError((err as Error).message);
     } finally {
@@ -659,6 +686,7 @@ function GroupDetail() {
         setConsolidateNotice("Edit submitted as a suggestion — the group owner can approve it below.");
         await refetchSuggestions();
       }
+      void refetchPhotos();
     } catch (err) {
       setConsolidateError((err as Error).message);
       throw err;
@@ -708,6 +736,7 @@ function GroupDetail() {
       if (action === "approve") {
         const { itinerary, itineraryGeneratedAt } = await approveSuggestion(slug, suggestionId);
         setDetail((prev) => (prev ? { ...prev, itinerary, itineraryGeneratedAt } : prev));
+        void refetchPhotos();
       } else {
         await rejectSuggestion(slug, suggestionId);
       }
@@ -991,6 +1020,11 @@ function GroupDetail() {
             canEdit
             saving={savingDraft}
             onSave={handleSaveItinerary}
+            photoUrlForDay={(d) =>
+              detail.itinerary
+                ? (buildPhotoResolver(detail.itinerary, photos).forDay(d)?.url ?? null)
+                : null
+            }
           />
         ) : detail.itinerary ? (
           <ItineraryView
