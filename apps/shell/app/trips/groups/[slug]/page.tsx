@@ -28,6 +28,7 @@ import {
   type TripGroupPhoto,
 } from "@/lib/api/trip-groups";
 import { ItineraryCalendar, fmtDayDate } from "@/components/trips/itinerary-calendar";
+import { AddToCalendarButton } from "@/components/trips/add-to-calendar-button";
 
 function InviteLinkBox({ slug }: { slug: string }) {
   const [url, setUrl] = useState(`https://shanejli.com/trips/groups/${slug}`);
@@ -929,16 +930,19 @@ function GroupDetail() {
         {photoError && (
           <p role="alert" className="mb-2 text-sm text-amber-400">{photoError}</p>
         )}
-        {detail.itinerary && detail.isOwner && !draft && (
-          <div className="mb-3">
-            <button
-              type="button"
-              onClick={handleUnsplashFill}
-              disabled={filling}
-              className="inline-flex min-h-8 items-center rounded border border-white/20 px-2.5 text-xs font-medium text-gray-300 hover:bg-white/10 disabled:opacity-50"
-            >
-              {filling ? "Fetching from Unsplash…" : "Fill missing days with Unsplash photos"}
-            </button>
+        {detail.itinerary && !draft && (
+          <div className="mb-3 flex flex-wrap items-start gap-2">
+            {detail.isOwner && (
+              <button
+                type="button"
+                onClick={handleUnsplashFill}
+                disabled={filling}
+                className="inline-flex min-h-8 items-center rounded border border-white/20 px-2.5 text-xs font-medium text-gray-300 hover:bg-white/10 disabled:opacity-50"
+              >
+                {filling ? "Fetching from Unsplash…" : "Fill missing days with Unsplash photos"}
+              </button>
+            )}
+            <AddToCalendarButton slug={detail.slug} />
           </div>
         )}
         {draft ? (

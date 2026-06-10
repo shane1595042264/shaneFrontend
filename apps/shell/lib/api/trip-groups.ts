@@ -272,3 +272,36 @@ export async function updateItinerary(
   if (!res.ok) await unwrap(res, "Failed to save itinerary");
   return res.json();
 }
+
+// --- Google Calendar connect + export (SHAN-278) ---
+
+export async function getCalendarStatus(): Promise<{ connected: boolean; clientId: string }> {
+  const res = await fetch(`${API_URL}/api/integrations/calendar/status`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) await unwrap(res, "Failed to check calendar connection");
+  return res.json();
+}
+
+export async function connectCalendar(code: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/integrations/calendar/connect`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) await unwrap(res, "Failed to connect Google Calendar");
+}
+
+export async function exportToCalendar(slug: string): Promise<{
+  created: number;
+  deletedPrevious: number;
+  skippedDays: number[];
+}> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary/export-calendar`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) await unwrap(res, "Failed to export itinerary");
+  return res.json();
+}
