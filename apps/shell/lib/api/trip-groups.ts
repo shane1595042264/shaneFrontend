@@ -35,6 +35,12 @@ export interface ItineraryActivity {
   notes: string | null;
 }
 
+export interface DayMeals {
+  breakfast?: string | null;
+  lunch?: string | null;
+  dinner?: string | null;
+}
+
 export interface ItineraryDay {
   day: number;
   title: string;
@@ -43,6 +49,8 @@ export interface ItineraryDay {
   location: string | null;
   /** Country for collapsible grouping (SHAN-277). */
   country?: string | null;
+  /** Meal places — timeline fixtures, not activities (SHAN-282). */
+  meals?: DayMeals | null;
   activities: ItineraryActivity[];
 }
 
