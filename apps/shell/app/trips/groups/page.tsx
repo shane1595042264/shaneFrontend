@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { RelativeTime } from "@/lib/format-time";
+import { useDocumentTitle } from "@/lib/use-document-title";
 import {
   listMyGroups,
   joinGroup,
@@ -44,6 +45,7 @@ export default function GroupsIndexPage() {
 }
 
 function GroupsIndex() {
+  useDocumentTitle("Trip groups — Shane");
   const router = useRouter();
   const [groups, setGroups] = useState<TripGroupSummary[]>([]);
   const [loading, setLoading] = useState(true);

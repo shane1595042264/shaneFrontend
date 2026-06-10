@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
+import { useDocumentTitle } from "@/lib/use-document-title";
 import {
   getGroupDetail,
   joinGroup,
@@ -396,6 +397,7 @@ function GroupDetail() {
   const slug = params?.slug;
   const { user } = useAuth();
   const [detail, setDetail] = useState<TripGroupDetail | null>(null);
+  useDocumentTitle(detail ? `${detail.title} — Shane` : null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);

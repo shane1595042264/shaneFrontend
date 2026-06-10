@@ -4,8 +4,10 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { uploadTripFile } from "@/lib/api/trips";
+import { useDocumentTitle } from "@/lib/use-document-title";
 
 export default function NewTripPage() {
+  useDocumentTitle("Upload trip — Shane");
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [titleOverride, setTitleOverride] = useState("");

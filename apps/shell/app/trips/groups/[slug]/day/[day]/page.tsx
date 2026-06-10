@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { useAuth } from "@/lib/auth-context";
+import { useDocumentTitle } from "@/lib/use-document-title";
 import {
   getGroupDetail,
   listPhotos,
@@ -78,6 +79,9 @@ function DayDetail() {
   const { user } = useAuth();
 
   const [detail, setDetail] = useState<TripGroupDetail | null>(null);
+  useDocumentTitle(
+    detail && Number.isFinite(dayNum) ? `Day ${dayNum} · ${detail.title} — Shane` : null,
+  );
   const [photos, setPhotos] = useState<TripGroupPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
