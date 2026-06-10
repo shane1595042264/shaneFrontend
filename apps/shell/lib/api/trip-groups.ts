@@ -419,3 +419,12 @@ export async function deleteSection(slug: string, sectionId: string): Promise<vo
   });
   if (!res.ok && res.status !== 404) await unwrap(res, "Failed to delete section");
 }
+
+/** Owner-only itinerary reset (SHAN-286): next consolidate starts fresh. */
+export async function resetItinerary(slug: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) await unwrap(res, "Failed to reset itinerary");
+}
