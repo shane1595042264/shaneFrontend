@@ -100,6 +100,8 @@ function GroupDetail() {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
 
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
@@ -141,6 +143,7 @@ function GroupDetail() {
       const newIdea: TripIdea = await postIdea(slug, body);
       setDetail((prev) => (prev ? { ...prev, ideas: [newIdea, ...prev.ideas] } : prev));
       setIdeaBody("");
+      setDeleteError(null);
     } catch (err) {
       setPostError((err as Error).message);
     } finally {
@@ -156,8 +159,9 @@ function GroupDetail() {
       setDetail((prev) =>
         prev ? { ...prev, ideas: prev.ideas.filter((i) => i.id !== ideaId) } : prev,
       );
+      setDeleteError(null);
     } catch (err) {
-      setPostError((err as Error).message);
+      setDeleteError((err as Error).message);
     }
   }
 
@@ -277,6 +281,11 @@ function GroupDetail() {
 
       <section>
         <h2 className="mb-2 text-sm font-medium text-gray-300">Idea inbox</h2>
+        {deleteError && (
+          <p role="alert" className="mb-2 text-sm text-red-400">
+            Couldn't delete that idea: {deleteError}
+          </p>
+        )}
         {detail.ideas.length === 0 ? (
           <p className="text-sm text-gray-500">No ideas yet. Drop the first one above.</p>
         ) : (
