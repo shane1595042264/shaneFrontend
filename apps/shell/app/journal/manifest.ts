@@ -8,7 +8,7 @@ const manifest: ElementConfig = {
   type: "internal",
   route: "/journal",
   status: "live",
-  description: "AI-powered daily diary entries",
+  description: "Collaborative wiki-style journal — anyone can suggest edits, the author approves.",
 };
 
 export default manifest;
