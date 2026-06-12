@@ -83,7 +83,7 @@ const TRIP_NOT_FOUND_HTML = `<!DOCTYPE html>
 // Sibling routes under /journal/ that are NOT date entries — must be
 // allowlisted so middleware doesn't 404 them. Matches the folder layout in
 // app/journal/ (feed.xml/route.ts, inbox/page.tsx, opengraph-image.tsx).
-const JOURNAL_NON_DATE_SEGMENTS = new Set(["feed.xml", "inbox", "opengraph-image"]);
+const JOURNAL_NON_DATE_SEGMENTS = new Set(["feed.xml", "inbox", "opengraph-image", "tea"]);
 
 // Set of YYYY-MM-DD strings that could be "today" for any viewer worldwide:
 // UTC today plus the day on either side covers UTC-12 through UTC+14. We pass

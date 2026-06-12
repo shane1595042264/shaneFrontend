@@ -35,6 +35,16 @@ export function JournalIndexHeader() {
       </Link>
       {user && (
         <Link
+          href="/journal/tea"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/20 px-4 text-sm hover:bg-white/5"
+          title="Private, PIN-gated entries — only you see this list"
+        >
+          <span aria-hidden="true">🍵</span>
+          Tea entries
+        </Link>
+      )}
+      {user && (
+        <Link
           href="/journal/inbox"
           className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-white/20 px-4 text-sm hover:bg-white/5"
         >
