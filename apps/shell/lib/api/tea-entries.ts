@@ -84,6 +84,22 @@ export async function getTeaEntry(id: string, pin?: string): Promise<TeaEntryRes
   return res.json();
 }
 
+export async function updateTeaEntry(
+  id: string,
+  patch: { title?: string | null; content?: string; pin?: string },
+): Promise<TeaEntryResponse> {
+  const res = await fetch(`${API_URL}/api/tea-entries/${id}`, {
+    method: "PATCH",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? "Failed to update tea entry");
+  }
+  return res.json();
+}
+
 export async function deleteTeaEntry(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/tea-entries/${id}`, {
     method: "DELETE",

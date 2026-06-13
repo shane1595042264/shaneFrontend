@@ -177,7 +177,13 @@ export default function TeaEntryReadPage() {
       <EntryBody content={e.content} />
 
       {data.isAuthor && (
-        <div className="mt-10 border-t border-white/10 pt-6">
+        <div className="mt-10 flex items-center gap-4 border-t border-white/10 pt-6">
+          <Link
+            href={`/journal/tea/${data.entry.id}/edit`}
+            className="text-sm text-gray-300 hover:text-white"
+          >
+            Edit
+          </Link>
           <button
             onClick={onDelete}
             disabled={busy}
