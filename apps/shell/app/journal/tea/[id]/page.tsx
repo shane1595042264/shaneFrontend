@@ -9,6 +9,7 @@ import {
   deleteTeaEntry,
   getTeaEntry,
   TeaPinIncorrectError,
+  TeaPinRateLimitedError,
   TeaPinRequiredError,
   type TeaEntryResponse,
 } from "@/lib/api/tea-entries";
@@ -25,6 +26,8 @@ export default function TeaEntryReadPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [rateLimitedUntilMs, setRateLimitedUntilMs] = useState<number | null>(null);
+  const [remainingSec, setRemainingSec] = useState(0);
 
   // First load: try without a PIN. If the viewer is the author, the API
   // returns the full payload (including the PIN). Otherwise the API responds
@@ -43,6 +46,12 @@ export default function TeaEntryReadPage() {
         } else if (err instanceof TeaPinIncorrectError) {
           setNeedsPin(true);
           setPinError("Incorrect PIN.");
+        } else if (err instanceof TeaPinRateLimitedError) {
+          setNeedsPin(true);
+          setPinInput("");
+          setPinError(null);
+          setRateLimitedUntilMs(Date.now() + err.retryAfterSec * 1000);
+          setRemainingSec(err.retryAfterSec);
         } else if (err instanceof Error && err.message === "TEA_NOT_FOUND") {
           setNotFound(true);
         } else {
@@ -61,8 +70,21 @@ export default function TeaEntryReadPage() {
     load();
   }, [authLoading, load]);
 
+  useEffect(() => {
+    if (rateLimitedUntilMs === null) return;
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((rateLimitedUntilMs - Date.now()) / 1000));
+      setRemainingSec(remaining);
+      if (remaining === 0) setRateLimitedUntilMs(null);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [rateLimitedUntilMs]);
+
   const submitPin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (rateLimitedUntilMs !== null) return;
     if (!/^\d{4}$/.test(pinInput)) {
       setPinError("PIN must be 4 digits.");
       return;
@@ -104,6 +126,7 @@ export default function TeaEntryReadPage() {
   }
 
   if (needsPin) {
+    const isRateLimited = rateLimitedUntilMs !== null && remainingSec > 0;
     return (
       <div className="mx-auto max-w-md px-4 py-12">
         <Link href="/journal" className="text-sm text-gray-500 hover:text-gray-300">← back to journal</Link>
@@ -123,18 +146,25 @@ export default function TeaEntryReadPage() {
             value={pinInput}
             onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
             placeholder="••••"
-            className="w-32 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-center font-mono text-base tracking-[0.4em] text-white focus:border-white/30 focus:outline-none"
+            disabled={isRateLimited}
+            className="w-32 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-center font-mono text-base tracking-[0.4em] text-white focus:border-white/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="4-digit PIN"
           />
           <button
             type="submit"
-            disabled={pinInput.length !== 4}
+            disabled={pinInput.length !== 4 || isRateLimited}
             className="inline-flex min-h-11 items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Unlock
           </button>
         </form>
-        {pinError && <p className="mt-3 text-sm text-red-400">{pinError}</p>}
+        {isRateLimited ? (
+          <p className="mt-3 text-sm text-amber-400" role="status" aria-live="polite">
+            Too many incorrect PINs. Try again in {remainingSec}s.
+          </p>
+        ) : (
+          pinError && <p className="mt-3 text-sm text-red-400">{pinError}</p>
+        )}
       </div>
     );
   }

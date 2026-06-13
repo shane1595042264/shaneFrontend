@@ -42,6 +42,15 @@ export class TeaPinIncorrectError extends Error {
   }
 }
 
+export class TeaPinRateLimitedError extends Error {
+  readonly retryAfterSec: number;
+  constructor(retryAfterSec: number) {
+    super("TEA_PIN_RATE_LIMITED");
+    this.name = "TeaPinRateLimitedError";
+    this.retryAfterSec = retryAfterSec;
+  }
+}
+
 export async function createTeaEntry(input: {
   title?: string | null;
   content: string;
@@ -77,6 +86,11 @@ export async function getTeaEntry(id: string, pin?: string): Promise<TeaEntryRes
   const res = await fetch(`${API_URL}/api/tea-entries/${id}`, { headers });
   if (res.status === 401) throw new TeaPinRequiredError();
   if (res.status === 403) throw new TeaPinIncorrectError();
+  if (res.status === 429) {
+    const header = res.headers.get("Retry-After");
+    const parsed = header ? parseInt(header, 10) : NaN;
+    throw new TeaPinRateLimitedError(Number.isFinite(parsed) && parsed > 0 ? parsed : 60);
+  }
   if (res.status === 404) {
     const e = new Error("TEA_NOT_FOUND");
     throw e;
