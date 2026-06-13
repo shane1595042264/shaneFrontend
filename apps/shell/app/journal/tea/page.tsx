@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { listMyTeaEntries, type TeaEntrySummary } from "@/lib/api/tea-entries";
+import { toPlainExcerpt } from "@/lib/journal-text";
+
+const EXCERPT_LEN = 140;
 
 export default function TeaEntriesIndexPage() {
   const { user, loading: authLoading } = useAuth();
@@ -69,24 +72,32 @@ export default function TeaEntriesIndexPage() {
         <p className="text-sm text-gray-500 italic">No tea entries yet.</p>
       ) : (
         <ul className="divide-y divide-white/8 border-y border-white/8">
-          {entries.map((e) => (
-            <li key={e.id}>
-              <Link
-                href={`/journal/tea/${e.id}`}
-                className="flex items-center justify-between gap-4 py-4 transition-colors hover:bg-white/[0.03]"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-base text-white">
-                    {e.title?.trim() || <span className="text-gray-500 italic">Untitled tea entry</span>}
-                  </p>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {new Date(e.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-gray-600">→</span>
-              </Link>
-            </li>
-          ))}
+          {entries.map((e) => {
+            const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
+            return (
+              <li key={e.id}>
+                <Link
+                  href={`/journal/tea/${e.id}`}
+                  className="flex items-start justify-between gap-4 py-4 transition-colors hover:bg-white/[0.03]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base text-white">
+                      {e.title?.trim() || <span className="text-gray-500 italic">Untitled tea entry</span>}
+                    </p>
+                    {excerpt && (
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-400">
+                        {excerpt}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500">
+                      {new Date(e.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className="mt-1 shrink-0 text-xs text-gray-600">→</span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

@@ -6,6 +6,7 @@ export interface TeaEntrySummary {
   id: string;
   authorId: string;
   title: string | null;
+  contentExcerpt: string | null;
   createdAt: string;
   updatedAt: string;
 }
