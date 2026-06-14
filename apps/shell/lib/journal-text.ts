@@ -4,6 +4,17 @@ function stripDataMarkers(text: string): string {
   return text.replace(DATA_MARKER_RE, "$1");
 }
 
+// Images whose alt text is auto-generated junk (a filename like image.png,
+// or the editor's fallback "pasted-image") would otherwise leave that token
+// trailing the excerpt. Drop the whole image markdown for those; images with
+// human-written alt fall through to the generic pass below and keep their alt.
+const JUNK_IMAGE_ALT_RE =
+  /!\[(?:|pasted-image|[^\]\n]*\.(?:png|jpe?g|gif|webp|svg|bmp|avif|heic|heif))\]\([^)]*\)/gi;
+
+function stripJunkAltImages(text: string): string {
+  return text.replace(JUNK_IMAGE_ALT_RE, "");
+}
+
 const MARKDOWN_PASSES: Array<[RegExp, string]> = [
   [/```[\s\S]*?```/g, " "],
   [/`([^`]+)`/g, "$1"],
@@ -21,7 +32,7 @@ const MARKDOWN_PASSES: Array<[RegExp, string]> = [
 
 export function stripMarkdown(text: string): string {
   if (!text) return "";
-  let out = text;
+  let out = stripJunkAltImages(text);
   for (const [re, sub] of MARKDOWN_PASSES) out = out.replace(re, sub);
   return out;
 }
