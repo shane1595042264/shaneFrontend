@@ -117,20 +117,27 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Strip markdown from the search corpus so pasted-image URLs (e.g. ![image.png](https://.../images/<uuid>)) don't false-match queries like "png" or "railway".
+  const searchCorpus = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of entries) {
+      map.set(e.id, toPlainExcerpt(e.contentExcerpt ?? "", 10_000).toLowerCase());
+    }
+    return map;
+  }, [entries]);
+
   const filtered = useMemo(() => {
     if (!trimmed) return entries;
     const needle = trimmed.toLowerCase();
     return entries.filter((e) => {
       const haystack = [
         e.date,
-        e.contentExcerpt ?? "",
-        e.author?.name ?? "",
-      ]
-        .join(" ")
-        .toLowerCase();
+        searchCorpus.get(e.id) ?? "",
+        (e.author?.name ?? "").toLowerCase(),
+      ].join(" ");
       return haystack.includes(needle);
     });
-  }, [entries, trimmed]);
+  }, [entries, searchCorpus, trimmed]);
 
   const grouped = useMemo(() => groupByYear(filtered), [filtered]);
   const isFiltering = trimmed.length > 0;
