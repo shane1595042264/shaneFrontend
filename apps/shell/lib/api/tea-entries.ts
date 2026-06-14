@@ -115,6 +115,16 @@ export async function updateTeaEntry(
   return res.json();
 }
 
+// Skip the "edited" indicator when updatedAt is within this slack of createdAt.
+// ORM inserts can produce a sub-second gap that isn't a real edit.
+const EDIT_SLACK_MS = 60_000;
+
+export function teaEntryWasEdited(
+  entry: { createdAt: string; updatedAt: string },
+): boolean {
+  return new Date(entry.updatedAt).getTime() - new Date(entry.createdAt).getTime() >= EDIT_SLACK_MS;
+}
+
 export async function deleteTeaEntry(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/tea-entries/${id}`, {
     method: "DELETE",

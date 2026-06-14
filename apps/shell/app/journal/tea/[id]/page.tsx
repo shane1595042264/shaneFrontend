@@ -8,6 +8,7 @@ import { EntryBody } from "@/components/journal/entry-body";
 import {
   deleteTeaEntry,
   getTeaEntry,
+  teaEntryWasEdited,
   TeaPinIncorrectError,
   TeaPinRateLimitedError,
   TeaPinRequiredError,
@@ -181,9 +182,20 @@ export default function TeaEntryReadPage() {
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
           <span aria-hidden>🍵</span>
           {e.title?.trim() || "Tea entry"}
+          {teaEntryWasEdited(e) && (
+            <span className="rounded bg-white/5 px-1.5 py-0.5 align-middle text-[10px] font-medium text-gray-400">
+              edited
+            </span>
+          )}
         </h1>
         <p className="mt-1 text-xs text-gray-500">
           {new Date(e.createdAt).toLocaleString()}
+          {teaEntryWasEdited(e) && (
+            <>
+              <span aria-hidden> · </span>
+              <span>edited {new Date(e.updatedAt).toLocaleString()}</span>
+            </>
+          )}
         </p>
 
         {data.isAuthor && e.pin && (

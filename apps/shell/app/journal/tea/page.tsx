@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { listMyTeaEntries, type TeaEntrySummary } from "@/lib/api/tea-entries";
+import { listMyTeaEntries, teaEntryWasEdited, type TeaEntrySummary } from "@/lib/api/tea-entries";
 import { toPlainExcerpt } from "@/lib/journal-text";
 
 const EXCERPT_LEN = 140;
@@ -74,6 +74,7 @@ export default function TeaEntriesIndexPage() {
         <ul className="divide-y divide-white/8 border-y border-white/8">
           {entries.map((e) => {
             const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
+            const edited = teaEntryWasEdited(e);
             return (
               <li key={e.id}>
                 <Link
@@ -81,8 +82,15 @@ export default function TeaEntriesIndexPage() {
                   className="flex items-start justify-between gap-4 py-4 transition-colors hover:bg-white/[0.03]"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-base text-white">
-                      {e.title?.trim() || <span className="text-gray-500 italic">Untitled tea entry</span>}
+                    <p className="flex items-center gap-2 truncate text-base text-white">
+                      <span className="truncate">
+                        {e.title?.trim() || <span className="text-gray-500 italic">Untitled tea entry</span>}
+                      </span>
+                      {edited && (
+                        <span className="shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+                          edited
+                        </span>
+                      )}
                     </p>
                     {excerpt && (
                       <p className="mt-1 line-clamp-2 text-sm text-gray-400">
@@ -91,6 +99,12 @@ export default function TeaEntriesIndexPage() {
                     )}
                     <p className="mt-1 text-xs text-gray-500">
                       {new Date(e.createdAt).toLocaleString()}
+                      {edited && (
+                        <>
+                          <span aria-hidden> · </span>
+                          <span>edited {new Date(e.updatedAt).toLocaleString()}</span>
+                        </>
+                      )}
                     </p>
                   </div>
                   <span className="mt-1 shrink-0 text-xs text-gray-600">→</span>
