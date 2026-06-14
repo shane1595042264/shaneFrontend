@@ -75,6 +75,28 @@ export function weekdayShortLabel(date: string): string {
   }
 }
 
+export function weekdayLongLabel(date: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      weekday: "long",
+    }).format(new Date(date + "T00:00:00Z"));
+  } catch {
+    return "";
+  }
+}
+
+export function monthLongLabel(date: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      month: "long",
+    }).format(new Date(date + "T00:00:00Z"));
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Relative-day chip for the journal index. Returns "Today", "Yesterday",
  * "N days ago" (2–6) or null. Past a week, the weekday label is enough.

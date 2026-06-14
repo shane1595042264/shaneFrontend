@@ -6,9 +6,11 @@ import { toPlainExcerpt } from "@/lib/journal-text";
 import { useAuth } from "@/lib/auth-context";
 import {
   getTodayInTimezone,
+  monthLongLabel,
   relativeDayLabel,
   resolveViewerTimezone,
   timezoneTagFor,
+  weekdayLongLabel,
   weekdayShortLabel,
 } from "@/lib/timezone";
 
@@ -130,14 +132,19 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
     if (!trimmed) return entries;
     const needle = trimmed.toLowerCase();
     return entries.filter((e) => {
+      // Haystack mirrors what the row renders, so what the eye sees is searchable.
       const haystack = [
         e.date,
+        weekdayShortLabel(e.date).toLowerCase(),
+        weekdayLongLabel(e.date).toLowerCase(),
+        monthLongLabel(e.date).toLowerCase(),
+        (relativeDayLabel(e.date, today) ?? "").toLowerCase(),
         searchCorpus.get(e.id) ?? "",
         (e.author?.name ?? "").toLowerCase(),
       ].join(" ");
       return haystack.includes(needle);
     });
-  }, [entries, searchCorpus, trimmed]);
+  }, [entries, searchCorpus, today, trimmed]);
 
   const grouped = useMemo(() => groupByYear(filtered), [filtered]);
   const isFiltering = trimmed.length > 0;
