@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { listMyTeaEntries, teaEntryWasEdited, type TeaEntrySummary } from "@/lib/api/tea-entries";
@@ -13,6 +13,8 @@ export default function TeaEntriesIndexPage() {
   const { user, loading: authLoading } = useAuth();
   const [entries, setEntries] = useState<TeaEntrySummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
     if (authLoading) return;
@@ -24,6 +26,17 @@ export default function TeaEntriesIndexPage() {
       .then((r) => setEntries(r.entries))
       .catch(() => setError("Could not load your tea entries."));
   }, [authLoading, user]);
+
+  const filtered = useMemo(() => {
+    if (entries === null) return null;
+    const q = deferredQuery.trim().toLowerCase();
+    if (!q) return entries;
+    return entries.filter((e) => {
+      const title = (e.title ?? "").toLowerCase();
+      const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN).toLowerCase() : "";
+      return title.includes(q) || excerpt.includes(q);
+    });
+  }, [entries, deferredQuery]);
 
   if (authLoading) {
     return (
@@ -64,6 +77,19 @@ export default function TeaEntriesIndexPage() {
         Private posts protected by a 4-digit PIN. Only you see this list.
       </p>
 
+      {entries !== null && entries.length > 0 && (
+        <div className="mb-4">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search your tea entries"
+            aria-label="Search tea entries"
+            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-white/30 focus:outline-none"
+          />
+        </div>
+      )}
+
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       {entries === null ? (
@@ -74,9 +100,11 @@ export default function TeaEntriesIndexPage() {
         </div>
       ) : entries.length === 0 ? (
         <p className="text-sm text-gray-500 italic">No tea entries yet.</p>
+      ) : filtered && filtered.length === 0 ? (
+        <p className="text-sm text-gray-500 italic">No matches.</p>
       ) : (
         <ul className="divide-y divide-white/8 border-y border-white/8">
-          {entries.map((e) => {
+          {(filtered ?? entries).map((e) => {
             const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN) : "";
             const edited = teaEntryWasEdited(e);
             return (
