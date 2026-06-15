@@ -1,4 +1,4 @@
-import { fetchElements, getDefaultElements } from "@/lib/elements";
+import { allElements } from "@/lib/element-registry";
 import { fetchSlotAssignments } from "@/lib/slot-assignments";
 import { PeriodicTable } from "@/components/periodic-table";
 
@@ -31,13 +31,6 @@ const websiteJsonLd = {
 };
 
 export default async function HomePage() {
-  let elements;
-  try {
-    elements = await fetchElements();
-  } catch {
-    elements = getDefaultElements();
-  }
-
   let initialAssignments = {};
   try {
     initialAssignments = await fetchSlotAssignments();
@@ -60,7 +53,7 @@ export default async function HomePage() {
           <h1 className="text-xl sm:text-2xl md:text-4xl font-bold tracking-tight mb-1 sm:mb-2">Periodic Table of Life</h1>
           <p className="text-gray-400 text-xs sm:text-sm">Navigate the elements of Shane&apos;s digital world.</p>
         </div>
-        <PeriodicTable elements={elements} initialAssignments={initialAssignments} />
+        <PeriodicTable elements={allElements} initialAssignments={initialAssignments} />
       </div>
     </>
   );

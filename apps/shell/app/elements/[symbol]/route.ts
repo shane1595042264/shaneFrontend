@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { fetchElements, getDefaultElements } from "@/lib/elements";
+import { allElements } from "@/lib/element-registry";
 
 interface Params {
   params: Promise<{ symbol: string }>;
@@ -11,14 +11,7 @@ interface Params {
 export async function GET(_req: Request, { params }: Params) {
   const { symbol } = await params;
 
-  let elements;
-  try {
-    elements = await fetchElements();
-  } catch {
-    elements = getDefaultElements();
-  }
-
-  const element = elements.find(
+  const element = allElements.find(
     (el) => el.symbol.toLowerCase() === symbol.toLowerCase()
   );
 
