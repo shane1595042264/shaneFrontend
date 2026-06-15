@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { listMyTeaEntries, teaEntryWasEdited, type TeaEntrySummary } from "@/lib/api/tea-entries";
 import { toPlainExcerpt } from "@/lib/journal-text";
+import { LoginButton } from "@/components/login-button";
 
 const EXCERPT_LEN = 140;
 
@@ -38,6 +39,9 @@ export default function TeaEntriesIndexPage() {
       <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
         <Link href="/journal" className="text-gray-500 hover:text-gray-300">← back to journal</Link>
         <p className="mt-4">Sign in to see your tea entries.</p>
+        <div className="mt-3">
+          <LoginButton />
+        </div>
       </div>
     );
   }

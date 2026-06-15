@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { fetchInbox, type InboxItem } from "@/lib/api/suggestions";
 import { RelativeTime } from "@/lib/format-time";
 import { toPlainExcerpt } from "@/lib/journal-text";
+import { LoginButton } from "@/components/login-button";
 
 export default function InboxPage() {
   const { user, loading: authLoading } = useAuth();
@@ -61,7 +62,11 @@ export default function InboxPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
-        <p>Sign in to view your inbox.</p>
+        <Link href="/journal" className="text-gray-500 hover:text-gray-300">← back to journal</Link>
+        <p className="mt-4">Sign in to view your inbox.</p>
+        <div className="mt-3">
+          <LoginButton />
+        </div>
       </div>
     );
   }

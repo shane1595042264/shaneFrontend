@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { uploadImage } from "@/lib/api/images";
 import { createTeaEntry } from "@/lib/api/tea-entries";
+import { LoginButton } from "@/components/login-button";
 import { MarkdownEditor } from "@shane/ui";
 
 export default function NewTeaEntryPage() {
@@ -34,6 +35,9 @@ export default function NewTeaEntryPage() {
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
         <Link href="/journal" className="text-gray-500 hover:text-gray-300">← back</Link>
         <p className="mt-4">Sign in to write a tea entry.</p>
+        <div className="mt-3">
+          <LoginButton />
+        </div>
       </div>
     );
   }
