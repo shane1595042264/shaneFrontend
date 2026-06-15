@@ -227,6 +227,35 @@ export default async function JournalEntryPage({ params }: PageProps) {
           </h2>
           <MissingEntryCta date={date} isToday={isToday} />
         </article>
+        {(prevDate || nextDate) && (
+          <nav className="flex items-center justify-between mt-10 pt-6 border-t border-white/8 print:hidden">
+            {prevDate ? (
+              <Link
+                href={`/journal/${prevDate}`}
+                aria-keyshortcuts="ArrowLeft j"
+                className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+              >
+                <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
+                <span>{formatDateShort(prevDate)}</span>
+              </Link>
+            ) : (
+              <span />
+            )}
+            {nextDate ? (
+              <Link
+                href={`/journal/${nextDate}`}
+                aria-keyshortcuts="ArrowRight k"
+                className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+              >
+                <span>{formatDateShort(nextDate)}</span>
+                <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+              </Link>
+            ) : (
+              <span />
+            )}
+          </nav>
+        )}
+        <EntryKeyboardNav prevDate={prevDate} nextDate={nextDate} />
       </div>
     );
   }
