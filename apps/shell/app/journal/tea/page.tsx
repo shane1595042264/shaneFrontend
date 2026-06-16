@@ -6,8 +6,33 @@ import { useAuth } from "@/lib/auth-context";
 import { listMyTeaEntries, teaEntryWasEdited, type TeaEntrySummary } from "@/lib/api/tea-entries";
 import { toPlainExcerpt } from "@/lib/journal-text";
 import { LoginButton } from "@/components/login-button";
+import {
+  getTodayInTimezone,
+  monthLongLabel,
+  relativeDayLabel,
+  resolveViewerTimezone,
+  weekdayLongLabel,
+  weekdayShortLabel,
+} from "@/lib/timezone";
 
 const EXCERPT_LEN = 140;
+
+// YYYY-MM-DD for an ISO timestamp in the given timezone. The row renders
+// createdAt via toLocaleString so the calendar day the user reads matches
+// their local TZ; the search haystack has to follow the same TZ or queries
+// like "Friday" or "yesterday" would land on the wrong day at the date line.
+function getEntryDate(iso: string, timezone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return iso.slice(0, 10);
+  }
+}
 
 export default function TeaEntriesIndexPage() {
   const { user, loading: authLoading } = useAuth();
@@ -15,6 +40,8 @@ export default function TeaEntriesIndexPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
+  const viewerTz = useMemo(() => resolveViewerTimezone(user), [user]);
+  const today = useMemo(() => getTodayInTimezone(viewerTz), [viewerTz]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -32,11 +59,23 @@ export default function TeaEntriesIndexPage() {
     const q = deferredQuery.trim().toLowerCase();
     if (!q) return entries;
     return entries.filter((e) => {
-      const title = (e.title ?? "").toLowerCase();
-      const excerpt = e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN).toLowerCase() : "";
-      return title.includes(q) || excerpt.includes(q);
+      // Mirror what the row renders so what the eye sees is searchable —
+      // SHAN-300 introduced this pattern on the journal index.
+      const date = getEntryDate(e.createdAt, viewerTz);
+      const haystack = [
+        (e.title ?? "").toLowerCase(),
+        e.contentExcerpt ? toPlainExcerpt(e.contentExcerpt, EXCERPT_LEN).toLowerCase() : "",
+        date,
+        weekdayShortLabel(date).toLowerCase(),
+        weekdayLongLabel(date).toLowerCase(),
+        monthLongLabel(date).toLowerCase(),
+        (relativeDayLabel(date, today) ?? "").toLowerCase(),
+      ].join(" ");
+      return haystack.includes(q);
     });
-  }, [entries, deferredQuery]);
+  }, [entries, deferredQuery, viewerTz, today]);
+
+  const isFiltering = deferredQuery.trim().length > 0;
 
   if (authLoading) {
     return (
@@ -87,6 +126,12 @@ export default function TeaEntriesIndexPage() {
             aria-label="Search tea entries"
             className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-white/30 focus:outline-none"
           />
+          {isFiltering && filtered !== null && (
+            <p className="mt-2 text-xs text-gray-500" aria-live="polite">
+              Showing {filtered.length} of {entries.length}{" "}
+              {entries.length === 1 ? "entry" : "entries"}
+            </p>
+          )}
         </div>
       )}
 
