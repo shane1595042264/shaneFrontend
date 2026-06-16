@@ -334,6 +334,15 @@ export default async function JournalEntryPage({ params }: PageProps) {
             <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
               <time dateTime={data.entry.date}>{formatDate(data.entry.date)}</time>
               {relLabel && <span className={relChipClass}>{relLabel}</span>}
+              {data.entry.editCount > 0 && (
+                <Link
+                  href={`/journal/${data.entry.date}/history`}
+                  title={`Last edited ${new Date(data.entry.updatedAt).toLocaleString()}`}
+                  className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-200"
+                >
+                  edited
+                </Link>
+              )}
               <span className="ml-auto text-xs font-normal text-gray-500">
                 {readingTimeMinutes(fullContent)} min read
               </span>
