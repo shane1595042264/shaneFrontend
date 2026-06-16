@@ -29,7 +29,8 @@ export default function PracticeIndexPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-12">
-        <h1 className="text-3xl font-semibold">Practice</h1>
+        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300">← Home</Link>
+        <h1 className="mt-3 text-3xl font-semibold">Practice</h1>
         <p className="mt-4 mb-3 text-sm text-gray-400">Sign in to start practicing.</p>
         <LoginButton />
       </div>

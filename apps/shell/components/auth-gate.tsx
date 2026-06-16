@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { LoginButton } from "@/components/login-button";
 
@@ -24,6 +25,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </p>
         </div>
         <LoginButton />
+        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300">
+          ← Home
+        </Link>
       </div>
     );
   }
