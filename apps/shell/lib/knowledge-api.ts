@@ -134,7 +134,7 @@ export async function createEntry(input: {
 }): Promise<KnowledgeEntry> {
   const res = await fetch(`${API_URL}/api/knowledge/entries`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(input),
   });
   if (!res.ok) {
