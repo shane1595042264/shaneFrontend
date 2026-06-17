@@ -1,3 +1,5 @@
+import { getAuthHeaders } from "@/lib/auth-api";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export interface VocabWord {
@@ -63,7 +65,7 @@ export async function createWord(input: {
 }): Promise<VocabWord> {
   const res = await fetch(`${API_URL}/api/vocabulary/words`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(input),
   });
   if (!res.ok) {
@@ -88,7 +90,7 @@ export async function updateWord(
 ): Promise<VocabWord> {
   const res = await fetch(`${API_URL}/api/vocabulary/words/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error("Failed to update word");
@@ -99,6 +101,7 @@ export async function updateWord(
 export async function deleteWord(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/vocabulary/words/${id}`, {
     method: "DELETE",
+    headers: { ...getAuthHeaders() },
   });
   if (!res.ok) throw new Error("Failed to delete word");
 }
@@ -106,6 +109,7 @@ export async function deleteWord(id: string): Promise<void> {
 export async function enrichWordApi(id: string): Promise<VocabWord> {
   const res = await fetch(`${API_URL}/api/vocabulary/words/${id}/enrich`, {
     method: "POST",
+    headers: { ...getAuthHeaders() },
   });
   if (!res.ok) throw new Error("Failed to enrich word");
   const data = await res.json();
@@ -120,7 +124,7 @@ export async function createConnection(input: {
 }): Promise<VocabConnection> {
   const res = await fetch(`${API_URL}/api/vocabulary/connections`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(input),
   });
   if (!res.ok) {
@@ -134,6 +138,7 @@ export async function createConnection(input: {
 export async function deleteConnection(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/vocabulary/connections/${id}`, {
     method: "DELETE",
+    headers: { ...getAuthHeaders() },
   });
   if (!res.ok) throw new Error("Failed to delete connection");
 }
