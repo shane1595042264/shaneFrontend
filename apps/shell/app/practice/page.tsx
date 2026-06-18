@@ -2,40 +2,23 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/lib/auth-context";
+import { AuthGate } from "@/components/auth-gate";
 import { listPracticeableItems, type PracticeableItem } from "@/lib/api/practice";
-import { LoginButton } from "@/components/login-button";
 import { RelativeTime } from "@/lib/format-time";
 
-export default function PracticeIndexPage() {
-  const { user, loading: authLoading } = useAuth();
+function PracticeIndexContent() {
   const [items, setItems] = useState<PracticeableItem[] | null>(null);
   const [includeSolidified, setIncludeSolidified] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
     // Always fetch the full corpus (including solidified) so the header stats
     // reflect every practice item the user owns. The visible list filters
     // solidified out client-side when the checkbox is off.
     listPracticeableItems(null, true)
       .then(setItems)
       .catch((e) => setError(e.message ?? "Failed to load"));
-  }, [user]);
-
-  if (authLoading) {
-    return <div className="mx-auto max-w-4xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
-  }
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-12">
-        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300">← Home</Link>
-        <h1 className="mt-3 text-3xl font-semibold">Practice</h1>
-        <p className="mt-4 mb-3 text-sm text-gray-400">Sign in to start practicing.</p>
-        <LoginButton />
-      </div>
-    );
-  }
+  }, []);
 
   const totalStrikes = items?.reduce((sum, i) => sum + i.totalStrikes, 0) ?? 0;
   const solidifiedCount = items?.filter((i) => i.isSolidified).length ?? 0;
@@ -126,5 +109,13 @@ export default function PracticeIndexPage() {
         </ul>
       )}
     </div>
+  );
+}
+
+export default function PracticeIndexPage() {
+  return (
+    <AuthGate>
+      <PracticeIndexContent />
+    </AuthGate>
   );
 }

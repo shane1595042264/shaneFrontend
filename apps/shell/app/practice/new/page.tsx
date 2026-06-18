@@ -3,18 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { AuthGate } from "@/components/auth-gate";
 import {
   previewSession,
   createSessionFromGenerator,
   listPracticeableItems,
   type PracticeableItem,
 } from "@/lib/api/practice";
-import { LoginButton } from "@/components/login-button";
 
-export default function NewSessionPage() {
+function NewSessionContent() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
   const [n, setN] = useState(5);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [includeSolidified, setIncludeSolidified] = useState(false);
@@ -26,16 +24,14 @@ export default function NewSessionPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
     let cancelled = false;
     previewSession(categoryFilter || null, n, includeSolidified)
       .then((items) => { if (!cancelled) setPreview(items); })
       .catch((e) => { if (!cancelled) setError(e.message); });
     return () => { cancelled = true; };
-  }, [user, n, categoryFilter, includeSolidified]);
+  }, [n, categoryFilter, includeSolidified]);
 
   useEffect(() => {
-    if (!user) return;
     let cancelled = false;
     // Derive options from the full corpus (includeSolidified=true) so the dropdown
     // stays stable across the "Include solidified" toggle.
@@ -46,18 +42,7 @@ export default function NewSessionPage() {
       })
       .catch(() => { if (!cancelled) setCategories([]); });
     return () => { cancelled = true; };
-  }, [user]);
-
-  if (authLoading) return <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-12">
-        <Link href="/practice" className="text-sm text-gray-500 hover:text-gray-300">← back</Link>
-        <p className="mt-6 mb-3 text-sm">Sign in to create a session.</p>
-        <LoginButton />
-      </div>
-    );
-  }
+  }, []);
 
   const start = async () => {
     setStarting(true);
@@ -155,5 +140,13 @@ export default function NewSessionPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function NewSessionPage() {
+  return (
+    <AuthGate>
+      <NewSessionContent />
+    </AuthGate>
   );
 }
