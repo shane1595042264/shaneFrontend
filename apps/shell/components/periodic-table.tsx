@@ -14,26 +14,33 @@ import {
 } from "@/lib/periodic-table-data";
 import {
   type SlotMap,
+  fetchSlotAssignments,
   resolveSlots,
   saveSlotAssignments,
 } from "@/lib/slot-assignments";
 
 interface PeriodicTableProps {
   elements: ElementConfig[];
-  initialAssignments?: SlotMap;
 }
 
-export function PeriodicTable({ elements, initialAssignments = {} }: PeriodicTableProps) {
-  const [slotMap, setSlotMap] = useState<SlotMap>(() =>
-    resolveSlots(elements, initialAssignments)
-  );
+export function PeriodicTable({ elements }: PeriodicTableProps) {
+  const [slotMap, setSlotMap] = useState<SlotMap>(() => resolveSlots(elements, {}));
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
   const [saveToast, setSaveToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  // Fetch saved assignments client-side only — they're per-user data behind requireAuth.
+  // SSR has no localStorage token, so server-side fetches were guaranteed 401.
   useEffect(() => {
-    setSlotMap(resolveSlots(elements, initialAssignments));
-  }, [elements, initialAssignments]);
+    let cancelled = false;
+    fetchSlotAssignments().then((saved) => {
+      if (cancelled) return;
+      setSlotMap(resolveSlots(elements, saved));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [elements]);
 
   const appToSlot = new Map<string, number>();
   for (const [atomic, appId] of Object.entries(slotMap)) {

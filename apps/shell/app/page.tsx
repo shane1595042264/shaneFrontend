@@ -1,5 +1,4 @@
 import { allElements } from "@/lib/element-registry";
-import { fetchSlotAssignments } from "@/lib/slot-assignments";
 import { PeriodicTable } from "@/components/periodic-table";
 
 const SITE_URL = "https://shanejli.com";
@@ -30,14 +29,7 @@ const websiteJsonLd = {
   publisher: { "@id": PERSON_ID },
 };
 
-export default async function HomePage() {
-  let initialAssignments = {};
-  try {
-    initialAssignments = await fetchSlotAssignments();
-  } catch {
-    // No saved assignments — auto-assignment will handle it
-  }
-
+export default function HomePage() {
   return (
     <>
       <script
@@ -53,7 +45,7 @@ export default async function HomePage() {
           <h1 className="text-xl sm:text-2xl md:text-4xl font-bold tracking-tight mb-1 sm:mb-2">Periodic Table of Life</h1>
           <p className="text-gray-400 text-xs sm:text-sm">Navigate the elements of Shane&apos;s digital world.</p>
         </div>
-        <PeriodicTable elements={allElements} initialAssignments={initialAssignments} />
+        <PeriodicTable elements={allElements} />
       </div>
     </>
   );
