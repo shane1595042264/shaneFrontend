@@ -3,9 +3,13 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { listMyTeaEntries, teaEntryWasEdited, type TeaEntrySummary } from "@/lib/api/tea-entries";
+import {
+  listMyTeaEntries,
+  listPublicTeaEntries,
+  teaEntryWasEdited,
+  type TeaEntrySummary,
+} from "@/lib/api/tea-entries";
 import { toPlainExcerpt } from "@/lib/journal-text";
-import { LoginButton } from "@/components/login-button";
 import {
   getTodayInTimezone,
   monthLongLabel,
@@ -43,15 +47,22 @@ export default function TeaEntriesIndexPage() {
   const viewerTz = useMemo(() => resolveViewerTimezone(user), [user]);
   const today = useMemo(() => getTodayInTimezone(viewerTz), [viewerTz]);
 
+  // Signed-in author sees their own authored list (with edit/delete affordances
+  // wired into the read page). Everyone else — unauth viewers and signed-in
+  // non-authors — sees the public teaser feed. The detail page enforces the
+  // per-entry PIN gate regardless of which list got them there.
+  const isAuthor = !!user;
+
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      setEntries([]);
-      return;
-    }
-    listMyTeaEntries()
+    setEntries(null);
+    setError(null);
+    const fetcher = user ? listMyTeaEntries() : listPublicTeaEntries();
+    fetcher
       .then((r) => setEntries(r.entries))
-      .catch(() => setError("Could not load your tea entries."));
+      .catch(() =>
+        setError(user ? "Could not load your tea entries." : "Could not load tea entries."),
+      );
   }, [authLoading, user]);
 
   const filtered = useMemo(() => {
@@ -86,34 +97,26 @@ export default function TeaEntriesIndexPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
-        <Link href="/journal" className="text-gray-500 hover:text-gray-300">← back to journal</Link>
-        <p className="mt-4">Sign in to see your tea entries.</p>
-        <div className="mt-3">
-          <LoginButton />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <Link href="/journal" className="text-sm text-gray-500 hover:text-gray-300">← back to journal</Link>
       <header className="mt-4 mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <span aria-hidden>🍵</span> My tea entries
+          <span aria-hidden>🍵</span> {isAuthor ? "My tea entries" : "Tea"}
         </h1>
-        <Link
-          href="/journal/tea/new"
-          className="ml-auto inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
-        >
-          New tea entry
-        </Link>
+        {isAuthor && (
+          <Link
+            href="/journal/tea/new"
+            className="ml-auto inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
+          >
+            New tea entry
+          </Link>
+        )}
       </header>
       <p className="mb-6 text-sm text-gray-400">
-        Private posts protected by a 4-digit PIN. Only you see this list.
+        {isAuthor
+          ? "Private posts protected by a 4-digit PIN. Only you see this list."
+          : "Public teasers — open an entry and enter the 4-digit PIN to read the full post."}
       </p>
 
       {entries !== null && entries.length > 0 && (
@@ -122,7 +125,7 @@ export default function TeaEntriesIndexPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search your tea entries"
+            placeholder="Search tea entries"
             aria-label="Search tea entries"
             className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-white/30 focus:outline-none"
           />

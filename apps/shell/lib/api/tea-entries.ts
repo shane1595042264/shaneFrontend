@@ -80,6 +80,15 @@ export async function listMyTeaEntries(): Promise<{ entries: TeaEntrySummary[] }
   return res.json();
 }
 
+// Public teaser feed — every tea entry's title + excerpt + timestamps, no
+// auth headers attached so the response is cacheable. Detail clicks still
+// pass through the PIN gate.
+export async function listPublicTeaEntries(): Promise<{ entries: TeaEntrySummary[] }> {
+  const res = await fetch(`${API_URL}/api/tea-entries/public`);
+  if (!res.ok) throw new Error("Failed to list public tea entries");
+  return res.json();
+}
+
 export async function getTeaEntry(id: string, pin?: string): Promise<TeaEntryResponse> {
   const headers: Record<string, string> = { ...getAuthHeaders() };
   if (pin) headers["X-Tea-Pin"] = pin;
