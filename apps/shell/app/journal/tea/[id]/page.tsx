@@ -15,6 +15,41 @@ import {
   type TeaEntryResponse,
 } from "@/lib/api/tea-entries";
 
+// localStorage key for the last successfully-used PIN per author. Lets a
+// viewer who unlocks one entry under Shane's universal PIN (or who reuses
+// the same per-entry PIN) skip the gate on subsequent reads of that author's
+// entries (SHAN-320). Tied to author so a friend with multiple authors'
+// PINs doesn't get them confused.
+const lastGoodPinKey = (authorId: string) => `tea-pin-last-good-${authorId}`;
+
+function readCachedPin(authorId: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem(lastGoodPinKey(authorId));
+    return v && /^\d{4}$/.test(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedPin(authorId: string, pin: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(lastGoodPinKey(authorId), pin);
+  } catch {
+    /* quota or denied — silently ignore; the auto-retry just won't fire next time */
+  }
+}
+
+function clearCachedPin(authorId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(lastGoodPinKey(authorId));
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function TeaEntryReadPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -29,24 +64,49 @@ export default function TeaEntryReadPage() {
   const [busy, setBusy] = useState(false);
   const [rateLimitedUntilMs, setRateLimitedUntilMs] = useState<number | null>(null);
   const [remainingSec, setRemainingSec] = useState(0);
+  // Author of the locked entry, surfaced from the 401 response. We don't
+  // know it before the first request because the URL only carries the entry
+  // id, so localStorage auto-retry is staged after the initial 401.
+  const [lockedAuthorId, setLockedAuthorId] = useState<string | null>(null);
+  const [autoRetryAttempted, setAutoRetryAttempted] = useState(false);
 
   // First load: try without a PIN. If the viewer is the author, the API
   // returns the full payload (including the PIN). Otherwise the API responds
-  // 401 PIN-required and we show the gate.
+  // 401 PIN-required (with the author's id) and we either auto-retry with
+  // a cached per-author PIN or show the gate.
+  //
+  // `fromCacheAuthor` carries the authorId for cache-clear on an incorrect
+  // cached PIN. Passed in via parameter (not closed over from state) so the
+  // callback identity stays stable across renders — otherwise the load+
+  // useEffect pair would loop on every state update inside load.
   const load = useCallback(
-    async (pin?: string) => {
+    async (pin?: string, fromCacheAuthor?: string) => {
       setPinError(null);
       try {
         const r = await getTeaEntry(params.id, pin);
         setData(r);
         setNeedsPin(false);
         setNotFound(false);
+        // Successful unlock with a non-empty pin caches it under the
+        // author. Author hits (no pin sent) skip this — there's nothing
+        // to cache and the author doesn't need their own gate bypass.
+        if (pin && !r.isAuthor) {
+          writeCachedPin(r.entry.authorId, pin);
+        }
       } catch (err) {
         if (err instanceof TeaPinRequiredError) {
+          if (err.authorId) setLockedAuthorId(err.authorId);
           setNeedsPin(true);
         } else if (err instanceof TeaPinIncorrectError) {
           setNeedsPin(true);
-          setPinError("Incorrect PIN.");
+          if (fromCacheAuthor) {
+            // Cached PIN no longer works (universal PIN rotated, per-entry
+            // changed). Drop it so we don't keep trying the same dead PIN.
+            clearCachedPin(fromCacheAuthor);
+            setPinError(null);
+          } else {
+            setPinError("Incorrect PIN.");
+          }
         } else if (err instanceof TeaPinRateLimitedError) {
           setNeedsPin(true);
           setPinInput("");
@@ -68,8 +128,25 @@ export default function TeaEntryReadPage() {
   useEffect(() => {
     if (authLoading) return;
     setLoading(true);
+    setAutoRetryAttempted(false);
+    setLockedAuthorId(null);
     load();
   }, [authLoading, load]);
+
+  // After the first request lands on the gate (401 → needsPin + lockedAuthorId
+  // populated), try a cached per-author PIN exactly once. A failure here
+  // wipes the cache; a success skips the gate entirely.
+  useEffect(() => {
+    if (!needsPin || autoRetryAttempted || !lockedAuthorId) return;
+    const cached = readCachedPin(lockedAuthorId);
+    if (!cached) {
+      setAutoRetryAttempted(true);
+      return;
+    }
+    setAutoRetryAttempted(true);
+    setLoading(true);
+    load(cached, lockedAuthorId);
+  }, [needsPin, autoRetryAttempted, lockedAuthorId, load]);
 
   useEffect(() => {
     if (rateLimitedUntilMs === null) return;
@@ -135,7 +212,8 @@ export default function TeaEntryReadPage() {
           <span aria-hidden>🍵</span> Tea entry — locked
         </h1>
         <p className="mt-2 text-sm text-gray-400">
-          Enter the 4-digit PIN to read.
+          Enter the 4-digit PIN to read. Once unlocked, you won&apos;t be
+          re-prompted for other entries by the same author.
         </p>
         <form onSubmit={submitPin} className="mt-6 flex items-center gap-2">
           <input

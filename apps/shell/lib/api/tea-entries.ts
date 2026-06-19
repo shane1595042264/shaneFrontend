@@ -29,9 +29,16 @@ export interface TeaEntryResponse {
 }
 
 export class TeaPinRequiredError extends Error {
-  constructor() {
+  /**
+   * Author of the locked entry. The detail page uses this to look up a cached
+   * per-author PIN in localStorage and auto-retry without prompting (SHAN-320).
+   * Optional because older API responses may not include it.
+   */
+  readonly authorId?: string;
+  constructor(authorId?: string) {
     super("TEA_PIN_REQUIRED");
     this.name = "TeaPinRequiredError";
+    this.authorId = authorId;
   }
 }
 
@@ -93,7 +100,10 @@ export async function getTeaEntry(id: string, pin?: string): Promise<TeaEntryRes
   const headers: Record<string, string> = { ...getAuthHeaders() };
   if (pin) headers["X-Tea-Pin"] = pin;
   const res = await fetch(`${API_URL}/api/tea-entries/${id}`, { headers });
-  if (res.status === 401) throw new TeaPinRequiredError();
+  if (res.status === 401) {
+    const body = await res.json().catch(() => ({}));
+    throw new TeaPinRequiredError(typeof body?.authorId === "string" ? body.authorId : undefined);
+  }
   if (res.status === 403) throw new TeaPinIncorrectError();
   if (res.status === 429) {
     const header = res.headers.get("Retry-After");

@@ -9,6 +9,7 @@ import {
   teaEntryWasEdited,
   type TeaEntrySummary,
 } from "@/lib/api/tea-entries";
+import { UniversalTeaPinCard } from "@/components/journal/universal-tea-pin-card";
 import { toPlainExcerpt } from "@/lib/journal-text";
 import {
   getTodayInTimezone,
@@ -118,6 +119,8 @@ export default function TeaEntriesIndexPage() {
           ? "Private posts protected by a 4-digit PIN. Only you see this list."
           : "Public teasers — open an entry and enter the 4-digit PIN to read the full post."}
       </p>
+
+      {isAuthor && <UniversalTeaPinCard className="mb-6" />}
 
       {entries !== null && entries.length > 0 && (
         <div className="mb-4">
