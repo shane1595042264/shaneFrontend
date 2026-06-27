@@ -7,12 +7,13 @@ import {
   fetchLanguages,
   fetchCategories,
   submitNote,
+  createEntry,
   deleteEntry,
   bulkDeleteEntries,
   type KnowledgeEntry,
 } from "@/lib/knowledge-api";
 import { useAuth } from "@/lib/auth-context";
-import { NoteInput } from "@/components/knowledge/note-input";
+import { NoteInput, type QuickAddInput } from "@/components/knowledge/note-input";
 import { CategoryTabs } from "@/components/knowledge/category-tabs";
 import { EntryCard } from "@/components/knowledge/entry-card";
 import { EntryDetail } from "@/components/knowledge/entry-detail";
@@ -203,6 +204,29 @@ export default function KnowledgePage() {
     }
   }
 
+  async function handleQuickAdd(input: QuickAddInput) {
+    setAdding(true);
+    try {
+      const entry = await createEntry({
+        word: input.word,
+        language: input.language,
+        category: input.category,
+        // Only send a definition if the user typed one — an empty string would
+        // overwrite nothing, but keeping it undefined is cleaner.
+        definition: input.definition || undefined,
+        // The whole point of quick-add: never run the text through AI.
+        autoEnrich: false,
+      });
+      await loadEntries();
+      refreshMeta();
+      showNotification(`Added "${entry.word}" to ${entry.category}`, "success");
+    } catch (err: any) {
+      showNotification(err.message || "Failed to add card", "error");
+    } finally {
+      setAdding(false);
+    }
+  }
+
   async function handleDeleteEntry(id: string) {
     setDeletingId(id);
     try {
@@ -272,7 +296,12 @@ export default function KnowledgePage() {
         </div>
       )}
 
-      <NoteInput onSubmit={handleSubmitNote} loading={adding} />
+      <NoteInput
+        onSubmit={handleSubmitNote}
+        onQuickAdd={handleQuickAdd}
+        loading={adding}
+        categories={categories}
+      />
 
       <div className="flex flex-wrap items-center gap-4">
         <CategoryTabs
