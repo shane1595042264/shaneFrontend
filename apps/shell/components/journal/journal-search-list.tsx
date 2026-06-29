@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toPlainExcerpt } from "@/lib/journal-text";
 import { useAuth } from "@/lib/auth-context";
+import { listEntries as apiListEntries, type JournalEntry as ApiJournalEntry } from "@/lib/api/journal";
 import {
   getTodayInTimezone,
   monthLongLabel,
@@ -97,6 +98,56 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
   const trimmed = deferredQuery.trim();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // The client-side haystack only sees contentExcerpt, which the backend caps at
+  // the first 500 chars of (body + appends). So a keyword buried deeper in a long
+  // entry won't match locally. We additionally run the backend full-text q search
+  // (SHAN-329 — ILIKE over the entire current body AND every append) and union its
+  // matches in. serverMatches is keyed to the query that produced it; null means
+  // "no server result yet for the current query".
+  const [serverMatches, setServerMatches] = useState<ApiJournalEntry[] | null>(null);
+  const [serverSearching, setServerSearching] = useState(false);
+
+  useEffect(() => {
+    if (!trimmed) {
+      setServerMatches(null);
+      setServerSearching(false);
+      return;
+    }
+    const controller = new AbortController();
+    let cancelled = false;
+    setServerSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const acc: ApiJournalEntry[] = [];
+        let cursor: string | undefined;
+        // Drain cursor pages so deep matches past the first 100 rows still surface.
+        while (acc.length < 5000) {
+          const page = await apiListEntries(
+            { q: trimmed, limit: 100, cursor },
+            { signal: controller.signal }
+          );
+          acc.push(...page.entries);
+          if (!page.nextCursor) break;
+          cursor = page.nextCursor;
+        }
+        if (!cancelled) {
+          setServerMatches(acc);
+          setServerSearching(false);
+        }
+      } catch (err) {
+        // Aborted (stale query) — a newer effect owns the spinner now, so leave it.
+        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) return;
+        // Real failure: fall back to client-only results, just stop the spinner.
+        setServerSearching(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [trimmed]);
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
@@ -131,7 +182,7 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
   const filtered = useMemo(() => {
     if (!trimmed) return entries;
     const needle = trimmed.toLowerCase();
-    return entries.filter((e) => {
+    const clientMatched = entries.filter((e) => {
       // Haystack mirrors what the row renders, so what the eye sees is searchable.
       const haystack = [
         e.date,
@@ -144,7 +195,18 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
       ].join(" ");
       return haystack.includes(needle);
     });
-  }, [entries, searchCorpus, today, trimmed]);
+    if (!serverMatches) return clientMatched;
+    // Union in backend full-text matches (deep content the 500-char excerpt missed).
+    // Prefer the already-loaded entry object so excerpts/labels stay identical; fall
+    // back to the server object only for rows past the index's 5000-entry load cap.
+    const byId = new Map(clientMatched.map((e) => [e.id, e]));
+    const localById = new Map(entries.map((e) => [e.id, e]));
+    for (const s of serverMatches) {
+      if (byId.has(s.id)) continue;
+      byId.set(s.id, localById.get(s.id) ?? (s as unknown as JournalEntry));
+    }
+    return [...byId.values()].sort((a, b) => b.date.localeCompare(a.date));
+  }, [entries, searchCorpus, today, trimmed, serverMatches]);
 
   const grouped = useMemo(() => groupByYear(filtered), [filtered]);
   const isFiltering = trimmed.length > 0;
@@ -225,13 +287,18 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
           <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
             Showing {filtered.length} of {entries.length}{" "}
             {entries.length === 1 ? "entry" : "entries"}
+            {serverSearching && " · searching full text…"}
           </p>
         )}
       </div>
 
       {filtered.length === 0 && !showTodayPlaceholder ? (
         <p className="text-sm text-muted-foreground">
-          {isFiltering ? "No entries match your search." : "No entries yet."}
+          {isFiltering
+            ? serverSearching
+              ? "Searching…"
+              : "No entries match your search."
+            : "No entries yet."}
         </p>
       ) : (
         <div className="space-y-10">

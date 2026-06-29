@@ -60,10 +60,13 @@ export interface JournalVersion {
   createdAt: string;
 }
 
-export async function listEntries(opts: { from?: string; to?: string; limit?: number; cursor?: string } = {}) {
+export async function listEntries(
+  opts: { from?: string; to?: string; q?: string; limit?: number; cursor?: string } = {},
+  init?: RequestInit
+) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(opts)) if (v !== undefined) qs.set(k, String(v));
-  const res = await fetch(`${API_URL}/api/journal/entries?${qs}`);
+  const res = await fetch(`${API_URL}/api/journal/entries?${qs}`, init);
   if (!res.ok) throw new Error("Failed to list entries");
   return (await res.json()) as { entries: JournalEntry[]; nextCursor: string | null };
 }
