@@ -49,9 +49,12 @@ export function toPlainExcerpt(content: string, maxLen: number, ellipsis = "..."
 }
 
 export function countWords(text: string): number {
-  const trimmed = stripDataMarkers(text).trim();
-  if (!trimmed) return 0;
-  return trimmed.split(/\s+/).length;
+  // Strip markdown the same way toPlainExcerpt does so control tokens (list
+  // markers, heading hashes, blockquote markers, code fences, image/link URLs)
+  // don't get counted as words and inflate reading time.
+  const plain = stripMarkdown(stripDataMarkers(text ?? "")).trim();
+  if (!plain) return 0;
+  return plain.split(/\s+/).length;
 }
 
 export function readingTimeMinutes(text: string, wpm = 225): number {
