@@ -197,13 +197,22 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
     });
     if (!serverMatches) return clientMatched;
     // Union in backend full-text matches (deep content the 500-char excerpt missed).
-    // Prefer the already-loaded entry object so excerpts/labels stay identical; fall
-    // back to the server object only for rows past the index's 5000-entry load cap.
+    // Keep the already-loaded entry object for stable metadata/labels, but adopt the
+    // server object's match-centered contentExcerpt (SHAN-331): the local excerpt is
+    // only the generic first 500 chars, so for a deep match it wouldn't contain the
+    // matched term and highlightMatches would show nothing. Fall back entirely to the
+    // server object for rows past the index's 5000-entry load cap.
     const byId = new Map(clientMatched.map((e) => [e.id, e]));
     const localById = new Map(entries.map((e) => [e.id, e]));
     for (const s of serverMatches) {
       if (byId.has(s.id)) continue;
-      byId.set(s.id, localById.get(s.id) ?? (s as unknown as JournalEntry));
+      const local = localById.get(s.id);
+      byId.set(
+        s.id,
+        local
+          ? { ...local, contentExcerpt: s.contentExcerpt ?? local.contentExcerpt }
+          : (s as unknown as JournalEntry)
+      );
     }
     return [...byId.values()].sort((a, b) => b.date.localeCompare(a.date));
   }, [entries, searchCorpus, today, trimmed, serverMatches]);
