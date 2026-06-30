@@ -3,9 +3,9 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { AuthGate } from "@/components/auth-gate";
 import {
   listMyTeaEntries,
-  listPublicTeaEntries,
   teaEntryWasEdited,
   type TeaEntrySummary,
 } from "@/lib/api/tea-entries";
@@ -39,8 +39,20 @@ function getEntryDate(iso: string, timezone: string): string {
   }
 }
 
+// Tea entries are private personal posts. The index is author-only — gated
+// behind AuthGate so logged-out viewers get a sign-in prompt, never a list.
+// There is no public teaser feed (SHAN-334): sharing happens via a direct
+// entry link + the per-entry PIN enforced on the detail page.
 export default function TeaEntriesIndexPage() {
-  const { user, loading: authLoading } = useAuth();
+  return (
+    <AuthGate>
+      <TeaEntriesIndexContent />
+    </AuthGate>
+  );
+}
+
+function TeaEntriesIndexContent() {
+  const { user } = useAuth();
   const [entries, setEntries] = useState<TeaEntrySummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -48,23 +60,13 @@ export default function TeaEntriesIndexPage() {
   const viewerTz = useMemo(() => resolveViewerTimezone(user), [user]);
   const today = useMemo(() => getTodayInTimezone(viewerTz), [viewerTz]);
 
-  // Signed-in author sees their own authored list (with edit/delete affordances
-  // wired into the read page). Everyone else — unauth viewers and signed-in
-  // non-authors — sees the public teaser feed. The detail page enforces the
-  // per-entry PIN gate regardless of which list got them there.
-  const isAuthor = !!user;
-
   useEffect(() => {
-    if (authLoading) return;
     setEntries(null);
     setError(null);
-    const fetcher = user ? listMyTeaEntries() : listPublicTeaEntries();
-    fetcher
+    listMyTeaEntries()
       .then((r) => setEntries(r.entries))
-      .catch(() =>
-        setError(user ? "Could not load your tea entries." : "Could not load tea entries."),
-      );
-  }, [authLoading, user]);
+      .catch(() => setError("Could not load your tea entries."));
+  }, [user]);
 
   const filtered = useMemo(() => {
     if (entries === null) return null;
@@ -89,38 +91,25 @@ export default function TeaEntriesIndexPage() {
 
   const isFiltering = deferredQuery.trim().length > 0;
 
-  if (authLoading) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-12" aria-busy>
-        <div className="h-3 w-28 rounded bg-white/8 animate-pulse" />
-        <div className="mt-3 h-7 w-44 rounded bg-white/8 animate-pulse" />
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <Link href="/journal" className="text-sm text-gray-500 hover:text-gray-300">← back to journal</Link>
       <header className="mt-4 mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <span aria-hidden>🍵</span> {isAuthor ? "My tea entries" : "Tea"}
+          <span aria-hidden>🍵</span> My tea entries
         </h1>
-        {isAuthor && (
-          <Link
-            href="/journal/tea/new"
-            className="ml-auto inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
-          >
-            New tea entry
-          </Link>
-        )}
+        <Link
+          href="/journal/tea/new"
+          className="ml-auto inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
+        >
+          New tea entry
+        </Link>
       </header>
       <p className="mb-6 text-sm text-gray-400">
-        {isAuthor
-          ? "Private posts protected by a 4-digit PIN. Only you see this list."
-          : "Public teasers — open an entry and enter the 4-digit PIN to read the full post."}
+        Private posts protected by a 4-digit PIN. Only you see this list.
       </p>
 
-      {isAuthor && <UniversalTeaPinCard className="mb-6" />}
+      <UniversalTeaPinCard className="mb-6" />
 
       {entries !== null && entries.length > 0 && (
         <div className="mb-4">
