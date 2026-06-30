@@ -18,29 +18,31 @@ function liveInternalRoutes(): InternalElement[] {
 }
 
 async function fetchAllJournalDates(): Promise<JournalRow[]> {
+  const PAGE_SIZE = 100;
+  const rows: JournalRow[] = [];
+  let cursor: string | null | undefined;
   try {
-    const PAGE_SIZE = 100;
-    const rows: JournalRow[] = [];
-    let offset = 0;
-    let total = Infinity;
-    while (offset < total) {
-      const res = await fetch(
-        `${JOURNAL_API_URL}/api/journal/entries?limit=${PAGE_SIZE}&offset=${offset}`,
-        { next: { revalidate: 3600 } }
-      );
+    // Drain pages via the backend's cursor pagination (cursor -> nextCursor).
+    // The endpoint has no offset/total contract; the safety cap mirrors
+    // fetchAllEntries() in app/journal/page.tsx.
+    while (rows.length < 5000) {
+      const qs = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (cursor) qs.set("cursor", cursor);
+      const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries?${qs}`, {
+        next: { revalidate: 3600 },
+      });
       if (!res.ok) return rows;
       const data = (await res.json()) as {
         entries: { date: string; updatedAt: string | null }[];
-        total: number;
+        nextCursor: string | null;
       };
-      total = data.total;
       rows.push(...data.entries.map((e) => ({ date: e.date, updatedAt: e.updatedAt })));
-      if (data.entries.length === 0) break;
-      offset += data.entries.length;
+      if (data.entries.length === 0 || !data.nextCursor) break;
+      cursor = data.nextCursor;
     }
     return rows;
   } catch {
-    return [];
+    return rows;
   }
 }
 
