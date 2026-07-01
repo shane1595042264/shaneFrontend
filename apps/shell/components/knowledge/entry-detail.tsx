@@ -48,6 +48,7 @@ export function EntryDetail({
   const [connectType, setConnectType] = useState<string>("related");
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [editWord, setEditWord] = useState("");
   const [editDefinition, setEditDefinition] = useState("");
   const [editExample, setEditExample] = useState("");
   const [saving, setSaving] = useState(false);
@@ -90,6 +91,7 @@ export function EntryDetail({
 
   function startEdit() {
     if (!entry) return;
+    setEditWord(entry.word);
     setEditDefinition(entry.definition ?? "");
     setEditExample(entry.exampleSentence ?? "");
     setError(null);
@@ -103,10 +105,16 @@ export function EntryDetail({
 
   async function saveEdit() {
     if (!entry || saving) return;
+    const trimmedWord = editWord.trim();
+    if (!trimmedWord) {
+      setError("Title cannot be empty.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       const updated = await updateEntry(entryId, {
+        word: trimmedWord,
         definition: editDefinition,
         exampleSentence: editExample,
       });
@@ -265,6 +273,18 @@ export function EntryDetail({
 
         {editing ? (
           <div className="mb-4 space-y-3">
+            <div>
+              <label className="text-xs text-gray-500 uppercase mb-1 block">
+                Title
+              </label>
+              <input
+                type="text"
+                value={editWord}
+                onChange={(e) => setEditWord(e.target.value)}
+                placeholder="Title"
+                className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:border-white/20"
+              />
+            </div>
             <div>
               <label className="text-xs text-gray-500 uppercase mb-1 block">
                 Definition
