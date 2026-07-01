@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toPlainExcerpt } from "@/lib/journal-text";
 import { useAuth } from "@/lib/auth-context";
@@ -74,6 +74,12 @@ interface Props {
   entries: JournalEntry[];
   /** Server-side guess used until the client mounts (avoids hydration mismatch). */
   today: string;
+  /**
+   * True when the ISR seed fetch on the server failed (backend blip during a cold
+   * cache). The list is then likely empty not because there are no entries, but
+   * because we couldn't load them — so the client self-heals with a fresh fetch.
+   */
+  initialLoadFailed?: boolean;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -83,8 +89,46 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return target.isContentEditable;
 }
 
-export function JournalSearchList({ entries, today: ssrToday }: Props) {
+export function JournalSearchList({ entries: seedEntries, today: ssrToday, initialLoadFailed = false }: Props) {
   const { user } = useAuth();
+
+  // Self-heal: when the server-side seed failed (initialLoadFailed) the seed list
+  // is unreliable, so re-fetch fresh entries on the client. This bypasses the stale
+  // ISR snapshot that would otherwise show an empty/failed page for the full 300s
+  // revalidate window, and recovers the moment the backend is healthy again.
+  const [recovered, setRecovered] = useState<JournalEntry[] | null>(null);
+  const [recoveryState, setRecoveryState] = useState<"idle" | "loading" | "failed">(
+    initialLoadFailed && seedEntries.length === 0 ? "loading" : "idle"
+  );
+
+  const runRecovery = useCallback(async () => {
+    setRecoveryState("loading");
+    try {
+      const acc: JournalEntry[] = [];
+      let cursor: string | undefined;
+      while (acc.length < 5000) {
+        const page = await apiListEntries({ limit: 100, cursor });
+        acc.push(...(page.entries as unknown as JournalEntry[]));
+        if (!page.nextCursor) break;
+        cursor = page.nextCursor;
+      }
+      setRecovered(acc);
+      setRecoveryState("idle");
+    } catch {
+      setRecoveryState("failed");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialLoadFailed && seedEntries.length === 0) {
+      void runRecovery();
+    }
+    // Only fire off the initial seed state; retries go through the button.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Everything downstream reads the recovered list once it lands, else the seed.
+  const entries = recovered ?? seedEntries;
   // Use SSR today on first paint, then swap to the viewer's TZ once auth-context
   // resolves. Avoids a hydration mismatch warning while still respecting per-user TZ.
   const viewerTz = useMemo(() => resolveViewerTimezone(user), [user]);
@@ -225,8 +269,9 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
   );
   const todayYear = today.slice(0, 4);
   // Surface the today-placeholder row only on the unfiltered list, so search
-  // results stay strictly about matches.
-  const showTodayPlaceholder = !isFiltering && !todayHasEntry;
+  // results stay strictly about matches. Suppress it while recovering/failed so
+  // "be the first to write" doesn't masquerade for entries we simply couldn't load.
+  const showTodayPlaceholder = !isFiltering && !todayHasEntry && recoveryState === "idle";
 
   return (
     <div>
@@ -302,13 +347,32 @@ export function JournalSearchList({ entries, today: ssrToday }: Props) {
       </div>
 
       {filtered.length === 0 && !showTodayPlaceholder ? (
-        <p className="text-sm text-muted-foreground">
-          {isFiltering
-            ? serverSearching
-              ? "Searching…"
-              : "No entries match your search."
-            : "No entries yet."}
-        </p>
+        !isFiltering && recoveryState === "loading" ? (
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            Loading entries…
+          </p>
+        ) : !isFiltering && recoveryState === "failed" ? (
+          <div className="rounded-md border border-white/10 bg-white/[0.03] p-4" aria-live="polite">
+            <p className="text-sm text-muted-foreground">
+              Couldn&apos;t load entries right now — the server may be briefly unavailable.
+            </p>
+            <button
+              type="button"
+              onClick={() => void runRecovery()}
+              className="mt-3 inline-flex min-h-9 items-center rounded-md border border-white/15 px-3 text-sm font-medium hover:bg-white/10"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {isFiltering
+              ? serverSearching
+                ? "Searching…"
+                : "No entries match your search."
+              : "No entries yet."}
+          </p>
+        )
       ) : (
         <div className="space-y-10">
           {(() => {

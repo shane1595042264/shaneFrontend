@@ -40,18 +40,27 @@ async function fetchPage(cursor?: string | null): Promise<ListResponse> {
   return res.json();
 }
 
-async function fetchAllEntries(): Promise<JournalEntry[]> {
+// Never throw: a throw here fails the ISR render, which on a COLD cache (e.g. a
+// fresh Vercel deploy racing a mid-redeploy Railway backend) surfaces as a raw
+// 500 to the reader. Instead return whatever we drained plus a loadFailed flag,
+// so the page always renders and the client can self-heal (see JournalSearchList).
+async function fetchAllEntries(): Promise<{ entries: JournalEntry[]; loadFailed: boolean }> {
   const all: JournalEntry[] = [];
   let cursor: string | null | undefined;
-  // Drain pages until nextCursor is null or we've already pulled too many (safety cap).
-  while (all.length < 5000) {
-    const page = await fetchPage(cursor ?? undefined);
-    if (page.entries.length === 0) break;
-    all.push(...page.entries);
-    if (!page.nextCursor) break;
-    cursor = page.nextCursor;
+  try {
+    // Drain pages until nextCursor is null or we've already pulled too many (safety cap).
+    while (all.length < 5000) {
+      const page = await fetchPage(cursor ?? undefined);
+      if (page.entries.length === 0) break;
+      all.push(...page.entries);
+      if (!page.nextCursor) break;
+      cursor = page.nextCursor;
+    }
+    return { entries: all, loadFailed: false };
+  } catch (err) {
+    console.warn("[journal] index seed fetch failed; rendering with client recovery", err);
+    return { entries: all, loadFailed: true };
   }
-  return all;
 }
 
 // Server-rendered ISR seed for "today". The client component rehydrates
@@ -68,7 +77,7 @@ function getTodayChicago(): string {
 }
 
 export default async function JournalPage() {
-  const entries = await fetchAllEntries();
+  const { entries, loadFailed } = await fetchAllEntries();
   const today = getTodayChicago();
 
   return (
@@ -82,7 +91,7 @@ export default async function JournalPage() {
 
       <JournalIndexHeader />
 
-      <JournalSearchList entries={entries} today={today} />
+      <JournalSearchList entries={entries} today={today} initialLoadFailed={loadFailed} />
     </div>
   );
 }
