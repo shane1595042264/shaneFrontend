@@ -212,6 +212,7 @@ export async function bulkDeleteEntries(ids: string[]): Promise<BulkDeleteResult
 export async function enrichEntryApi(id: string): Promise<KnowledgeEntry> {
   const res = await fetch(`${API_URL}/api/knowledge/entries/${id}/enrich`, {
     method: "POST",
+    headers: { ...getAuthHeaders() },
   });
   if (!res.ok) throw new Error("Failed to enrich entry");
   const data = await res.json();
@@ -226,7 +227,7 @@ export async function createConnection(input: {
 }): Promise<KnowledgeConnection> {
   const res = await fetch(`${API_URL}/api/knowledge/connections`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(input),
   });
   if (!res.ok) {
@@ -240,6 +241,7 @@ export async function createConnection(input: {
 export async function deleteConnection(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/knowledge/connections/${id}`, {
     method: "DELETE",
+    headers: { ...getAuthHeaders() },
   });
   if (!res.ok) throw new Error("Failed to delete connection");
 }
