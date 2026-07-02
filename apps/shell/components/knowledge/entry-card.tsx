@@ -130,6 +130,14 @@ export function EntryCard({
             {entry.partOfSpeech}
           </span>
         )}
+        {entry.longTermMemorized && (
+          <span
+            className="text-xs px-1.5 py-0.5 border border-emerald-500/30 rounded text-emerald-400"
+            title="Practiced at 7+ locations — long-term memorized"
+          >
+            🧠 Long-term memorized
+          </span>
+        )}
       </div>
 
       {entry.definition && (

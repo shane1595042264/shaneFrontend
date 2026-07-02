@@ -22,10 +22,17 @@ export interface KnowledgeEntry {
   labels: string[];
   aiMetadata: Record<string, unknown> | null;
   source: KnowledgeEntrySource | null;
+  // Location-memorization technique (SHAN-339): distinct places this card has been
+  // practiced. Once 7 are marked, longTermMemorized flips true (derived server-side).
+  memorizationLocations: string[];
+  longTermMemorized: boolean;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+/** Distinct locations required before a knowledge card is long-term memorized. */
+export const LONG_TERM_THRESHOLD = 7;
 
 export interface KnowledgeConnection {
   id: string;
@@ -156,6 +163,7 @@ export async function updateEntry(
     partOfSpeech?: string;
     exampleSentence?: string;
     labels?: string[];
+    memorizationLocations?: string[];
   }
 ): Promise<KnowledgeEntry> {
   const res = await fetch(`${API_URL}/api/knowledge/entries/${id}`, {

@@ -15,6 +15,7 @@ import {
 import { uploadImage } from "@/lib/api/images";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { KnowledgeCommentsThread } from "./comments-thread";
+import { MemorizationLocations } from "./memorization-locations";
 
 interface EntryDetailProps {
   entryId: string;
@@ -371,6 +372,18 @@ export function EntryDetail({
             )}
 
             <EntrySource source={entry.source} />
+
+            <MemorizationLocations
+              entry={entry}
+              canEdit={
+                !!currentUserId &&
+                (entry.createdBy === null || entry.createdBy === currentUserId)
+              }
+              onUpdated={(updated) => {
+                setEntry(updated);
+                onEntryUpdated();
+              }}
+            />
 
             <div className="mb-6 flex flex-wrap items-center gap-2">
               {/* Mirrors backend ownership rule in PUT /api/knowledge/entries/:id
