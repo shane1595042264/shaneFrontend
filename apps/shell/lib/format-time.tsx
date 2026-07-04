@@ -37,8 +37,20 @@ interface RelativeTimeProps {
 }
 
 export function RelativeTime({ iso, className }: RelativeTimeProps) {
+  // formatRelativeTime ("2d ago") and formatAbsoluteTime (toLocaleString) both
+  // derive from Date.now()/the local timezone, so the value computed during SSR
+  // can differ from the client's first render — e.g. crossing a "just now" → "1m
+  // ago" boundary, or a different server vs browser timezone. That surfaces as
+  // React #418 (text content does not match server-rendered HTML). These drifts
+  // are inherent to timestamps and cosmetically harmless, so suppress the
+  // hydration warning on this node rather than block hydration over it.
   return (
-    <time dateTime={iso} title={formatAbsoluteTime(iso)} className={className}>
+    <time
+      dateTime={iso}
+      title={formatAbsoluteTime(iso)}
+      className={className}
+      suppressHydrationWarning
+    >
       {formatRelativeTime(iso)}
     </time>
   );
