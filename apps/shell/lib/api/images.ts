@@ -55,8 +55,11 @@ export async function uploadImage(file: Blob, filename = "image"): Promise<Uploa
       const raw = res.headers.get("Retry-After");
       const parsed = raw ? parseInt(raw, 10) : NaN;
       const retryAfterSec = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-      // Drop the server's vague trailing "Try again later." so we don't double up.
-      const base = String(err.error || "Upload quota exceeded").replace(/\s*Try again later\.?\s*$/i, "");
+      // Drop the server's vague trailing "Try again later." plus any leftover
+      // sentence period/space so we don't emit a doubled ".. " before our clause.
+      const base = String(err.error || "Upload quota exceeded")
+        .replace(/\s*Try again later\.?\s*$/i, "")
+        .replace(/[.\s]+$/, "");
       const message = retryAfterSec > 0
         ? `${base}. Try again in ${formatRetryAfter(retryAfterSec)}.`
         : `${base}. Try again later.`;
