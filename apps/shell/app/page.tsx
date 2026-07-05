@@ -16,6 +16,17 @@ const personJsonLd = {
   "@id": PERSON_ID,
   name: "Shane Li",
   url: SITE_URL,
+  // sameAs links the on-site Person entity to Shane's canonical profiles so
+  // search engines can consolidate identity signals (Knowledge Panel
+  // eligibility, disambiguation). These are the personal-profile external
+  // elements already surfaced on the homepage via element-registry.ts;
+  // nibbook.com is a product, not a personal identity, so it is excluded.
+  sameAs: [
+    "https://github.com/shane1595042264",
+    "https://www.linkedin.com/in/shane-juntao-li/",
+    "https://www.youtube.com/@mr.doubleplus8206",
+    "https://space.bilibili.com/453338854",
+  ],
 };
 
 const websiteJsonLd = {
