@@ -2,6 +2,9 @@ import { getAuthHeaders } from "./auth-api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+// "owed_to_me" = someone borrowed from you; "i_owe" = you owe someone else.
+export type LoanDirection = "owed_to_me" | "i_owe";
+
 export interface LoanEntry {
   id: string;
   userId: string;
@@ -10,6 +13,7 @@ export interface LoanEntry {
   currency: string;
   description: string | null;
   status: "outstanding" | "repaid";
+  direction: LoanDirection;
   repaidAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -20,6 +24,7 @@ export interface CreateLoanInput {
   amount: string | number;
   currency?: string;
   description?: string | null;
+  direction?: LoanDirection;
 }
 
 export interface UpdateLoanInput {
@@ -28,11 +33,26 @@ export interface UpdateLoanInput {
   currency?: string;
   description?: string | null;
   status?: "outstanding" | "repaid";
+  direction?: LoanDirection;
 }
 
 async function unwrapError(res: Response, fallback: string): Promise<never> {
   const err = await res.json().catch(() => ({}));
-  throw new Error(err.error || `${fallback}: ${res.status}`);
+  // A plain string is our own handler's { error } shape. zValidator failures
+  // instead return { error: <ZodError> } whose `error` is an object — surface
+  // its issue messages instead of letting it stringify to "[object Object]".
+  if (typeof err.error === "string") {
+    throw new Error(err.error);
+  }
+  const issues = err.error?.issues;
+  if (Array.isArray(issues) && issues.length > 0) {
+    const message = issues
+      .map((i: { message?: string }) => i.message)
+      .filter(Boolean)
+      .join("; ");
+    if (message) throw new Error(message);
+  }
+  throw new Error(`${fallback}: ${res.status}`);
 }
 
 export async function fetchLoans(): Promise<LoanEntry[]> {
