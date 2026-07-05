@@ -7,6 +7,14 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://shanejli.com"),
   title: "Shane — Periodic Table of Life",
   description: "A periodic table of Shane's projects, tools, and creative work.",
+  alternates: {
+    // Site-wide RSS autodiscovery so feed readers and crawlers that probe the
+    // site root find the journal feed. Journal routes override this with their
+    // own (identical) alternates, so there's no conflict at that segment.
+    types: {
+      "application/rss+xml": "/journal/feed.xml",
+    },
+  },
   openGraph: {
     title: "Shane — Periodic Table of Life",
     description: "A periodic table of Shane's projects, tools, and creative work.",
