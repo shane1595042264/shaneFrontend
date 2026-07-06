@@ -5,6 +5,28 @@ import { TripActions } from "@/components/trips/trip-actions";
 import { RelativeTime } from "@/lib/format-time";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const SITE_URL = "https://shanejli.com";
+
+// Escape `<` so an uploaded trip whose title or body contains "</script>"
+// cannot break out of the JSON-LD tag. Mirrors journal/[date]/page.tsx.
+function jsonLdSafe(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+// Plain-text snippet from the uploaded trip HTML for the JSON-LD description:
+// strip tags, collapse whitespace, truncate on a word boundary.
+function buildTripSnippet(html: string, max = 155): string {
+  const text = html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+}
 
 interface TripFull {
   id: string;
@@ -75,8 +97,52 @@ export default async function TripPage({ params }: PageProps) {
   const trip = await fetchTrip(slug);
   if (!trip) notFound();
 
+  const name = trip.title || slug;
+  const tripUrl = `${SITE_URL}/trips/${slug}`;
+  const description = buildTripSnippet(trip.html);
+  const personEntity = {
+    "@type": "Person" as const,
+    name: "Shane Li",
+    url: SITE_URL,
+  };
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "TouristTrip",
+    name,
+    ...(description ? { description } : {}),
+    url: tripUrl,
+    image: `${SITE_URL}/opengraph-image`,
+    provider: personEntity,
+    ...(trip.ownerName ? { author: { "@type": "Person", name: trip.ownerName } } : {}),
+    dateCreated: trip.createdAt,
+    ...(wasMateriallyEdited(trip.createdAt, trip.updatedAt)
+      ? { dateModified: trip.updatedAt }
+      : {}),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": tripUrl,
+    },
+  };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Shane", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Trips", item: `${SITE_URL}/trips` },
+      { "@type": "ListItem", position: 3, name, item: tripUrl },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-black">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdSafe(breadcrumbJsonLd) }}
+      />
       <header className="border-b border-white/10 bg-black px-4 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-sm">
