@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { journalActionMetadata } from "@/lib/journal-action-metadata";
 
-export const metadata: Metadata = {
-  title: "Edit — Journal — Shane",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ date: string }>;
+}): Promise<Metadata> {
+  const { date } = await params;
+  return journalActionMetadata("Edit", date);
+}
 
 export default function JournalEditLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
