@@ -17,6 +17,9 @@ function jsonLdSafe(value: unknown): string {
 // strip tags, collapse whitespace, truncate on a word boundary.
 function buildTripSnippet(html: string, max = 155): string {
   const text = html
+    // Drop <style>/<script> block *contents* first — otherwise stripping only
+    // the tags leaves raw CSS/JS text (e.g. "@page { size: A4 }") in the snippet.
+    .replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
