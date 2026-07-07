@@ -17,6 +17,24 @@ import {
 
 const AMOUNT_PATTERN = /^\d+(\.\d{1,2})?$/;
 
+// Curated ISO 4217 codes for the currency selector. All are valid 3-letter
+// codes, so the picker can never send something the backend rejects. The
+// backend accepts any ISO 4217 code (SHAN-358); this list just covers the
+// common ones without turning the field into free text.
+const CURRENCIES = [
+  "USD",
+  "EUR",
+  "GBP",
+  "JPY",
+  "CNY",
+  "CAD",
+  "AUD",
+  "CHF",
+  "HKD",
+  "SGD",
+  "INR",
+] as const;
+
 // Copy that flips with the direction of the debt. "owed_to_me" is the legacy
 // default (someone borrowed from you); "i_owe" is money you owe someone else.
 const DIRECTION_COPY: Record<
@@ -64,6 +82,7 @@ function WhoOwesMeContent() {
 
   const [borrowerName, setBorrowerName] = useState("");
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("USD");
   const [description, setDescription] = useState("");
   const [direction, setDirection] = useState<LoanDirection>("owed_to_me");
   const [submitting, setSubmitting] = useState(false);
@@ -126,12 +145,14 @@ function WhoOwesMeContent() {
       const entry = await createLoan({
         borrowerName: trimmedName,
         amount: trimmedAmount,
+        currency,
         description: description.trim() || null,
         direction,
       });
       setEntries((prev) => [entry, ...prev]);
       setBorrowerName("");
       setAmount("");
+      setCurrency("USD");
       setDescription("");
       setDirection("owed_to_me");
     } catch (e) {
@@ -233,7 +254,7 @@ function WhoOwesMeContent() {
             </button>
           ))}
         </div>
-        <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-[1fr_140px_auto]">
+        <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-[1fr_140px_100px_auto]">
           <input
             value={borrowerName}
             onChange={(e) => setBorrowerName(e.target.value)}
@@ -250,6 +271,18 @@ function WhoOwesMeContent() {
             required
             className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
           />
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            aria-label="Currency"
+            className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-orange-500/50"
+          >
+            {CURRENCIES.map((cur) => (
+              <option key={cur} value={cur} className="bg-gray-900">
+                {cur}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             disabled={submitting}
@@ -263,7 +296,7 @@ function WhoOwesMeContent() {
             placeholder="Note (optional)"
             rows={2}
             maxLength={2000}
-            className="md:col-span-3 px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50 resize-y"
+            className="md:col-span-4 px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50 resize-y"
           />
         </form>
         {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
@@ -466,10 +499,18 @@ function LoanRowEdit({
 }) {
   const [borrowerName, setBorrowerName] = useState(entry.borrowerName);
   const [amount, setAmount] = useState(entry.amount.toString());
+  const [currency, setCurrency] = useState(entry.currency);
   const [description, setDescription] = useState(entry.description ?? "");
   const [direction, setDirection] = useState<LoanDirection>(entry.direction);
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // Include the loan's existing currency if it isn't one of the curated codes
+  // (e.g. set via the API to an exotic ISO 4217 code) so editing never silently
+  // overwrites it.
+  const currencyOptions = CURRENCIES.includes(entry.currency as (typeof CURRENCIES)[number])
+    ? CURRENCIES
+    : [entry.currency, ...CURRENCIES];
 
   async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
@@ -489,6 +530,7 @@ function LoanRowEdit({
     const patch: UpdateLoanInput = {};
     if (trimmedName !== entry.borrowerName) patch.borrowerName = trimmedName;
     if (Number(trimmedAmount) !== entry.amount) patch.amount = trimmedAmount;
+    if (currency !== entry.currency) patch.currency = currency;
     if (trimmedDesc !== currentDesc) patch.description = trimmedDesc.length > 0 ? trimmedDesc : null;
     if (direction !== entry.direction) patch.direction = direction;
 
@@ -531,7 +573,7 @@ function LoanRowEdit({
             </button>
           ))}
         </div>
-        <div className="grid gap-2 sm:grid-cols-[1fr_140px]">
+        <div className="grid gap-2 sm:grid-cols-[1fr_140px_100px]">
           <input
             value={borrowerName}
             onChange={(e) => setBorrowerName(e.target.value)}
@@ -548,6 +590,18 @@ function LoanRowEdit({
             aria-label="Amount"
             className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
           />
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            aria-label="Currency"
+            className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-orange-500/50"
+          >
+            {currencyOptions.map((cur) => (
+              <option key={cur} value={cur} className="bg-gray-900">
+                {cur}
+              </option>
+            ))}
+          </select>
         </div>
         <textarea
           value={description}
