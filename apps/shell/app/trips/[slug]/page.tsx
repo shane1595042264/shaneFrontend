@@ -74,6 +74,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? `${trip.title} — uploaded ${new Date(trip.createdAt).toLocaleDateString()}`
     : undefined;
   const url = `https://shanejli.com/trips/${slug}`;
+  const ogImagePath = `/trips/${slug}/opengraph-image`;
   return {
     title,
     description,
@@ -84,13 +85,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url,
       siteName: "Shane — Periodic Table of Life",
       type: "article",
-      images: ["/opengraph-image"],
+      images: [ogImagePath],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: ["/opengraph-image"],
+      images: [ogImagePath],
     },
   };
 }
@@ -114,7 +115,12 @@ export default async function TripPage({ params }: PageProps) {
     name,
     ...(description ? { description } : {}),
     url: tripUrl,
-    image: `${SITE_URL}/opengraph-image`,
+    image: {
+      "@type": "ImageObject",
+      url: `${SITE_URL}/trips/${slug}/opengraph-image`,
+      width: 1200,
+      height: 630,
+    },
     provider: personEntity,
     ...(trip.ownerName ? { author: { "@type": "Person", name: trip.ownerName } } : {}),
     dateCreated: trip.createdAt,
