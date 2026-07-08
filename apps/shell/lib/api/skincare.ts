@@ -21,6 +21,13 @@ export interface SkincareRoutines {
   night: SkincareProduct[];
 }
 
+/** A product-search autofill suggestion from the Open Beauty Facts proxy. */
+export interface ProductSuggestion {
+  name: string;
+  brand: string | null;
+  imageUrl: string | null;
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -70,3 +77,28 @@ export const reorderProducts = (timeOfDay: TimeOfDay, orderedIds: string[]) =>
     method: "POST",
     body: JSON.stringify({ timeOfDay, orderedIds }),
   });
+
+/**
+ * Autofill suggestions for the add form. Returns [] for short queries or on
+ * any error so the typeahead silently degrades to manual entry — a failed
+ * search must never block the user from adding a product by hand.
+ */
+export async function searchProducts(
+  q: string,
+  signal?: AbortSignal,
+): Promise<ProductSuggestion[]> {
+  const query = q.trim();
+  if (query.length < 2) return [];
+  try {
+    const res = await fetch(
+      `${API_URL}/api/skincare/search?q=${encodeURIComponent(query)}`,
+      { headers: { ...getAuthHeaders() }, signal },
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as { results?: ProductSuggestion[] };
+    return data.results ?? [];
+  } catch {
+    // Aborted (superseded keystroke) or network error — no suggestions.
+    return [];
+  }
+}

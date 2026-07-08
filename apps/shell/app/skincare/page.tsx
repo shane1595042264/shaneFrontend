@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AuthGate } from "@/components/auth-gate";
 import {
@@ -9,6 +9,8 @@ import {
   updateProduct,
   deleteProduct,
   reorderProducts,
+  searchProducts,
+  type ProductSuggestion,
   type SkincareProduct,
   type SkincareRoutines,
   type TimeOfDay,
@@ -306,6 +308,71 @@ function ProductAddForm({
   const [brand, setBrand] = useState("");
   const [imageUrl, setImageUrl] = useState("");
 
+  // Autofill typeahead state, scoped to the name input.
+  const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  // Suppress the next debounced search — set right after a pick so filling the
+  // input from a suggestion doesn't immediately reopen the dropdown.
+  const suppressNextSearch = useRef(false);
+  const listboxId = `skincare-suggestions-${timeOfDay}`;
+
+  // Debounced search on the product name. Each run aborts the prior in-flight
+  // request so only the latest keystroke's results land.
+  useEffect(() => {
+    if (suppressNextSearch.current) {
+      suppressNextSearch.current = false;
+      return;
+    }
+    const q = name.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      const results = await searchProducts(q, controller.signal);
+      if (controller.signal.aborted) return;
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+      setActiveIdx(-1);
+    }, 250);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [name]);
+
+  function pick(s: ProductSuggestion) {
+    // Filling the name would retrigger the search effect; suppress that one run.
+    suppressNextSearch.current = true;
+    setName(s.name);
+    setBrand(s.brand ?? "");
+    setImageUrl(s.imageUrl ?? "");
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setActiveIdx(-1);
+  }
+
+  function onNameKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIdx((i) => (i + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIdx((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+    } else if (e.key === "Enter" && activeIdx >= 0) {
+      // Enter selects the highlighted suggestion instead of submitting the form.
+      e.preventDefault();
+      pick(suggestions[activeIdx]);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+      setActiveIdx(-1);
+    }
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || busy) return;
@@ -317,17 +384,76 @@ function ProductAddForm({
     setName("");
     setBrand("");
     setImageUrl("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setActiveIdx(-1);
   }
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-2 border-t border-white/10 pt-3">
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Product name"
-        aria-label={`${timeOfDay} product name`}
-        className={inputCls}
-      />
+      <div className="relative">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={onNameKeyDown}
+          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+          // Delay the close so a mousedown on a suggestion registers first.
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          placeholder="Search a product, or type your own"
+          aria-label={`${timeOfDay} product name`}
+          role="combobox"
+          aria-expanded={showSuggestions}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            activeIdx >= 0 ? `${listboxId}-opt-${activeIdx}` : undefined
+          }
+          autoComplete="off"
+          className={`${inputCls} w-full`}
+        />
+        {showSuggestions && suggestions.length > 0 && (
+          <ul
+            id={listboxId}
+            role="listbox"
+            className="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-md border border-white/20 bg-[#0b0b10] py-1 shadow-xl"
+          >
+            {suggestions.map((s, i) => (
+              <li
+                key={`${s.name}-${s.brand ?? ""}-${i}`}
+                id={`${listboxId}-opt-${i}`}
+                role="option"
+                aria-selected={i === activeIdx}
+                // mousedown (not click) so it fires before the input's blur closes the list.
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pick(s);
+                }}
+                onMouseEnter={() => setActiveIdx(i)}
+                className={`flex cursor-pointer items-center gap-2 px-2 py-1.5 text-sm ${
+                  i === activeIdx ? "bg-white/15" : "hover:bg-white/10"
+                }`}
+              >
+                {s.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={s.imageUrl}
+                    alt=""
+                    className="h-8 w-8 shrink-0 rounded object-cover"
+                  />
+                ) : (
+                  <span className="h-8 w-8 shrink-0 rounded bg-white/10" aria-hidden />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-white">{s.name}</span>
+                  {s.brand && (
+                    <span className="block truncate text-xs text-gray-400">{s.brand}</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <div className="flex gap-2">
         <input
           value={brand}
