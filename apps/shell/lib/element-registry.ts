@@ -16,6 +16,7 @@ import tripsManifest from "@/app/trips/manifest";
 import whoOwesMeManifest from "@/app/who-owes-me/manifest";
 import practiceManifest from "@/app/practice/manifest";
 import vocabularyManifest from "@/app/vocabulary/manifest";
+import skincareManifest from "@/app/skincare/manifest";
 
 // External links and coming-soon elements that don't have route folders
 const externalElements: ElementConfig[] = [
@@ -98,5 +99,6 @@ export const allElements: ElementConfig[] = [
   whoOwesMeManifest,
   practiceManifest,
   vocabularyManifest,
+  skincareManifest,
   ...externalElements,
 ];
