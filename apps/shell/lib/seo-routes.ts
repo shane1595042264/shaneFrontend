@@ -10,13 +10,16 @@
  * these render only a sign-in gate (no public content), which Google treats as
  * soft-404s / low-quality and which waste crawl budget. Public content routes
  * (/journal, /journal/[date], the journal history subpage, /trips,
- * /knowledge, /vocabulary, /skincare, /elements) stay crawlable.
+ * /knowledge, /vocabulary, /elements) stay crawlable.
  */
 export const CRAWLER_DISALLOW: string[] = [
   "/settings",
   "/who-owes-me",
   "/practice",
   "/rng-capitalist",
+  // Personal routine tracker — fully AuthGate-wrapped, so anonymous crawlers
+  // see only the sign-in gate (thin/soft-404). Same category as the tools above.
+  "/skincare",
   "/journal/tea",
   "/journal/inbox",
   // Mutation/form subpaths under a journal entry — auth-gated, thin, and
