@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { allElements } from "@/lib/element-registry";
+import { isDisallowedForCrawlers } from "@/lib/seo-routes";
 
 const SITE_URL = "https://shanejli.com";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -14,6 +15,10 @@ type TripRow = { slug: string; updatedAt: string | null };
 function liveInternalRoutes(): InternalElement[] {
   return allElements
     .filter((e) => e.type === "internal" && e.status === "live" && typeof e.route === "string" && e.route.startsWith("/"))
+    // Never advertise a route that robots.txt blocks (auth-gated / thin pages
+    // like /who-owes-me, /practice, /rng-capitalist). A sitemap listing a
+    // disallowed URL is a Search Console warning and wasted crawl budget.
+    .filter((e) => !isDisallowedForCrawlers(e.route as string))
     .map((e) => ({ route: e.route as string }));
 }
 
