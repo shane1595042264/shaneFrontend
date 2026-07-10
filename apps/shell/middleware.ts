@@ -128,10 +128,13 @@ async function backendExists(path: string): Promise<boolean | null> {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Only intercept single-segment paths under /journal/. Deeper paths like
+  // Intercept the /journal/:date page and its /journal/:date/opengraph-image
+  // sub-path so both share one existence check — without the sub-path, the
+  // per-date OG image route soft-404s (renders a 200 PNG for dates that have no
+  // entry) while the page correctly 404s. Deeper paths like
   // /journal/[date]/suggestions or /journal/inbox/foo fall through to Next's
-  // normal routing.
-  const journalMatch = pathname.match(/^\/journal\/([^\/]+)\/?$/);
+  // normal routing (the optional group only matches opengraph-image).
+  const journalMatch = pathname.match(/^\/journal\/([^\/]+)(?:\/opengraph-image)?\/?$/);
   if (journalMatch) {
     const segment = journalMatch[1];
     if (JOURNAL_NON_DATE_SEGMENTS.has(segment)) return NextResponse.next();
