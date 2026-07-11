@@ -18,6 +18,7 @@ export default function SuggestionsListPage() {
   const [items, setItems] = useState<Suggestion[]>([]);
   const [filter, setFilter] = useState<StatusFilter>("pending");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showSubmittedBanner, setShowSubmittedBanner] = useState(false);
 
   useEffect(() => {
@@ -26,8 +27,19 @@ export default function SuggestionsListPage() {
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     listSuggestions(date, filter)
-      .then(setItems)
+      .then((list) => {
+        setItems(list);
+        setError(null);
+      })
+      .catch((e) => {
+        // On failure (missing entry 404, backend 500, network blip) surface an
+        // error instead of silently falling through to the empty state, which
+        // would misleadingly read as "there are no suggestions".
+        setItems([]);
+        setError(e?.message ?? "Failed to load suggestions");
+      })
       .finally(() => setLoading(false));
   }, [date, filter]);
 
@@ -96,6 +108,10 @@ export default function SuggestionsListPage() {
             </div>
           ))}
         </div>
+      ) : error ? (
+        <p role="alert" className="text-sm text-red-400">
+          {error}
+        </p>
       ) : items.length === 0 ? (
         <p className="text-sm text-gray-400">No {filter} suggestions.</p>
       ) : (
