@@ -153,8 +153,12 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Only intercept single-segment paths under /trips/.
-  const tripMatch = pathname.match(/^\/trips\/([^\/]+)\/?$/);
+  // Intercept /trips/:slug and its /trips/:slug/opengraph-image sub-path so both
+  // share one existence check — mirrors the journal fix (SHAN-375). Without the
+  // sub-path, the per-slug OG image route soft-404s (renders a 200 PNG for slugs
+  // that have no trip) while the page correctly 404s. Deeper paths fall through
+  // to Next's normal routing (the optional group only matches opengraph-image).
+  const tripMatch = pathname.match(/^\/trips\/([^\/]+)(?:\/opengraph-image)?\/?$/);
   if (tripMatch) {
     const segment = tripMatch[1];
     if (TRIPS_NON_SLUG_SEGMENTS.has(segment)) return NextResponse.next();
