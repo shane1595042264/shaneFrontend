@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     canonical: "https://shanejli.com/journal",
     types: {
       "application/rss+xml": "/journal/feed.xml",
+      "application/feed+json": "/journal/feed.json",
     },
   },
   openGraph: {

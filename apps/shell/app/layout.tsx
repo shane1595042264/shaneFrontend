@@ -8,11 +8,13 @@ export const metadata: Metadata = {
   title: "Shane — Periodic Table of Life",
   description: "A periodic table of Shane's projects, tools, and creative work.",
   alternates: {
-    // Site-wide RSS autodiscovery so feed readers and crawlers that probe the
-    // site root find the journal feed. Journal routes override this with their
-    // own (identical) alternates, so there's no conflict at that segment.
+    // Site-wide feed autodiscovery so feed readers and crawlers that probe the
+    // site root find the journal feeds (RSS + JSON Feed). Journal routes
+    // override this with their own (identical) alternates, so there's no
+    // conflict at that segment.
     types: {
       "application/rss+xml": "/journal/feed.xml",
+      "application/feed+json": "/journal/feed.json",
     },
   },
   openGraph: {

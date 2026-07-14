@@ -159,6 +159,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       canonical: canonicalUrl,
       types: {
         "application/rss+xml": `${SITE_URL}/journal/feed.xml`,
+        "application/feed+json": `${SITE_URL}/journal/feed.json`,
       },
     },
     openGraph: {
