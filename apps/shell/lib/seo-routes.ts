@@ -20,6 +20,12 @@ export const CRAWLER_DISALLOW: string[] = [
   // Personal routine tracker — fully AuthGate-wrapped, so anonymous crawlers
   // see only the sign-in gate (thin/soft-404). Same category as the tools above.
   "/skincare",
+  // Trip-planning groups (index, /new, /[slug], /[slug]/day/[day]) are all
+  // AuthGate-wrapped — anonymous crawlers see only the sign-in gate. The public
+  // /trips index and /trips/[slug] itineraries stay crawlable; only this
+  // subtree is thin/soft-404. The prefix match covers every nested
+  // /trips/groups/* route with one entry.
+  "/trips/groups",
   "/journal/tea",
   "/journal/inbox",
   // Mutation/form subpaths under a journal entry — auth-gated, thin, and
