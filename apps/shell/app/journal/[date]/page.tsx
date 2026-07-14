@@ -9,7 +9,7 @@ import { ShareActions } from "@/components/journal/share-actions";
 import { CommentsThread } from "@/components/journal/comments-thread";
 import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
 import { ActivitySidebar } from "@/components/journal/activity-sidebar";
-import { readingTimeMinutes, toPlainExcerpt } from "@/lib/journal-text";
+import { readingTimeMinutes, toPlainExcerpt, countWords } from "@/lib/journal-text";
 import { MissingEntryCta } from "@/components/journal/missing-entry-cta";
 import { relativeDayLabel } from "@/lib/timezone";
 
@@ -274,11 +274,17 @@ export default async function JournalEntryPage({ params }: PageProps) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
-    headline: `${formatDate(date)} — Journal — Shane`,
+    // Google's structured-data guidelines want headline to be the article
+    // title only (no site branding, truncated ~110 chars) and to match the
+    // visible <h2>, which is just the formatted date. Site name lives in
+    // og:site_name / breadcrumb, so keep it out of here.
+    headline: formatDate(date),
     description: buildSnippet(fullContent),
     inLanguage: "en-US",
     datePublished: data.entry.createdAt,
     dateModified: data.entry.updatedAt,
+    // fullContent covers the primary body + every append, matching the read.
+    wordCount: countWords(fullContent),
     author: personEntity,
     publisher: personEntity,
     image: {
