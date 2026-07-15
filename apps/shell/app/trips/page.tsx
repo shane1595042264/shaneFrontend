@@ -24,14 +24,16 @@ function wasMateriallyEdited(createdAt: string, updatedAt: string): boolean {
   return new Date(updatedAt).getTime() - new Date(createdAt).getTime() > EDIT_THRESHOLD_MS;
 }
 
+// Throw on failure rather than swallowing to []: this page is force-dynamic
+// (not ISR), so a throw renders the dedicated trips/error.tsx boundary (Retry +
+// message) instead of a misleading "No trips yet" empty state that hides a
+// backend outage. A genuine 200 with trips:[] still renders the empty state.
 async function fetchTrips(): Promise<TripListItem[]> {
-  try {
-    const res = await fetch(`${API_URL}/api/trips`, { cache: "no-store" });
-    if (!res.ok) return [];
-    return (await res.json()).trips;
-  } catch {
-    return [];
+  const res = await fetch(`${API_URL}/api/trips`, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Failed to load trips (${res.status})`);
   }
+  return (await res.json()).trips;
 }
 
 export default async function TripsIndexPage() {
