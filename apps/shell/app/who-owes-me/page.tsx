@@ -58,6 +58,20 @@ function formatTotals(totals: Record<string, number>): string {
   return keys.map((cur) => formatAmount(totals[cur], cur)).join(" · ");
 }
 
+// Net position per currency: what someone owes you minus what you owe them.
+// Rounds to cents so floating-point dust (0.1 + 0.2) can't leave a phantom
+// residue that renders as "$0.00" carrying a misleading + / − sign.
+function netByCurrency(
+  owedToMe: Record<string, number>,
+  iOwe: Record<string, number>
+): Record<string, number> {
+  const net: Record<string, number> = {};
+  for (const cur of new Set([...Object.keys(owedToMe), ...Object.keys(iOwe)])) {
+    net[cur] = Math.round(((owedToMe[cur] ?? 0) - (iOwe[cur] ?? 0)) * 100) / 100;
+  }
+  return net;
+}
+
 export default function WhoOwesMePage() {
   return (
     <AuthGate>
@@ -127,6 +141,21 @@ function WhoOwesMeContent() {
   const iOwe = outstanding.filter((e) => e.direction === "i_owe");
   const owedToMeTotals = sumByCurrency(owedToMe);
   const iOweTotals = sumByCurrency(iOwe);
+
+  const netTotals = netByCurrency(owedToMeTotals, iOweTotals);
+  const netKeys = Object.keys(netTotals);
+  const anyPositive = netKeys.some((c) => netTotals[c] > 0);
+  const anyNegative = netKeys.some((c) => netTotals[c] < 0);
+  const netHint =
+    netKeys.length === 0
+      ? "nothing outstanding"
+      : anyPositive && anyNegative
+        ? "mixed across currencies"
+        : anyPositive
+          ? "in your favor"
+          : anyNegative
+            ? "you're behind"
+            : "all settled";
 
   async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
@@ -206,7 +235,7 @@ function WhoOwesMeContent() {
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-orange-500/30 bg-orange-950/20 px-5 py-4">
           <div className="text-xs uppercase tracking-wider text-orange-300/70">
             They owe you
@@ -228,6 +257,33 @@ function WhoOwesMeContent() {
           <div className="text-xs text-gray-400 mt-1">
             {iOwe.length} {iOwe.length === 1 ? "debt" : "debts"} unpaid
           </div>
+        </div>
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-950/20 px-5 py-4">
+          <div className="text-xs uppercase tracking-wider text-emerald-300/70">
+            Net position
+          </div>
+          <div className="text-2xl font-semibold mt-1">
+            {netKeys.length === 0 ? (
+              <span className="text-white">$0.00</span>
+            ) : (
+              netKeys.map((cur, i) => {
+                const v = netTotals[cur];
+                const cls =
+                  v > 0 ? "text-emerald-300" : v < 0 ? "text-rose-300" : "text-gray-300";
+                const sign = v > 0 ? "+" : v < 0 ? "−" : "";
+                return (
+                  <span key={cur}>
+                    {i > 0 && <span className="text-gray-500"> · </span>}
+                    <span className={cls}>
+                      {sign}
+                      {formatAmount(Math.abs(v), cur)}
+                    </span>
+                  </span>
+                );
+              })
+            )}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">{netHint}</div>
         </div>
       </section>
 
