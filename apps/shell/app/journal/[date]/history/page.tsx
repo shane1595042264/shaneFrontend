@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { listVersions, getEntry, revertEntry, type JournalVersion } from "@/lib/api/journal";
 import { RelativeTime } from "@/lib/format-time";
+import { humanizeError } from "@/lib/humanize-error";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 export default function HistoryPage() {
@@ -32,7 +33,7 @@ export default function HistoryPage() {
           setCurrentNum(entry.currentVersionNum);
         }
       })
-      .catch((e) => setError(e.message ?? "Failed to load history"))
+      .catch((e) => setError(humanizeError(e, "Failed to load history")))
       .finally(() => setLoading(false));
   }, [date]);
 

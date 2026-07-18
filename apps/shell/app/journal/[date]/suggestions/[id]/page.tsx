@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/suggestions";
 import { SuggestionDiff } from "@/components/journal/suggestion-diff";
 import { RelativeTime } from "@/lib/format-time";
+import { humanizeError } from "@/lib/humanize-error";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 type DiffView = "current" | "base" | "full";
@@ -53,7 +54,7 @@ export default function SuggestionDetailPage() {
         const base = versions.find((v) => v.id === sug.baseVersionId);
         if (base) setBaseContent(base.content);
       })
-      .catch((e) => setError(e.message ?? "Failed to load suggestion"))
+      .catch((e) => setError(humanizeError(e, "Failed to load suggestion")))
       .finally(() => setLoading(false));
   }, [id, date]);
 

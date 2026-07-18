@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { listSuggestions, type Suggestion } from "@/lib/api/suggestions";
 import { RelativeTime } from "@/lib/format-time";
+import { humanizeError } from "@/lib/humanize-error";
 
 const STATUS_FILTERS = ["pending", "approved", "rejected", "withdrawn"] as const;
 type StatusFilter = typeof STATUS_FILTERS[number];
@@ -38,7 +39,7 @@ export default function SuggestionsListPage() {
         // error instead of silently falling through to the empty state, which
         // would misleadingly read as "there are no suggestions".
         setItems([]);
-        setError(e?.message ?? "Failed to load suggestions");
+        setError(humanizeError(e, "Failed to load suggestions"));
       })
       .finally(() => setLoading(false));
   }, [date, filter]);

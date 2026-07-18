@@ -9,6 +9,7 @@ import { RelativeTime } from "@/lib/format-time";
 import { toPlainExcerpt } from "@/lib/journal-text";
 import { LoginButton } from "@/components/login-button";
 import { InlineErrorState } from "@/components/inline-error-state";
+import { humanizeError } from "@/lib/humanize-error";
 
 export default function InboxPage() {
   const { user, loading: authLoading } = useAuth();
@@ -25,7 +26,7 @@ export default function InboxPage() {
     setLoading(true);
     fetchInbox()
       .then(setItems)
-      .catch((e) => setError(e.message ?? "Failed to load inbox"))
+      .catch((e) => setError(humanizeError(e, "Failed to load inbox")))
       .finally(() => setLoading(false));
   }, [user]);
 
