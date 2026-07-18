@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { AuthGate } from "@/components/auth-gate";
 import { getSession, getSettings, type Session, type SessionItem } from "@/lib/api/practice";
+import { InlineErrorState } from "@/components/inline-error-state";
 
 function DoneContent({ sessionId }: { sessionId: string }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -12,7 +13,10 @@ function DoneContent({ sessionId }: { sessionId: string }) {
   const [setsPerStrike, setSetsPerStrike] = useState(5);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
+    setSession(null);
+    setItems(null);
     Promise.all([getSession(sessionId), getSettings()])
       .then(([s, settings]) => {
         setSession(s.session);
@@ -22,7 +26,14 @@ function DoneContent({ sessionId }: { sessionId: string }) {
       .catch((e) => setError(e.message ?? "Failed"));
   }, [sessionId]);
 
-  if (error) return <div className="p-6 text-sm text-red-400">Error: {error}</div>;
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (error)
+    return (
+      <InlineErrorState message={error} onRetry={load} backHref="/practice" backLabel="Back to practice" />
+    );
   if (!session || !items) return <div className="p-6 text-sm text-gray-400">Loading summary…</div>;
 
   const strikesEarned = items.filter((it) => it.setsCompleted >= setsPerStrike).length;

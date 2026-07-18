@@ -1,13 +1,14 @@
 // apps/shell/app/journal/inbox/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { fetchInbox, type InboxItem } from "@/lib/api/suggestions";
 import { RelativeTime } from "@/lib/format-time";
 import { toPlainExcerpt } from "@/lib/journal-text";
 import { LoginButton } from "@/components/login-button";
+import { InlineErrorState } from "@/components/inline-error-state";
 
 export default function InboxPage() {
   const { user, loading: authLoading } = useAuth();
@@ -15,16 +16,22 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!user) {
       setLoading(false);
       return;
     }
+    setError(null);
+    setLoading(true);
     fetchInbox()
       .then(setItems)
       .catch((e) => setError(e.message ?? "Failed to load inbox"))
       .finally(() => setLoading(false));
   }, [user]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (authLoading || (user && loading)) {
     return (
@@ -71,7 +78,9 @@ export default function InboxPage() {
     );
   }
   if (error) {
-    return <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-red-400">{error}</div>;
+    return (
+      <InlineErrorState message={error} onRetry={load} backHref="/journal" backLabel="Back to journal" />
+    );
   }
 
   if (items.length === 0) {

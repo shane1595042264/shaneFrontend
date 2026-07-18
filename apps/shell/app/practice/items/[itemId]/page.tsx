@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AuthGate } from "@/components/auth-gate";
 import { getItemProgress, getSettings, createSessionFromItemIds, type ItemProgressDetail, type PracticeSettings } from "@/lib/api/practice";
 import { RelativeTime } from "@/lib/format-time";
+import { InlineErrorState } from "@/components/inline-error-state";
 
 function ItemProgressContent({ itemId }: { itemId: string }) {
   const router = useRouter();
@@ -15,13 +16,23 @@ function ItemProgressContent({ itemId }: { itemId: string }) {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
+    setDetail(null);
+    setSettings(null);
     Promise.all([getItemProgress(itemId), getSettings()])
       .then(([d, s]) => { setDetail(d); setSettings(s); })
       .catch((e) => setError(e.message));
   }, [itemId]);
 
-  if (error) return <div className="p-6 text-sm text-red-400">{error}</div>;
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (error)
+    return (
+      <InlineErrorState message={error} onRetry={load} backHref="/practice" backLabel="Back to practice" />
+    );
   if (!detail || !settings) return <div className="p-6 text-sm text-gray-400">Loading…</div>;
 
   const startSingleItem = async () => {
