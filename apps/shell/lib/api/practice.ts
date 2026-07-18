@@ -98,7 +98,12 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || `${res.status}`);
+    // The backend usually returns { error: "message" }, but some validation
+    // paths return a structured object. Coercing that into `new Error(...)`
+    // yields the useless "[object Object]"; fall back to a status-based message.
+    const raw = (err as { error?: unknown }).error;
+    const message = typeof raw === "string" && raw ? raw : `Request failed (${res.status})`;
+    throw new Error(message);
   }
   return res.json();
 }
