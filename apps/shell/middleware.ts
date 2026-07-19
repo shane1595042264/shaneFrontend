@@ -23,6 +23,16 @@ const BACKEND_URL =
 
 const BACKEND_TIMEOUT_MS = 1500;
 
+// SHAN-405: tea entry ids are UUIDs (backend gen_random_uuid + z.string().uuid()).
+// Any single-segment /journal/tea/:id that isn't a UUID is a guaranteed miss —
+// used to fast-path an edge 404 for junk paths like /journal/tea/feed.xml and
+// /journal/tea/opengraph-image (which otherwise soft-404 at HTTP 200).
+function isValidTeaId(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
 function isValidJournalDate(value: string): boolean {
   const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return false;
@@ -85,6 +95,32 @@ const TRIP_NOT_FOUND_HTML = `<!DOCTYPE html>
 // app/journal/ (feed.xml/route.ts, feed.json/route.ts, inbox/page.tsx, opengraph-image.tsx).
 const JOURNAL_NON_DATE_SEGMENTS = new Set(["feed.xml", "feed.json", "inbox", "opengraph-image", "tea"]);
 
+// SHAN-405: single-segment routes under /journal/tea/ that are NOT a tea entry
+// id — must pass through so the fast-path UUID 404 below doesn't swallow them.
+// Matches app/journal/tea/ (new/page.tsx is the creation form). The read page
+// /journal/tea/[id] and edit page /journal/tea/[id]/edit are handled separately.
+const TEA_NON_ID_SEGMENTS = new Set(["new"]);
+
+const TEA_NOT_FOUND_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Not Found — Tea — Shane</title>
+<meta name="robots" content="noindex,follow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body { background:#000; color:#9ca3af; font-family:ui-sans-serif,system-ui,sans-serif; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:6rem 1rem; }
+  p { font-size:0.875rem; font-style:italic; margin:0; }
+  a { color:#60a5fa; font-size:0.875rem; text-decoration:none; }
+  a:hover { color:#93c5fd; }
+</style>
+</head>
+<body>
+<p>This tea entry doesn&apos;t exist.</p>
+<a href="/journal">&larr; Back to journal</a>
+</body>
+</html>`;
+
 // Set of YYYY-MM-DD strings that could be "today" for any viewer worldwide:
 // UTC today plus the day on either side covers UTC-12 through UTC+14. We pass
 // these through to the page even when no entry exists yet, so the "Write
@@ -127,6 +163,27 @@ async function backendExists(path: string): Promise<boolean | null> {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // SHAN-405: intercept the /journal/tea/:id read page. Tea entry ids are
+  // UUIDs, so any single-segment id that isn't a valid UUID (feed.xml,
+  // opengraph-image, random crawler junk) is a guaranteed miss — return a real
+  // edge 404 instead of the client component's HTTP-200 soft-404. This branch
+  // sits before the /journal/:date match, which only matches a single segment
+  // and so never catches /journal/tea/:id anyway. Two-segment paths like
+  // /journal/tea/:id/edit fall through to Next's routing (auth-gated forms).
+  const teaMatch = pathname.match(/^\/journal\/tea\/([^\/]+)\/?$/);
+  if (teaMatch) {
+    const segment = teaMatch[1];
+    if (TEA_NON_ID_SEGMENTS.has(segment)) return NextResponse.next();
+    if (!isValidTeaId(segment)) {
+      return notFoundResponse(TEA_NOT_FOUND_HTML);
+    }
+    // A syntactically-valid UUID: the read page resolves existence + the PIN
+    // gate client-side. We deliberately don't HEAD the backend here — real tea
+    // links always carry live UUIDs, and the whole /journal/tea tree is
+    // robots-disallowed, so a valid-but-deleted UUID isn't a crawl-budget risk.
+    return NextResponse.next();
+  }
 
   // Intercept the /journal/:date page and its /journal/:date/opengraph-image
   // sub-path so both share one existence check — without the sub-path, the
