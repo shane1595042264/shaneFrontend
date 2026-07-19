@@ -224,9 +224,22 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
       {canScrollRight && (
         <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/60 to-transparent z-10 pointer-events-none md:hidden" />
       )}
+      {/*
+        Named, keyboard-scrollable region. The grid pans horizontally on narrow
+        viewports (overflow-x-auto); without role/aria-label/tabindex a
+        keyboard-only user can't reach the off-screen columns and a screen
+        reader announces ~30 links with no context (WCAG 2.1.1 + 1.3.1).
+        tabIndex is 0 only when there's actual overflow to scroll — otherwise
+        the region would be a spurious tab stop on desktop where nothing pans.
+        A focusable overflow container scrolls natively with arrow keys, so no
+        custom key handler is needed.
+      */}
       <div
         ref={scrollRef}
-        className="overflow-x-auto md:overflow-x-visible scrollbar-hide"
+        role="region"
+        aria-label="Periodic table of Shane's apps and projects"
+        tabIndex={canScrollLeft || canScrollRight ? 0 : -1}
+        className="overflow-x-auto md:overflow-x-visible scrollbar-hide rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
         onScroll={updateScrollIndicators}
       >
         <motion.div
