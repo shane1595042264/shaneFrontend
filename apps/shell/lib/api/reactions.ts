@@ -16,6 +16,22 @@ export const EMOJI_GLYPHS: Record<Emoji, string> = {
   confused: "😕",
 };
 
+/**
+ * Human-readable names for each reaction. The keys above are GitHub-style
+ * internal slugs (`+1`, `hooray`, ...) that should never surface to users;
+ * use these labels for tooltips and aria-labels instead.
+ */
+export const EMOJI_LABELS: Record<Emoji, string> = {
+  "+1": "Thumbs up",
+  "-1": "Thumbs down",
+  laugh: "Laugh",
+  heart: "Heart",
+  hooray: "Celebrate",
+  rocket: "Rocket",
+  eyes: "Eyes",
+  confused: "Confused",
+};
+
 export async function toggleEntryReaction(date: string, emoji: Emoji): Promise<"added" | "removed"> {
   const res = await fetch(`${API_URL}/api/journal/entries/${date}/reactions`, {
     method: "POST",

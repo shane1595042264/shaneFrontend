@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { EMOJI_SET, EMOJI_GLYPHS, type Emoji } from "@/lib/api/reactions";
+import { EMOJI_SET, EMOJI_GLYPHS, EMOJI_LABELS, type Emoji } from "@/lib/api/reactions";
 
 interface Props {
   onToggle: (emoji: Emoji) => Promise<void> | void;
@@ -48,8 +48,8 @@ export function ReactionBar({ onToggle, disabled, size = "md" }: Props) {
               onClick={() => handle(e)}
               disabled={busy !== null}
               className="rounded px-1 text-xl hover:bg-white/10 disabled:opacity-50"
-              aria-label={`React with ${e}`}
-              title={e}
+              aria-label={`React with ${EMOJI_LABELS[e]}`}
+              title={EMOJI_LABELS[e]}
             >
               {EMOJI_GLYPHS[e]}
             </button>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import {
   EMOJI_GLYPHS,
+  EMOJI_LABELS,
   EMOJI_SET,
   type Emoji,
   type ReactionState,
@@ -90,8 +91,8 @@ export function ReactionDisplay({ initial, refetch, onToggle, size = "md" }: Pro
             onClick={() => handle(row.emoji)}
             disabled={busy !== null || !user}
             className={chipClass(mine)}
-            aria-label={`${row.emoji} reaction, ${row.count} total${mine ? ", you reacted" : ""}`}
-            title={mine ? `Click to remove your ${row.emoji}` : `Click to add ${row.emoji}`}
+            aria-label={`${EMOJI_LABELS[row.emoji]} reaction, ${row.count} total${mine ? ", you reacted" : ""}`}
+            title={mine ? `Click to remove your ${EMOJI_LABELS[row.emoji]}` : `Click to add ${EMOJI_LABELS[row.emoji]}`}
           >
             <span aria-hidden="true">{EMOJI_GLYPHS[row.emoji]}</span>
             <span className="font-mono">{row.count}</span>
@@ -121,8 +122,8 @@ export function ReactionDisplay({ initial, refetch, onToggle, size = "md" }: Pro
                 onClick={() => handle(e)}
                 disabled={busy !== null}
                 className="rounded px-1 text-xl hover:bg-white/10 disabled:opacity-50"
-                aria-label={`React with ${e}`}
-                title={e}
+                aria-label={`React with ${EMOJI_LABELS[e]}`}
+                title={EMOJI_LABELS[e]}
               >
                 {EMOJI_GLYPHS[e]}
               </button>
