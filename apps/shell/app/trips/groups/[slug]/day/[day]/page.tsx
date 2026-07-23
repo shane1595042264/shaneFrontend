@@ -18,6 +18,7 @@ import {
   type ItineraryActivity,
 } from "@/lib/api/trip-groups";
 import { fmtDayDate } from "@/components/trips/itinerary-calendar";
+import { InlineErrorState } from "@/components/inline-error-state";
 import { buildPhotoResolver, photoBgStyle, PhotoCredit } from "@/components/trips/trip-photos";
 import { NotesMargin, type NoteAnchorOption } from "@/components/trips/margin-notes";
 import {
@@ -212,12 +213,12 @@ function DayDetail() {
 
   if (error && (!detail || !day)) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-12">
-        <Link href={`/trips/groups/${slug ?? ""}`} className="text-sm text-gray-500 hover:text-gray-300">
-          ← back to group
-        </Link>
-        <p role="alert" className="mt-3 text-sm text-red-400">{error}</p>
-      </div>
+      <InlineErrorState
+        message={error}
+        onRetry={refetch}
+        backHref={`/trips/groups/${slug ?? ""}`}
+        backLabel="Back to group"
+      />
     );
   }
   if (!detail || !day) {

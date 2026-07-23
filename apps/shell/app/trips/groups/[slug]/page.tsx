@@ -40,6 +40,7 @@ import {
   deleteNote as apiDeleteNote,
   type TripGroupNote,
 } from "@/lib/api/trip-groups";
+import { InlineErrorState } from "@/components/inline-error-state";
 
 function InviteLinkBox({ slug }: { slug: string }) {
   const [url, setUrl] = useState(`https://shanejli.com/trips/groups/${slug}`);
@@ -735,10 +736,12 @@ function GroupDetail() {
 
   if (error || !detail) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-12">
-        <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
-        <p role="alert" className="mt-3 text-sm text-red-400">{error ?? "Group not available."}</p>
-      </div>
+      <InlineErrorState
+        message={error ?? "Group not available."}
+        onRetry={refetch}
+        backHref="/trips/groups"
+        backLabel="Back to groups"
+      />
     );
   }
 
