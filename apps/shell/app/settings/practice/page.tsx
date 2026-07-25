@@ -14,6 +14,10 @@ export default function PracticeSettingsPage() {
   const [sps, setSps] = useState(5);
   const [spll, setSpll] = useState(5);
   const [lts, setLts] = useState(7);
+  const [vl1, setVl1] = useState(1);
+  const [vl2, setVl2] = useState(3);
+  const [vlapse, setVlapse] = useState(1);
+  const [vmem, setVmem] = useState(3);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
 
@@ -23,6 +27,10 @@ export default function PracticeSettingsPage() {
       setSps(s.setsPerStrike);
       setSpll(s.strikesPerLoadedLocation);
       setLts(s.locationsToSolidify);
+      setVl1(s.vocabIntervalL1Days);
+      setVl2(s.vocabIntervalL2Days);
+      setVlapse(s.vocabLapseIntervalDays);
+      setVmem(s.vocabLevelToMemorize);
     });
   }, []);
 
@@ -44,7 +52,15 @@ export default function PracticeSettingsPage() {
     setSaving(true);
     setStatus(null);
     try {
-      const updated = await updateSettings({ setsPerStrike: sps, strikesPerLoadedLocation: spll, locationsToSolidify: lts });
+      const updated = await updateSettings({
+        setsPerStrike: sps,
+        strikesPerLoadedLocation: spll,
+        locationsToSolidify: lts,
+        vocabIntervalL1Days: vl1,
+        vocabIntervalL2Days: vl2,
+        vocabLapseIntervalDays: vlapse,
+        vocabLevelToMemorize: vmem,
+      });
       setSettings(updated);
       setStatus({ kind: "ok", msg: "Saved." });
     } catch (e) {
@@ -72,6 +88,28 @@ export default function PracticeSettingsPage() {
         <label className="block">
           <span className="block text-sm text-gray-400">Loaded locations to solidify</span>
           <input type="number" min={1} max={50} value={lts} onChange={(e) => setLts(Math.max(1, Math.min(50, parseInt(e.target.value, 10) || 1)))} className="mt-1 block w-24 rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm" />
+        </label>
+      </div>
+
+      <h2 className="mt-10 mb-2 text-lg font-medium">Vocabulary SRS</h2>
+      <p className="mb-4 text-sm text-gray-400">Spaced-repetition intervals for the flashcard mode. Days added to a word&apos;s next-review date as it climbs; level to memorize marks a word done at a location.</p>
+
+      <div className="space-y-4">
+        <label className="block">
+          <span className="block text-sm text-gray-400">Interval to level 1 (days)</span>
+          <input type="number" min={0} max={365} value={vl1} onChange={(e) => setVl1(Math.max(0, Math.min(365, parseInt(e.target.value, 10) || 0)))} className="mt-1 block w-24 rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm" />
+        </label>
+        <label className="block">
+          <span className="block text-sm text-gray-400">Interval to level 2 (days)</span>
+          <input type="number" min={0} max={365} value={vl2} onChange={(e) => setVl2(Math.max(0, Math.min(365, parseInt(e.target.value, 10) || 0)))} className="mt-1 block w-24 rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm" />
+        </label>
+        <label className="block">
+          <span className="block text-sm text-gray-400">Lapse interval — after &ldquo;don&apos;t remember&rdquo; (days)</span>
+          <input type="number" min={0} max={365} value={vlapse} onChange={(e) => setVlapse(Math.max(0, Math.min(365, parseInt(e.target.value, 10) || 0)))} className="mt-1 block w-24 rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm" />
+        </label>
+        <label className="block">
+          <span className="block text-sm text-gray-400">Level to memorize (1–3)</span>
+          <input type="number" min={1} max={3} value={vmem} onChange={(e) => setVmem(Math.max(1, Math.min(3, parseInt(e.target.value, 10) || 1)))} className="mt-1 block w-24 rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm" />
         </label>
       </div>
 
