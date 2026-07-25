@@ -3,25 +3,38 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
-import { getSession, getSettings, type Session, type SessionItem } from "@/lib/api/practice";
+import {
+  getSession,
+  getSettings,
+  getVocabSession,
+  type Session,
+  type SessionItem,
+  type VocabCard,
+} from "@/lib/api/practice";
 import { PracticeRunner } from "@/components/practice/runner";
+import { VocabRunner } from "@/components/practice/vocab-runner";
 import { InlineErrorState } from "@/components/inline-error-state";
 
+type Loaded =
+  | { kind: "workout"; session: Session; items: SessionItem[]; setsPerStrike: number }
+  | { kind: "vocab"; session: Session; cards: VocabCard[] };
+
 function RunnerContent({ sessionId }: { sessionId: string }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [items, setItems] = useState<SessionItem[] | null>(null);
-  const [setsPerStrike, setSetsPerStrike] = useState(5);
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setError(null);
-    setSession(null);
-    setItems(null);
-    Promise.all([getSession(sessionId), getSettings()])
-      .then(([s, settings]) => {
-        setSession(s.session);
-        setItems(s.items);
-        setSetsPerStrike(settings.setsPerStrike);
+    setLoaded(null);
+    getSession(sessionId)
+      .then(async (s) => {
+        if (s.session.mode === "vocab") {
+          const v = await getVocabSession(sessionId);
+          setLoaded({ kind: "vocab", session: v.session, cards: v.cards });
+        } else {
+          const settings = await getSettings();
+          setLoaded({ kind: "workout", session: s.session, items: s.items, setsPerStrike: settings.setsPerStrike });
+        }
       })
       .catch((e) => setError(e.message ?? "Failed"));
   }, [sessionId]);
@@ -34,9 +47,12 @@ function RunnerContent({ sessionId }: { sessionId: string }) {
     return (
       <InlineErrorState message={error} onRetry={load} backHref="/practice" backLabel="Back to practice" />
     );
-  if (!session || !items) return <div className="p-6 text-sm text-gray-400">Loading session…</div>;
+  if (!loaded) return <div className="p-6 text-sm text-gray-400">Loading session…</div>;
 
-  return <PracticeRunner session={session} items={items} setsPerStrike={setsPerStrike} />;
+  if (loaded.kind === "vocab") {
+    return <VocabRunner session={loaded.session} cards={loaded.cards} />;
+  }
+  return <PracticeRunner session={loaded.session} items={loaded.items} setsPerStrike={loaded.setsPerStrike} />;
 }
 
 export default function SessionRunnerPage() {
