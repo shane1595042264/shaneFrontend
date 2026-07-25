@@ -6,6 +6,10 @@ export interface PracticeSettings {
   setsPerStrike: number;
   strikesPerLoadedLocation: number;
   locationsToSolidify: number;
+  vocabIntervalL1Days: number;
+  vocabIntervalL2Days: number;
+  vocabLapseIntervalDays: number;
+  vocabLevelToMemorize: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -32,6 +36,11 @@ export interface Session {
   completedAt: string | null;
   categoryFilter: string | null;
   nItemsRequested: number;
+  // Vocab practice mode (2026-07-24). Optional so existing workout code is unaffected.
+  mode?: "workout" | "vocab";
+  locationId?: string | null;
+  locationName?: string | null;
+  locationNormalized?: string | null;
 }
 
 export interface TimerState {
@@ -205,3 +214,55 @@ export const listPracticeableItems = (categoryFilter: string | null, includeSoli
 
 export const getItemProgress = (itemId: string) =>
   api<{ detail: ItemProgressDetail }>(`/api/practice/items/${itemId}/progress`).then((r) => r.detail);
+
+// ----- Vocab mode (Shanbay-style flashcard SRS) -----
+
+export interface VocabCard {
+  itemId: string;
+  word: string;
+  definition: string | null;
+  pronunciation: string | null;
+  partOfSpeech: string | null;
+  exampleSentence: string | null;
+  language: string;
+  level: number;
+  dueAt: string | null;
+}
+
+export interface VocabReviewResult {
+  level: number;
+  dueAt: string | null;
+  memorized: boolean;
+  longTermMemorized: boolean;
+}
+
+export interface VocabSummary {
+  reviewed: number;
+  remembered: number;
+  forgot: number;
+  leveledUp: number;
+  newlyMemorized: { word: string; location: string | null }[];
+}
+
+export const createVocabSession = (locationName: string, n: number) =>
+  api<{ session: Session; cards: VocabCard[] }>("/api/practice/vocab/sessions", {
+    method: "POST",
+    body: JSON.stringify({ locationName, n }),
+  });
+
+export const getVocabSession = (id: string) =>
+  api<{ session: Session; cards: VocabCard[] }>(`/api/practice/vocab/sessions/${id}`);
+
+export const gradeVocab = (sessionId: string, itemId: string, grade: "remember" | "forget") =>
+  api<VocabReviewResult>("/api/practice/vocab/reviews", {
+    method: "POST",
+    body: JSON.stringify({ sessionId, itemId, grade }),
+  });
+
+export const vocabPreview = (locationName: string, n: number) => {
+  const qs = new URLSearchParams({ locationName, n: String(n) });
+  return api<{ dueAvailable: number; newAvailable: number }>(`/api/practice/vocab/preview?${qs}`);
+};
+
+export const getVocabSummary = (id: string) =>
+  api<{ summary: VocabSummary }>(`/api/practice/vocab/sessions/${id}/summary`).then((r) => r.summary);
