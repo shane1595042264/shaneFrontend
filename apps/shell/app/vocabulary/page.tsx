@@ -121,6 +121,8 @@ export default function VocabularyPage() {
     <div className="space-y-6">
       {notification && (
         <div
+          role={notification.type === "error" ? "alert" : "status"}
+          aria-live={notification.type === "error" ? "assertive" : "polite"}
           className={`flex items-center justify-between px-4 py-3 rounded text-sm transition-opacity ${
             notification.type === "error"
               ? "bg-red-500/10 border border-red-500/20 text-red-300"
@@ -139,7 +141,11 @@ export default function VocabularyPage() {
       )}
 
       {initError && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-center gap-3 px-4 py-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300"
+        >
           {initError}
         </div>
       )}

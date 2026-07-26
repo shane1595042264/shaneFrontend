@@ -128,7 +128,11 @@ export function VocabRunner({ session, cards }: { session: Session; cards: Vocab
           </>
         )}
 
-        {toast && <p className="mt-8 text-sm text-emerald-400">{toast}</p>}
+        {toast && (
+          <p role="status" aria-live="polite" className="mt-8 text-sm text-emerald-400">
+            {toast}
+          </p>
+        )}
       </main>
 
       <footer className="border-t border-white/10 px-4 py-2 text-center text-[11px] text-gray-600">
