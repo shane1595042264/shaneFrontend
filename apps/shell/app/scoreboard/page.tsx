@@ -9,7 +9,6 @@ import {
   listMatches,
   listPlayers,
   type Game,
-  type GameStat,
   type Match,
   type Player,
 } from "@/lib/api/scoreboard";
@@ -34,7 +33,6 @@ function ScoreboardContent() {
   const selectedGameId = searchParams.get("game");
 
   const [games, setGames] = useState<Game[]>([]);
-  const [stats, setStats] = useState<GameStat[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
@@ -49,7 +47,6 @@ function ScoreboardContent() {
         listMatches({ limit: 100 }),
       ]);
       setGames(g.games);
-      setStats(g.stats);
       setPlayers(p);
       setMatches(m);
       setError(null);
@@ -132,7 +129,6 @@ function ScoreboardContent() {
       ) : (
         <Hall
           games={games}
-          stats={stats}
           players={players}
           matches={matches}
           isAdmin={isAdmin}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import type { Game, GameStat, Match, Player } from "@/lib/api/scoreboard";
+import type { Game, Match, Player } from "@/lib/api/scoreboard";
 import { GameIcon } from "./game-icon";
 import { colorStyles } from "./palette";
 import { AddGameForm } from "./add-game-form";
@@ -20,7 +20,6 @@ const cardVariants = {
 
 export function Hall({
   games,
-  stats,
   players,
   matches,
   isAdmin,
@@ -29,7 +28,6 @@ export function Hall({
   onOpenMatch,
 }: {
   games: Game[];
-  stats: GameStat[];
   players: Player[];
   matches: Match[];
   isAdmin: boolean;
@@ -41,17 +39,26 @@ export function Hall({
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const liveMatches = matches.filter((m) => m.status === "live");
 
-  // All-time match-win tally line for one game's cabinet card.
+  // All-time match-win tally line for one game's cabinet card, computed
+  // from final matches so participants with zero wins still show their 0
+  // (e.g. "Kalina 1 - 0 Shane" after one match, not just "Kalina 1").
   function tallyLine(gameId: string): string | null {
-    const rows = stats.filter((s) => s.gameId === gameId && s.playerId);
-    if (rows.length === 0) return null;
-    const named = rows
-      .map((s) => ({
-        name: players.find((p) => p.id === s.playerId)?.name ?? "?",
-        wins: s.wins,
-      }))
-      .sort((a, b) => b.wins - a.wins);
-    return named.map((n) => `${n.name} ${n.wins}`).join(" - ");
+    const finals = matches.filter(
+      (m) => m.gameId === gameId && m.status === "final",
+    );
+    if (finals.length === 0) return null;
+    const wins = new Map<string, { name: string; wins: number }>();
+    for (const m of finals) {
+      for (const p of m.players) {
+        const entry = wins.get(p.playerId) ?? { name: p.name, wins: 0 };
+        if (p.playerId === m.winnerPlayerId) entry.wins += 1;
+        wins.set(p.playerId, entry);
+      }
+    }
+    return [...wins.values()]
+      .sort((a, b) => b.wins - a.wins)
+      .map((n) => `${n.name} ${n.wins}`)
+      .join(" - ");
   }
 
   return (
