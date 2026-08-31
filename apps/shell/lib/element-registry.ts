@@ -18,6 +18,7 @@ import practiceManifest from "@/app/practice/manifest";
 import vocabularyManifest from "@/app/vocabulary/manifest";
 import skincareManifest from "@/app/skincare/manifest";
 import scoreboardManifest from "@/app/scoreboard/manifest";
+import coursesManifest from "@/app/courses/manifest";
 
 // External links and coming-soon elements that don't have route folders
 const externalElements: ElementConfig[] = [
@@ -102,5 +103,6 @@ export const allElements: ElementConfig[] = [
   vocabularyManifest,
   skincareManifest,
   scoreboardManifest,
+  coursesManifest,
   ...externalElements,
 ];
