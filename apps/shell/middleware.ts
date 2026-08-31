@@ -139,6 +139,31 @@ function viewerTodayCandidates(): Set<string> {
 // HEAD-probed against /api/trips/:segment (which would 404).
 const TRIPS_NON_SLUG_SEGMENTS = new Set(["new", "groups", "opengraph-image"]);
 
+const COURSES_NOT_FOUND_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Not Found — Courses — Shane</title>
+<meta name="robots" content="noindex,follow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body { background:#000; color:#9ca3af; font-family:ui-sans-serif,system-ui,sans-serif; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:6rem 1rem; }
+  p { font-size:0.875rem; font-style:italic; margin:0; }
+  a { color:#60a5fa; font-size:0.875rem; text-decoration:none; }
+  a:hover { color:#93c5fd; }
+</style>
+</head>
+<body>
+<p>Course not found.</p>
+<a href="/courses">&larr; Back to courses</a>
+</body>
+</html>`;
+
+// Sibling paths under /courses/ that are NOT course detail pages. "covers"
+// is defensive: cover bytes are served by the backend host, but a relative
+// link must never trigger a backend HEAD probe of /api/courses/covers.
+const COURSES_NON_SLUG_SEGMENTS = new Set(["covers"]);
+
 function notFoundResponse(html: string): NextResponse {
   return new NextResponse(html, {
     status: 404,
@@ -228,9 +253,23 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Intercept /courses/:slug and its /courses/:slug/opengraph-image sub-path
+  // so both share one existence check - mirrors the trips branch (SHAN-375/376
+  // class of soft-404s, closed here from day one). SHAN-437.
+  const courseMatch = pathname.match(/^\/courses\/([^\/]+)(?:\/opengraph-image)?\/?$/);
+  if (courseMatch) {
+    const segment = courseMatch[1];
+    if (COURSES_NON_SLUG_SEGMENTS.has(segment)) return NextResponse.next();
+    const exists = await backendExists(
+      `/api/courses/${encodeURIComponent(segment)}`
+    );
+    if (exists === false) return notFoundResponse(COURSES_NOT_FOUND_HTML);
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/journal/:path*", "/trips/:path*"],
+  matcher: ["/journal/:path*", "/trips/:path*", "/courses/:path*"],
 };

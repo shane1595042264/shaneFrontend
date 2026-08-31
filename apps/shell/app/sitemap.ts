@@ -62,8 +62,27 @@ async function fetchAllTrips(): Promise<TripRow[]> {
   }
 }
 
+type CourseRowLite = { slug: string; updatedAt: string | null };
+
+async function fetchAllCourses(): Promise<CourseRowLite[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/courses`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    const data = (await res.json()) as {
+      courses: { slug: string; updatedAt: string | null }[];
+    };
+    return data.courses.map((c) => ({ slug: c.slug, updatedAt: c.updatedAt }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [journalDates, trips] = await Promise.all([fetchAllJournalDates(), fetchAllTrips()]);
+  const [journalDates, trips, courses] = await Promise.all([
+    fetchAllJournalDates(),
+    fetchAllTrips(),
+    fetchAllCourses(),
+  ]);
   const elements = liveInternalRoutes();
 
   const now = new Date();
@@ -115,6 +134,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const row of trips) {
     entries.push({
       url: `${SITE_URL}/trips/${row.slug}`,
+      lastModified: row.updatedAt ? new Date(row.updatedAt) : now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    });
+  }
+
+  for (const row of courses) {
+    entries.push({
+      url: `${SITE_URL}/courses/${row.slug}`,
       lastModified: row.updatedAt ? new Date(row.updatedAt) : now,
       changeFrequency: "monthly",
       priority: 0.6,
