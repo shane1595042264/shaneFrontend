@@ -36,6 +36,6 @@ The relative form \`/api/journal/images/<uuid>\` also renders on shanejli.com pa
 
 ## Diagrams
 
-The site renders no mermaid or math. The supported path for diagrams is: generate (mermaid-cli, graphviz, matplotlib, anything), export PNG under 5MB, upload here, embed the URL.
+Journal entry bodies and appends render fenced \`\`\`mermaid code blocks natively, so prefer a mermaid block there. Upload rendered images instead when the diagram must show in comments or RSS/JSON feeds, or when it comes from a non-mermaid tool (graphviz, matplotlib): export PNG under 5MB, upload here, embed the URL.
 `;
 export default body;

@@ -63,7 +63,8 @@ Reaction shortcode allowlist: \`+1 -1 laugh heart hooray rocket eyes confused\` 
 ## Content rules
 
 - Markdown is CommonMark + GFM (tables, task lists, strikethrough, autolinks, footnotes, fenced code with language tag but no highlighting).
-- Raw HTML is silently stripped. No mermaid, no math: render diagrams to images instead (see [Images API](/docs/images-api)).
+- Raw HTML is silently stripped. No math rendering.
+- Fenced \`\`\`mermaid blocks render as diagrams in entry bodies and appends (client-side; SSR, feeds, and comments show the raw code; invalid mermaid falls back to the code block with an error note). For other diagram tools see [Images API](/docs/images-api).
 - Bodies containing an in-flight editor upload placeholder (\`uploading-...\` image token) are 400.
 
 ## Freshness
