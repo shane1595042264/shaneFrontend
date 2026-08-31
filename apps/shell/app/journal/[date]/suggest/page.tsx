@@ -11,6 +11,7 @@ import { uploadImage } from "@/lib/api/images";
 import { MarkdownEditor } from "@shane/ui";
 import { LoginButton } from "@/components/login-button";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { markdownComponents } from "@/lib/markdown-mermaid";
 
 export default function SuggestPage() {
   const params = useParams<{ date: string }>();
@@ -154,6 +155,7 @@ export default function SuggestPage() {
         The author will review and approve or reject. If the author edits the entry before deciding, your base will be out of date and the diff vs current may shift.
       </p>
       <MarkdownEditor
+        previewComponents={markdownComponents}
         value={content}
         onChange={setContent}
         onImageUpload={uploadImage}

@@ -9,6 +9,7 @@ import { uploadImage } from "@/lib/api/images";
 import { MarkdownEditor } from "@shane/ui";
 import { LoginButton } from "@/components/login-button";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { markdownComponents } from "@/lib/markdown-mermaid";
 
 export default function AppendEntryPage() {
   const params = useParams<{ date: string }>();
@@ -156,6 +157,7 @@ export default function AppendEntryPage() {
         Entries are append-only. Each append is timestamped and added below the existing content.
       </p>
       <MarkdownEditor
+        previewComponents={markdownComponents}
         value={content}
         onChange={setContent}
         onImageUpload={uploadImage}

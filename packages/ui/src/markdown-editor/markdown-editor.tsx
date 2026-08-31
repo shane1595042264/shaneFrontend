@@ -55,6 +55,8 @@ export interface MarkdownEditorProps {
    * `uploading-…` token (SHAN-264).
    */
   onUploadingChange?: (uploading: boolean) => void;
+  /** Extra ReactMarkdown component overrides for the Preview tab (e.g. mermaid). */
+  previewComponents?: React.ComponentProps<typeof ReactMarkdown>["components"];
 }
 
 type Mode = "write" | "preview";
@@ -70,6 +72,7 @@ export function MarkdownEditor({
   onSubmit,
   onImageUpload,
   onUploadingChange,
+  previewComponents,
 }: MarkdownEditorProps) {
   const [mode, setMode] = React.useState<Mode>("write");
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
@@ -438,7 +441,9 @@ export function MarkdownEditor({
           style={{ minHeight }}
         >
           {value.trim() ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={previewComponents}>
+              {value}
+            </ReactMarkdown>
           ) : (
             <p className="text-gray-500 italic">Nothing to preview.</p>
           )}

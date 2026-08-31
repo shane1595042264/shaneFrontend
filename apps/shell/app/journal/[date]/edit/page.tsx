@@ -8,6 +8,7 @@ import { getEntry, createEntry, type EntryDetail } from "@/lib/api/journal";
 import { uploadImage } from "@/lib/api/images";
 import { MarkdownEditor } from "@shane/ui";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { markdownComponents } from "@/lib/markdown-mermaid";
 
 export default function EditEntryPage() {
   const params = useParams<{ date: string }>();
@@ -139,6 +140,7 @@ export default function EditEntryPage() {
       </Link>
       <h1 className="mt-3 mb-4 font-mono text-2xl">{date} — create</h1>
       <MarkdownEditor
+        previewComponents={markdownComponents}
         value={content}
         onChange={setContent}
         onImageUpload={uploadImage}
