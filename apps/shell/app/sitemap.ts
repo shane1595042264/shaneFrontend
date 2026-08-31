@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { allElements } from "@/lib/element-registry";
 import { isDisallowedForCrawlers } from "@/lib/seo-routes";
+import { DOC_PAGES } from "@/lib/docs/registry";
 
 const SITE_URL = "https://shanejli.com";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -146,6 +147,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: row.updatedAt ? new Date(row.updatedAt) : now,
       changeFrequency: "monthly",
       priority: 0.6,
+    });
+  }
+
+  for (const p of DOC_PAGES) {
+    entries.push({
+      url: `${SITE_URL}/docs/${p.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.5,
     });
   }
 
