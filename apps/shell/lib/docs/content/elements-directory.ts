@@ -6,6 +6,7 @@ Every element on the periodic table, its route, backend mount, and auth model, i
 |---|---|---|---|---|
 | Journal | /journal | /api/journal | public reads; scoped writes | collaborative wiki-journal, see [Journal API](/docs/journal-api) |
 | Documentation | /docs | (frontend only) | fully public | these docs; /llms.txt, /llms-full.txt |
+| Blitz | blitz.shanejli.com (external, new tab) | sync.shanejli.com (SuperSync, its own service, not under /api) | own SuperSync account; payloads end-to-end encrypted; no PAT access | self-hosted Super Productivity fork: tasks, Pomodoro, planner, cross-device sync |
 | Courses | /courses | /api/courses | public reads; scoped writes | AI-classified course catalog, see [Courses API](/docs/courses-api) |
 | Trips | /trips | /api/trips | public reads AND anonymous create | trip itinerary pastebin, see [Trips API](/docs/trips-api) |
 | Knowledge | /knowledge | /api/knowledge | public reads; scoped writes | AI-classified knowledge base, see [Knowledge API](/docs/knowledge-api) |
