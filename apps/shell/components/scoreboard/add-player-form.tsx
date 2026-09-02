@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { createPlayer, deletePlayer, type Player } from "@/lib/api/scoreboard";
+import {
+  createPlayer,
+  deletePlayer,
+  updatePlayer,
+  type Player,
+} from "@/lib/api/scoreboard";
 import { colorStyles } from "./palette";
 
 export function AddPlayerForm({
@@ -16,6 +21,9 @@ export function AddPlayerForm({
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Which player is being renamed inline, and the draft name (SHAN-436).
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,6 +35,36 @@ export function AddPlayerForm({
       await onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add the player");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function startRename(player: Player) {
+    setError(null);
+    setEditingId(player.id);
+    setDraftName(player.name);
+  }
+
+  async function saveRename(e: React.FormEvent) {
+    e.preventDefault();
+    const id = editingId;
+    const next = draftName.trim();
+    if (!id) return;
+    const current = players.find((p) => p.id === id);
+    // Nothing to send: the API rejects an empty patch, so just close.
+    if (!next || next === current?.name) {
+      setEditingId(null);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await updatePlayer(id, { name: next });
+      setEditingId(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not rename the player");
     } finally {
       setSaving(false);
     }
@@ -60,14 +98,53 @@ export function AddPlayerForm({
               className={`h-2 w-2 rounded-full ${colorStyles(p.color).solid}`}
               aria-hidden="true"
             />
-            {p.name}
-            <button
-              onClick={() => remove(p.id)}
-              aria-label={`Remove ${p.name}`}
-              className="text-gray-500 hover:text-red-400"
-            >
-              &times;
-            </button>
+            {editingId === p.id ? (
+              <form onSubmit={saveRename} className="flex items-center gap-2">
+                <input
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setEditingId(null);
+                  }}
+                  autoFocus
+                  required
+                  maxLength={80}
+                  aria-label={`New name for ${p.name}`}
+                  className="w-28 rounded-sm border border-white/20 bg-black/30 px-1.5 py-0.5 text-sm text-white focus:border-white/40 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="text-gray-300 hover:text-white disabled:opacity-50"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingId(null)}
+                  className="text-gray-500 hover:text-gray-300"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <>
+                <button
+                  onClick={() => startRename(p)}
+                  aria-label={`Rename ${p.name}`}
+                  className="hover:underline"
+                >
+                  {p.name}
+                </button>
+                <button
+                  onClick={() => remove(p.id)}
+                  aria-label={`Remove ${p.name}`}
+                  className="text-gray-500 hover:text-red-400"
+                >
+                  &times;
+                </button>
+              </>
+            )}
           </li>
         ))}
         {players.length === 0 && (

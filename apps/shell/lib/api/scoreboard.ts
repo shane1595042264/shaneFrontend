@@ -153,6 +153,15 @@ export const createPlayer = (input: { name: string; color?: string }) =>
     body: JSON.stringify(input),
   }).then((r) => r.player);
 
+export const updatePlayer = (
+  id: string,
+  patch: Partial<{ name: string; color: string }>,
+) =>
+  api<{ player: Player }>(`/api/scoreboard/players/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  }).then((r) => r.player);
+
 export const deletePlayer = (id: string) =>
   api<void>(`/api/scoreboard/players/${id}`, { method: "DELETE" });
 
@@ -164,6 +173,13 @@ export const createMatch = (input: {
   api<{ match: Match }>("/api/scoreboard/matches", {
     method: "POST",
     body: JSON.stringify(input),
+  }).then((r) => r.match);
+
+/** Edit a recorded match. `location: null` clears the address. */
+export const updateMatch = (id: string, patch: { location?: string | null }) =>
+  api<{ match: Match }>(`/api/scoreboard/matches/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
   }).then((r) => r.match);
 
 export const scoreMatch = (id: string, playerId: string, delta: 1 | -1) =>

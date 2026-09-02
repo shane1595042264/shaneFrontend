@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   finishMatch,
   scoreMatch,
+  updateMatch,
   type Game,
   type Match,
   type MatchPlayer,
@@ -30,6 +31,9 @@ export function LiveMatch({
     Object.fromEntries(match.players.map((p) => [p.playerId, p.score])),
   );
   const [picking, setPicking] = useState(false);
+  // Inline address edit for the match in play (SHAN-436).
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [draftLocation, setDraftLocation] = useState(match.location ?? "");
   const [celebrating, setCelebrating] = useState<MatchPlayer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isFinal = match.status === "final";
@@ -44,6 +48,24 @@ export function LiveMatch({
     } catch (err) {
       setScores((s) => ({ ...s, [playerId]: prev }));
       setError(err instanceof Error ? err.message : "Score did not save");
+    }
+  }
+
+  async function saveLocation(e: React.FormEvent) {
+    e.preventDefault();
+    const next = draftLocation.trim();
+    // An unchanged address would be an empty patch, which the API rejects.
+    if (next === (match.location ?? "")) {
+      setEditingLocation(false);
+      return;
+    }
+    setError(null);
+    try {
+      await updateMatch(match.id, { location: next || null });
+      setEditingLocation(false);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the address");
     }
   }
 
@@ -77,7 +99,47 @@ export function LiveMatch({
             className={`flex items-center gap-2 text-sm ${colorStyles(game.color).text}`}
           >
             <GameIcon icon={game.icon} className="h-5 w-5" />
-            {match.location ?? ""}
+            {isAdmin && editingLocation ? (
+              <form onSubmit={saveLocation} className="flex items-center gap-2">
+                <input
+                  value={draftLocation}
+                  onChange={(e) => setDraftLocation(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setEditingLocation(false);
+                  }}
+                  autoFocus
+                  maxLength={160}
+                  placeholder="Essential Square, Frisco"
+                  aria-label="Match address"
+                  className="w-48 rounded-md border border-white/20 bg-black/30 px-2 py-1 text-sm text-white placeholder-gray-500 focus:border-white/40 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="text-xs text-gray-300 underline hover:text-white"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingLocation(false)}
+                  className="text-xs text-gray-500 underline hover:text-gray-300"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : isAdmin ? (
+              <button
+                onClick={() => {
+                  setDraftLocation(match.location ?? "");
+                  setEditingLocation(true);
+                }}
+                className="underline decoration-dotted underline-offset-2 hover:text-white"
+              >
+                {match.location ?? "Add address"}
+              </button>
+            ) : (
+              (match.location ?? "")
+            )}
           </span>
         )}
       </div>

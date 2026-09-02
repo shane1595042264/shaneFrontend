@@ -7,11 +7,13 @@ import {
   deleteGame,
   deleteMatch,
   reopenMatch,
+  updateMatch,
   type Game,
   type Match,
   type Player,
 } from "@/lib/api/scoreboard";
 import { GameIcon, CrownIcon } from "./game-icon";
+import { GameForm } from "./game-form";
 import { colorStyles } from "./palette";
 
 export function Cabinet({
@@ -33,7 +35,11 @@ export function Cabinet({
 }) {
   const styles = colorStyles(game.color);
   const [showStart, setShowStart] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  // Which match's address is being edited inline, and the draft (SHAN-436).
+  const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
+  const [draftLocation, setDraftLocation] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [busy, setBusy] = useState(false);
@@ -85,6 +91,30 @@ export function Cabinet({
       onOpenMatch(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reopen the match");
+    }
+  }
+
+  function startLocationEdit(match: Match) {
+    setError(null);
+    setEditingLocationId(match.id);
+    setDraftLocation(match.location ?? "");
+  }
+
+  async function saveLocation(e: React.FormEvent, match: Match) {
+    e.preventDefault();
+    const next = draftLocation.trim();
+    // An unchanged address would be an empty patch, which the API rejects.
+    if (next === (match.location ?? "")) {
+      setEditingLocationId(null);
+      return;
+    }
+    setError(null);
+    try {
+      await updateMatch(match.id, { location: next || null });
+      setEditingLocationId(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the address");
     }
   }
 
@@ -141,10 +171,22 @@ export function Cabinet({
         {isAdmin && (
           <div className="flex gap-2">
             <button
-              onClick={() => setShowStart((v) => !v)}
+              onClick={() => {
+                setShowStart((v) => !v);
+                setShowEdit(false);
+              }}
               className="inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
             >
               {showStart ? "Close" : "Start match"}
+            </button>
+            <button
+              onClick={() => {
+                setShowEdit((v) => !v);
+                setShowStart(false);
+              }}
+              className="inline-flex min-h-11 items-center justify-center rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/15"
+            >
+              {showEdit ? "Close" : "Edit"}
             </button>
             <button
               onClick={removeGame}
@@ -160,6 +202,17 @@ export function Cabinet({
         <p role="alert" className="text-sm text-red-400">
           {error}
         </p>
+      )}
+
+      {isAdmin && showEdit && (
+        <GameForm
+          game={game}
+          onSaved={async () => {
+            setShowEdit(false);
+            await refresh();
+          }}
+          onCancel={() => setShowEdit(false)}
+        />
       )}
 
       {isAdmin && showStart && (
@@ -275,17 +328,56 @@ export function Cabinet({
                       );
                     })}
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {new Date(m.playedAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                    {m.location ? ` at ${m.location}` : ""}
-                  </p>
+                  {editingLocationId === m.id ? (
+                    <form
+                      onSubmit={(e) => saveLocation(e, m)}
+                      className="mt-1 flex flex-wrap items-center gap-2"
+                    >
+                      <input
+                        value={draftLocation}
+                        onChange={(e) => setDraftLocation(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setEditingLocationId(null);
+                        }}
+                        autoFocus
+                        maxLength={160}
+                        placeholder="Essential Square, Frisco"
+                        aria-label="Match address"
+                        className="w-full max-w-xs rounded-md border border-white/20 bg-black/30 px-2 py-1 text-xs text-white placeholder-gray-500 focus:border-white/40 focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        className="text-xs text-gray-300 underline hover:text-white"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingLocationId(null)}
+                        className="text-xs text-gray-500 underline hover:text-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {new Date(m.playedAt).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                      {m.location ? ` at ${m.location}` : ""}
+                    </p>
+                  )}
                 </div>
                 {isAdmin && (
                   <div className="flex gap-2 text-xs">
+                    <button
+                      onClick={() => startLocationEdit(m)}
+                      className="text-gray-400 underline hover:text-gray-200"
+                    >
+                      {m.location ? "Edit address" : "Add address"}
+                    </button>
                     <button
                       onClick={() => reopen(m.id)}
                       className="text-gray-400 underline hover:text-gray-200"

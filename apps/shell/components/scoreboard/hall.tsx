@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import type { Game, Match, Player } from "@/lib/api/scoreboard";
 import { GameIcon } from "./game-icon";
 import { colorStyles } from "./palette";
-import { AddGameForm } from "./add-game-form";
+import { GameForm } from "./game-form";
 import { AddPlayerForm } from "./add-player-form";
 
 const cardVariants = {
@@ -161,11 +161,12 @@ export function Hall({
             </button>
           </div>
           {showAddGame && (
-            <AddGameForm
-              onCreated={async () => {
+            <GameForm
+              onSaved={async () => {
                 setShowAddGame(false);
                 await refresh();
               }}
+              onCancel={() => setShowAddGame(false)}
             />
           )}
           {showAddPlayer && (
