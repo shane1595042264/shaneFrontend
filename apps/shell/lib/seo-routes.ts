@@ -26,6 +26,8 @@ export const CRAWLER_DISALLOW: string[] = [
   // subtree is thin/soft-404. The prefix match covers every nested
   // /trips/groups/* route with one entry.
   "/trips/groups",
+  // Blitz sync hand-off popup (SHAN-443): AuthGate-wrapped, single purpose.
+  "/blitz/connect",
   "/journal/tea",
   "/journal/inbox",
   // Mutation/form subpaths under a journal entry — auth-gated, thin, and

@@ -52,6 +52,10 @@ A PAT without the required scope gets 403 \`Token missing required scope: <scope
 
 Journal image uploads have a separate 100 per rolling 24h per-user quota (applies to JWTs too) with an honest \`Retry-After\`.
 
+## Blitz sync sessions (browser only)
+
+\`POST /api/blitz/sync-session\` with a browser JWT returns \`{ baseUrl, accessToken, encryptKey, email, expiresAt }\`: the SuperSync server URL, a 365-day SuperSync token, and the caller's encryption password (created on first call, identical on every device). PATs get 403. The Blitz app calls it through the popup at \`/blitz/connect\`; agents have no reason to call it.
+
 ## Admin-gated surfaces
 
 A few routes are JWT-plus-admin-email only (practice settings PATCH, activity ingest). PATs always get 403 there; agents should skip them.
