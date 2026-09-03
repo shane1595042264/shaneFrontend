@@ -234,12 +234,18 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   // Pan the grid to the highlighted search result. Without this, arrowing
   // through results on a narrow viewport highlights cards that are scrolled
   // out of sight. block: "nearest" keeps the page from jumping vertically.
+  //
+  // behavior must stay "auto": verified on prod that a smooth scroll request
+  // against this container is silently dropped (scrollLeft never leaves 0),
+  // while an instant one pans correctly. The grid is full of framer-motion
+  // cards animating transforms, which cancels the smooth scroll before it
+  // starts.
   useEffect(() => {
     if (!activeMatchId) return;
     const node = scrollRef.current?.querySelector(
       `[data-element-id="${activeMatchId}"]`
     );
-    node?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+    node?.scrollIntoView({ block: "nearest", inline: "center", behavior: "auto" });
   }, [activeMatchId]);
 
   return (
