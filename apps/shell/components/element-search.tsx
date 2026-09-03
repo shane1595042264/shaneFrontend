@@ -29,6 +29,10 @@ export function ElementSearch({
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const [isOpen, setIsOpen] = useState(false);
+  // Name of a coming-soon element the user just tried to open, so the attempt
+  // is reported instead of silently doing nothing. Cleared on any new query or
+  // arrow-key move.
+  const [unavailableName, setUnavailableName] = useState<string | null>(null);
 
   const trimmed = query.trim();
   const hasQuery = trimmed.length > 0;
@@ -60,7 +64,11 @@ export function ElementSearch({
 
   const activate = useCallback(
     (element: ElementConfig) => {
-      if (element.status === "coming-soon") return;
+      if (element.status === "coming-soon") {
+        setUnavailableName(element.name);
+        return;
+      }
+      setUnavailableName(null);
       if (element.type === "external" && element.url) {
         window.open(element.url, "_blank", "noopener,noreferrer");
         return;
@@ -73,6 +81,7 @@ export function ElementSearch({
   const move = useCallback(
     (delta: number) => {
       if (results.length === 0) return;
+      setUnavailableName(null);
       setIsOpen(true);
       const next =
         activeIndex === -1
@@ -93,7 +102,13 @@ export function ElementSearch({
       e.preventDefault();
       move(-1);
     } else if (e.key === "Enter") {
-      const target = results[activeIndex] ?? results[0];
+      // An explicitly highlighted option is honoured as-is. Only the implicit
+      // fallback skips ahead, so a coming-soon element ranked first cannot
+      // swallow the keystroke while a real destination sits below it.
+      const target =
+        results[activeIndex] ??
+        results.find((el) => el.status !== "coming-soon") ??
+        results[0];
       if (target) {
         e.preventDefault();
         activate(target);
@@ -102,6 +117,7 @@ export function ElementSearch({
       // First Escape closes the suggestion list, a second one clears the query
       // (and with it the dimming applied to the grid).
       e.preventDefault();
+      setUnavailableName(null);
       if (showList) {
         setIsOpen(false);
       } else {
@@ -114,12 +130,14 @@ export function ElementSearch({
   const handleChange = (value: string) => {
     onQueryChange(value);
     onActiveIdChange(null);
+    setUnavailableName(null);
     setIsOpen(true);
   };
 
   const clear = () => {
     onQueryChange("");
     onActiveIdChange(null);
+    setUnavailableName(null);
     setIsOpen(false);
     inputRef.current?.focus();
   };
@@ -175,10 +193,22 @@ export function ElementSearch({
       </div>
 
       <p role="status" aria-live="polite" className="sr-only">
-        {hasQuery
-          ? `${results.length} element${results.length === 1 ? "" : "s"} match ${trimmed}`
-          : ""}
+        {unavailableName
+          ? `${unavailableName} is not available yet`
+          : hasQuery
+            ? `${results.length} ${
+                results.length === 1 ? "element matches" : "elements match"
+              } ${trimmed}`
+            : ""}
       </p>
+      {/* Sighted keyboard users get the same message on screen. Hidden from the
+          accessibility tree because the status region above already announces
+          it, and duplicating it would read twice. */}
+      {unavailableName && (
+        <p aria-hidden="true" className="mt-1 text-[11px] text-gray-500">
+          {unavailableName} is not available yet.
+        </p>
+      )}
 
       {showList && (
         <ul
@@ -188,7 +218,9 @@ export function ElementSearch({
           className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto rounded-md border border-white/15 bg-gray-950/95 py-1 shadow-xl backdrop-blur"
         >
           {results.length === 0 && (
-            <li className="px-3 py-2 text-xs text-gray-500">No elements match</li>
+            <li className="px-3 py-2 text-xs text-gray-500">
+              No elements match &ldquo;{trimmed}&rdquo;
+            </li>
           )}
           {results.map((element) => {
             const styles =
