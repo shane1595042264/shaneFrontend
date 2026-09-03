@@ -9,7 +9,24 @@ import { CATEGORY_STYLES } from "@/lib/elements";
 interface ElementCardProps {
   element: ElementConfig;
   atomicNumber: number;
+  /**
+   * How this card relates to the active element search, if any.
+   * undefined = no search running, render exactly as before.
+   */
+  searchState?: "dimmed" | "match" | "active";
 }
+
+// Ring styles live on the card itself; the dim lives on the non-motion wrapper
+// below, because framer-motion writes an inline `opacity` from itemVariants
+// that would win over any opacity utility class on the animated node.
+const SEARCH_RING_CLASSES: Record<
+  NonNullable<ElementCardProps["searchState"]>,
+  string
+> = {
+  dimmed: "",
+  match: "ring-1 ring-white/60",
+  active: "ring-2 ring-white shadow-lg shadow-white/20",
+};
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20, scale: 0.85 },
@@ -21,7 +38,11 @@ const itemVariants = {
   },
 };
 
-export function ElementCard({ element, atomicNumber }: ElementCardProps) {
+export function ElementCard({
+  element,
+  atomicNumber,
+  searchState,
+}: ElementCardProps) {
   const styles = CATEGORY_STYLES[element.category] || CATEGORY_STYLES["projects"];
   const isComingSoon = element.status === "coming-soon";
   const isExternal = element.type === "external";
@@ -72,6 +93,10 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
       ? `${element.name} (${element.symbol}) — opens in a new tab`
       : `${element.name} (${element.symbol}) — open page`;
 
+  const wrapperClass = `transition-opacity ${
+    searchState === "dimmed" ? "opacity-20" : ""
+  }`;
+
   const cardContent = (
     <motion.div
       variants={itemVariants}
@@ -82,6 +107,7 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
         "group/card relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded border select-none w-full aspect-square transition-shadow",
         styles.bg,
         styles.border,
+        searchState ? SEARCH_RING_CLASSES[searchState] : "",
         isComingSoon
           ? "opacity-50 cursor-not-allowed outline-none focus-visible:opacity-80 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:z-10"
           : "cursor-grab active:cursor-grabbing hover:shadow-lg hover:shadow-black/40",
@@ -140,7 +166,12 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
 
   if (isComingSoon) {
     return (
-      <div role="img" aria-label={ariaLabel} aria-disabled="true">
+      <div
+        role="img"
+        aria-label={ariaLabel}
+        aria-disabled="true"
+        className={wrapperClass}
+      >
         {cardContent}
       </div>
     );
@@ -153,6 +184,7 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label={ariaLabel}
+        className={wrapperClass}
         onClick={(e) => {
           if (e.defaultPrevented) return;
         }}
@@ -164,7 +196,12 @@ export function ElementCard({ element, atomicNumber }: ElementCardProps) {
   }
 
   return (
-    <Link href={element.route || "/"} aria-label={ariaLabel} draggable={false}>
+    <Link
+      href={element.route || "/"}
+      aria-label={ariaLabel}
+      className={wrapperClass}
+      draggable={false}
+    >
       {cardContent}
     </Link>
   );

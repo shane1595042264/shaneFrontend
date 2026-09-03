@@ -5,6 +5,9 @@ import type { ChemicalElement } from "@/lib/periodic-table-data";
 
 interface PlaceholderCardProps {
   element: ChemicalElement;
+  /** Fades empty slots further while an element search is active, so the
+   *  matching cards stand out of the grid. */
+  dimmed?: boolean;
 }
 
 const itemVariants = {
@@ -16,11 +19,18 @@ const itemVariants = {
   },
 };
 
-export function PlaceholderCard({ element }: PlaceholderCardProps) {
+export function PlaceholderCard({ element, dimmed }: PlaceholderCardProps) {
   const ariaLabel = `Empty slot — atomic number ${element.atomicNumber}, ${element.name} (${element.symbol})`;
 
   return (
-    <div role="img" aria-label={ariaLabel} aria-disabled="true">
+    // The opacity lives here rather than on the motion.div: itemVariants
+    // animates opacity inline, which overrides utility classes on that node.
+    <div
+      role="img"
+      aria-label={ariaLabel}
+      aria-disabled="true"
+      className={`transition-opacity ${dimmed ? "opacity-30" : ""}`}
+    >
       <motion.div
         variants={itemVariants}
         className="flex flex-col items-center justify-between p-1 rounded border border-gray-700/40 bg-gray-900/30 w-full aspect-square select-none cursor-default opacity-30"

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import type { ElementConfig } from "@shane/types";
 import { ElementCard } from "./element-card";
+import { ElementSearch } from "./element-search";
 import { PlaceholderCard } from "./placeholder-card";
+import { searchElements } from "@/lib/element-search";
 import {
   PERIODIC_TABLE_ELEMENTS,
   GRID_ROWS,
@@ -28,6 +30,19 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
   const [saveToast, setSaveToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [query, setQuery] = useState("");
+  const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+
+  const searchResults = useMemo(
+    () => searchElements(elements, query),
+    [elements, query]
+  );
+
+  // null = no active search, so every card renders exactly as before.
+  const matchedIds = useMemo(
+    () => (query.trim() ? new Set(searchResults.map((el) => el.id)) : null),
+    [query, searchResults]
+  );
 
   // Fetch saved assignments client-side only — they're per-user data behind requireAuth.
   // SSR has no localStorage token, so server-side fetches were guaranteed 401.
@@ -141,11 +156,20 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
       const isDropping = dropTarget === chemEl.atomicNumber;
 
       if (assignedApp) {
+        const searchState = !matchedIds
+          ? undefined
+          : !matchedIds.has(assignedApp.id)
+            ? "dimmed"
+            : assignedApp.id === activeMatchId
+              ? "active"
+              : "match";
+
         cells.push(
           <motion.div
             key={`active-${assignedApp.id}`}
             layout
             layoutId={assignedApp.id}
+            data-element-id={assignedApp.id}
             style={{ gridRow: row, gridColumn: col }}
             className={`relative ${isDropping ? "ring-2 ring-white/50 rounded-md" : ""}`}
             draggable
@@ -155,7 +179,11 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
             onDrop={() => handleDrop(chemEl.atomicNumber)}
             onDragEnd={handleDragEnd}
           >
-            <ElementCard element={assignedApp} atomicNumber={chemEl.atomicNumber} />
+            <ElementCard
+              element={assignedApp}
+              atomicNumber={chemEl.atomicNumber}
+              searchState={searchState}
+            />
           </motion.div>
         );
       } else {
@@ -168,7 +196,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
             onDragLeave={handleDragLeave}
             onDrop={() => handleDrop(chemEl.atomicNumber)}
           >
-            <PlaceholderCard element={chemEl} />
+            <PlaceholderCard element={chemEl} dimmed={matchedIds !== null} />
           </div>
         );
       }
@@ -203,6 +231,17 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
     return () => observer.disconnect();
   }, [updateScrollIndicators]);
 
+  // Pan the grid to the highlighted search result. Without this, arrowing
+  // through results on a narrow viewport highlights cards that are scrolled
+  // out of sight. block: "nearest" keeps the page from jumping vertically.
+  useEffect(() => {
+    if (!activeMatchId) return;
+    const node = scrollRef.current?.querySelector(
+      `[data-element-id="${activeMatchId}"]`
+    );
+    node?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }, [activeMatchId]);
+
   return (
     <div className="w-full pb-4 relative">
       {saveToast && (
@@ -218,46 +257,57 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
           {saveToast.message}
         </div>
       )}
-      {canScrollLeft && (
-        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black/60 to-transparent z-10 pointer-events-none md:hidden" />
-      )}
-      {canScrollRight && (
-        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/60 to-transparent z-10 pointer-events-none md:hidden" />
-      )}
-      {/*
-        Named, keyboard-scrollable region. The grid pans horizontally on narrow
-        viewports (overflow-x-auto); without role/aria-label/tabindex a
-        keyboard-only user can't reach the off-screen columns and a screen
-        reader announces ~30 links with no context (WCAG 2.1.1 + 1.3.1).
-        tabIndex is 0 only when there's actual overflow to scroll — otherwise
-        the region would be a spurious tab stop on desktop where nothing pans.
-        A focusable overflow container scrolls natively with arrow keys, so no
-        custom key handler is needed.
-      */}
-      <div
-        ref={scrollRef}
-        role="region"
-        aria-label="Periodic table of Shane's apps and projects"
-        tabIndex={canScrollLeft || canScrollRight ? 0 : -1}
-        className="overflow-x-auto md:overflow-x-visible scrollbar-hide rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-        onScroll={updateScrollIndicators}
-      >
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="periodic-grid mx-auto"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${GRID_COLS}, minmax(48px, 1fr))`,
-            gridTemplateRows: `repeat(${GRID_ROWS}, auto)`,
-            gap: "2px",
-            maxWidth: "1100px",
-            minWidth: `${GRID_COLS * 50}px`,
-          }}
+      <ElementSearch
+        results={searchResults}
+        query={query}
+        onQueryChange={setQuery}
+        activeId={activeMatchId}
+        onActiveIdChange={setActiveMatchId}
+      />
+      {/* The scroll-edge gradients are positioned against the grid only, so the
+          search bar above them never sits under a fade on mobile. */}
+      <div className="relative">
+        {canScrollLeft && (
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black/60 to-transparent z-10 pointer-events-none md:hidden" />
+        )}
+        {canScrollRight && (
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/60 to-transparent z-10 pointer-events-none md:hidden" />
+        )}
+        {/*
+          Named, keyboard-scrollable region. The grid pans horizontally on narrow
+          viewports (overflow-x-auto); without role/aria-label/tabindex a
+          keyboard-only user can't reach the off-screen columns and a screen
+          reader announces ~30 links with no context (WCAG 2.1.1 + 1.3.1).
+          tabIndex is 0 only when there's actual overflow to scroll — otherwise
+          the region would be a spurious tab stop on desktop where nothing pans.
+          A focusable overflow container scrolls natively with arrow keys, so no
+          custom key handler is needed.
+        */}
+        <div
+          ref={scrollRef}
+          role="region"
+          aria-label="Periodic table of Shane's apps and projects"
+          tabIndex={canScrollLeft || canScrollRight ? 0 : -1}
+          className="overflow-x-auto md:overflow-x-visible scrollbar-hide rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          onScroll={updateScrollIndicators}
         >
-          {cells}
-        </motion.div>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="periodic-grid mx-auto"
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${GRID_COLS}, minmax(48px, 1fr))`,
+              gridTemplateRows: `repeat(${GRID_ROWS}, auto)`,
+              gap: "2px",
+              maxWidth: "1100px",
+              minWidth: `${GRID_COLS * 50}px`,
+            }}
+          >
+            {cells}
+          </motion.div>
+        </div>
       </div>
     </div>
   );
