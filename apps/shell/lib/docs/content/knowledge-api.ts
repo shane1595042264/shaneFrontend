@@ -35,6 +35,8 @@ Comments: same shape as journal comments (\`GET/POST /entries/:id/comments\`, \`
 
 ## Vocabulary module differences
 
+Full route table: [Vocabulary API](/docs/vocabulary-api). The differences that bite most often:
+
 - \`GET /api/vocabulary/words\` search matches the word column only; list key is \`{words}\` not \`{entries}\`.
 - Duplicate check is (word, language) with no category dimension.
 - All writes use scope \`knowledge:write\` (there is no vocabulary:write), bucket \`vocabulary-writes\` 30/min, enrich 10/min.

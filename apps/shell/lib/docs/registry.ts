@@ -12,6 +12,7 @@ import coursesApi from "./content/courses-api";
 import scoreboardApi from "./content/scoreboard-api";
 import tripsApi from "./content/trips-api";
 import knowledgeApi from "./content/knowledge-api";
+import vocabularyApi from "./content/vocabulary-api";
 import elementsDirectory from "./content/elements-directory";
 
 export interface DocPage {
@@ -84,6 +85,13 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Free-text note ingest with AI classification, plus knowledge entries, vocabulary, and comments.",
     body: knowledgeApi,
+  },
+  {
+    slug: "vocabulary-api",
+    title: "Vocabulary API",
+    description:
+      "The word list and its typed connection graph: filters, enrichment, ownership rules, and how it differs from the Knowledge API.",
+    body: vocabularyApi,
   },
   {
     slug: "elements-directory",
