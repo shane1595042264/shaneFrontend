@@ -46,7 +46,12 @@ export interface Match {
   gameId: string;
   location: string | null;
   status: "live" | "final";
+  /** Sole winner, or null while live and on a tie. */
   winnerPlayerId: string | null;
+  /** One id on a win, every level player on a tie, empty while live. */
+  winnerPlayerIds: string[];
+  /** null while live; "tie" when the top score was shared (SHAN-446). */
+  outcome: "win" | "tie" | null;
   playedAt: string;
   createdAt: string;
   players: MatchPlayer[];
@@ -188,10 +193,10 @@ export const scoreMatch = (id: string, playerId: string, delta: 1 | -1) =>
     body: JSON.stringify({ playerId, delta }),
   }).then((r) => r.match);
 
-export const finishMatch = (id: string, winnerPlayerId: string) =>
+/** No winner argument: the server decides it from the scores (SHAN-446). */
+export const finishMatch = (id: string) =>
   api<{ match: Match }>(`/api/scoreboard/matches/${id}/finish`, {
     method: "POST",
-    body: JSON.stringify({ winnerPlayerId }),
   }).then((r) => r.match);
 
 export const reopenMatch = (id: string) =>

@@ -309,7 +309,8 @@ export function Cabinet({
                   <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                     {m.players.map((p) => {
                       const pStyles = colorStyles(p.color);
-                      const isWinner = p.playerId === m.winnerPlayerId;
+                      // A tie crowns everyone level at the top (SHAN-446).
+                      const isWinner = m.winnerPlayerIds.includes(p.playerId);
                       return (
                         <span
                           key={p.playerId}
@@ -327,6 +328,11 @@ export function Cabinet({
                         </span>
                       );
                     })}
+                    {m.outcome === "tie" && (
+                      <span className="text-xs tracking-widest text-gray-400 uppercase">
+                        Draw
+                      </span>
+                    )}
                   </p>
                   {editingLocationId === m.id ? (
                     <form

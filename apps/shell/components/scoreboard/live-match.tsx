@@ -8,7 +8,6 @@ import {
   updateMatch,
   type Game,
   type Match,
-  type MatchPlayer,
 } from "@/lib/api/scoreboard";
 import { GameIcon, CrownIcon } from "./game-icon";
 import { colorStyles } from "./palette";
@@ -30,13 +29,16 @@ export function LiveMatch({
   const [scores, setScores] = useState<Record<string, number>>(() =>
     Object.fromEntries(match.players.map((p) => [p.playerId, p.score])),
   );
-  const [picking, setPicking] = useState(false);
   // Inline address edit for the match in play (SHAN-436).
   const [editingLocation, setEditingLocation] = useState(false);
   const [draftLocation, setDraftLocation] = useState(match.location ?? "");
-  const [celebrating, setCelebrating] = useState<MatchPlayer | null>(null);
+  // The just-finished match, held so the crown lands before the parent's
+  // refresh round-trip replaces the `match` prop with the final one.
+  const [celebrating, setCelebrating] = useState<Match | null>(null);
+  const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isFinal = match.status === "final";
+  const settled = celebrating ?? (match.status === "final" ? match : null);
+  const winnerIds = new Set(settled?.winnerPlayerIds ?? []);
 
   async function tap(playerId: string, delta: 1 | -1) {
     const prev = scores[playerId] ?? 0;
@@ -69,21 +71,20 @@ export function LiveMatch({
     }
   }
 
-  async function finish(winner: MatchPlayer) {
+  // No winner is passed: the API decides it from the scores, and a shared
+  // top score comes back as a tie (SHAN-446).
+  async function finish() {
     setError(null);
+    setFinishing(true);
     try {
-      await finishMatch(match.id, winner.playerId);
-      setPicking(false);
-      setCelebrating(winner);
+      setCelebrating(await finishMatch(match.id));
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not finish the match");
+    } finally {
+      setFinishing(false);
     }
   }
-
-  const leader = [...match.players].sort(
-    (a, b) => (scores[b.playerId] ?? 0) - (scores[a.playerId] ?? 0),
-  )[0];
 
   return (
     <div className="space-y-6">
@@ -153,9 +154,7 @@ export function LiveMatch({
       <div className="grid gap-3 sm:grid-cols-2 lg:auto-cols-fr lg:grid-flow-col">
         {match.players.map((p, i) => {
           const pStyles = colorStyles(p.color);
-          const isWinner =
-            celebrating?.playerId === p.playerId ||
-            (isFinal && match.winnerPlayerId === p.playerId);
+          const isWinner = winnerIds.has(p.playerId);
           return (
             <motion.section
               key={p.playerId}
@@ -185,7 +184,8 @@ export function LiveMatch({
                   transition={{ type: "spring", stiffness: 300, damping: 15 }}
                   className="flex items-center gap-1 text-xs font-bold tracking-widest text-yellow-300 uppercase"
                 >
-                  <CrownIcon className="h-5 w-5" /> Winner
+                  <CrownIcon className="h-5 w-5" />{" "}
+                  {settled?.outcome === "tie" ? "Draw" : "Winner"}
                 </motion.span>
               )}
               <h2
@@ -205,7 +205,7 @@ export function LiveMatch({
                   {scores[p.playerId] ?? 0}
                 </motion.p>
               </AnimatePresence>
-              {isAdmin && !isFinal && !celebrating && (
+              {isAdmin && !settled && (
                 <div className="flex gap-3">
                   <button
                     onClick={() => tap(p.playerId, -1)}
@@ -228,52 +228,23 @@ export function LiveMatch({
         })}
       </div>
 
-      {isAdmin && !isFinal && !celebrating && (
-        <div className="space-y-3">
-          {!picking ? (
-            <button
-              onClick={() => setPicking(true)}
-              className="inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
-            >
-              Finish match
-            </button>
-          ) : (
-            <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-4">
-              <p className="text-sm text-gray-300">Who won?</p>
-              <div className="flex flex-wrap gap-2">
-                {match.players.map((p) => (
-                  <button
-                    key={p.playerId}
-                    onClick={() => finish(p)}
-                    className={`inline-flex min-h-11 items-center gap-2 rounded-md border px-4 text-sm ${
-                      leader?.playerId === p.playerId
-                        ? "border-white bg-white/10 font-medium"
-                        : "border-white/20 hover:border-white/40"
-                    }`}
-                  >
-                    <span
-                      className={`h-2 w-2 rounded-full ${colorStyles(p.color).solid}`}
-                      aria-hidden="true"
-                    />
-                    {p.name}
-                    {leader?.playerId === p.playerId && (
-                      <span className="text-xs text-gray-400">(leading)</span>
-                    )}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setPicking(false)}
-                  className="inline-flex min-h-11 items-center justify-center rounded-md bg-white/10 px-4 text-sm text-gray-200 hover:bg-white/15"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+      {isAdmin && !settled && (
+        <button
+          onClick={finish}
+          disabled={finishing}
+          className="inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:opacity-60"
+        >
+          {finishing ? "Finishing..." : "Finish match"}
+        </button>
       )}
 
-      {(celebrating || isFinal) && (
+      {settled?.outcome === "tie" && (
+        <p className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm tracking-widest text-gray-300 uppercase">
+          Dead heat. Nobody takes this one.
+        </p>
+      )}
+
+      {settled && (
         <button
           onClick={onExit}
           className="inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"

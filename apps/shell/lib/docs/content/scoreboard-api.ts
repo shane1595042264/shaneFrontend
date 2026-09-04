@@ -5,7 +5,8 @@ The IRL game scoreboard at /scoreboard. Mounted at \`/api/scoreboard\`. Three no
 ## Model
 
 - Colors (games and players): \`amber sky emerald fuchsia rose violet lime cyan orange teal\`. Omit \`color\` on create and one is assigned round-robin from the current row count, so a fresh roster comes out visually distinct without you choosing.
-- Match \`status\` is \`live\` or \`final\`. A live match has \`winnerPlayerId: null\` and mutable scores; finishing it sets a winner and freezes scoring until you reopen it.
+- Match \`status\` is \`live\` or \`final\`. A live match has mutable scores; finishing it freezes scoring until you reopen it.
+- **The winner is computed, never chosen** (SHAN-446). Finishing a match reads the roster's scores: the single top scorer wins, and two or more players level at the top is a tie. A final match carries \`outcome\` (\`win\` or \`tie\`), \`winnerPlayerId\` (the sole winner, or \`null\` on a tie) and \`winnerPlayerIds\` (one id on a win, every level id on a tie). A live match has \`outcome: null\`, \`winnerPlayerId: null\` and \`winnerPlayerIds: []\`. An untouched 0-0 board is a tie, not a win for whoever was listed first.
 - A game's icon is game-icons.net art, stored denormalized as \`{path, viewBox, slug}\` so rendering never depends on GitHub being up. \`slug\` is \`category/name\`, e.g. \`delapouite/chess-king\`.
 - Games and players are global (anyone's reads see the same roster), but mutations are owner-scoped to whoever created the row.
 
@@ -13,7 +14,7 @@ The IRL game scoreboard at /scoreboard. Mounted at \`/api/scoreboard\`. Three no
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | /games | \`{games, stats}\`, oldest first. \`stats\` is \`[{gameId, playerId, wins}]\` counted over final matches only, so a game nobody has finished is simply absent |
+| GET | /games | \`{games, stats}\`, oldest first. \`stats\` is \`[{gameId, playerId, wins}]\` counted over final matches only, so a game nobody has finished is simply absent. Tied matches have no winner and are counted under \`playerId: null\` |
 | GET | /players | \`{players}\`, oldest first |
 | GET | /matches | \`{matches}\` newest first, each with an embedded \`players\` array of \`{playerId, name, color, score, position}\` |
 | GET | /matches/:id | \`{match}\`, same shape; 404 if unknown |
@@ -53,7 +54,7 @@ Every write needs scope \`entries:write\` and shares PAT bucket \`scoreboard-wri
 | POST | /matches | \`{gameId, playerIds, location?}\` | 2..8 player ids, must be unique (400 on duplicates) and must all exist (400 \`Unknown player id\`). Scores start at 0 |
 | PATCH | /matches/:id | \`{location}\` | the only editable match field, and the only edit still allowed on a final match (where the game happened is a record, not a score) |
 | PATCH | /matches/:id/score | \`{playerId, delta}\` | \`delta\` is exactly \`1\` or \`-1\`; anything else fails validation. **409** if the match is already final, **404** if the player is not in this match |
-| POST | /matches/:id/finish | \`{winnerPlayerId}\` | **400** if the winner is not a participant, **409** if the match is already final |
+| POST | /matches/:id/finish | none | the winner is derived from the scores, so there is nothing to send; a body is accepted but ignored. **409** if the match is already final, **404** if you do not own it |
 | POST | /matches/:id/reopen | none | back to \`live\` and scores become mutable again; **409** if the match is not final |
 | DELETE | /matches/:id | none | 204, removes its participant rows too |
 
@@ -76,10 +77,10 @@ curl -X POST $API/matches -H "Authorization: Bearer $PAT" -H "Content-Type: appl
 # 3. score, then freeze it
 curl -X PATCH $API/matches/<MATCH_ID>/score -H "Authorization: Bearer $PAT" -H "Content-Type: application/json" \\
   -d '{"playerId":"<P1>","delta":1}'
-curl -X POST $API/matches/<MATCH_ID>/finish -H "Authorization: Bearer $PAT" -H "Content-Type: application/json" \\
-  -d '{"winnerPlayerId":"<P1>"}'
+curl -X POST $API/matches/<MATCH_ID>/finish -H "Authorization: Bearer $PAT"
+# -> {"match": {..., "outcome": "win", "winnerPlayerId": "<P1>", "winnerPlayerIds": ["<P1>"]}}
 \`\`\`
 
-Once finished, the match counts toward \`stats\` on \`GET /games\`. Further \`/score\` calls answer 409 until you \`POST /matches/:id/reopen\`.
+Once finished, the match counts toward \`stats\` on \`GET /games\`. Further \`/score\` calls answer 409 until you \`POST /matches/:id/reopen\`, which clears the outcome and makes the scores mutable again -- that is how you correct a match that finished on the wrong scoreline.
 `;
 export default body;

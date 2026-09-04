@@ -42,23 +42,28 @@ export function Hall({
   // All-time match-win tally line for one game's cabinet card, computed
   // from final matches so participants with zero wins still show their 0
   // (e.g. "Kalina 1 - 0 Shane" after one match, not just "Kalina 1").
+  // Tied matches credit nobody, so they get their own count on the end
+  // rather than vanishing from the card entirely (SHAN-446).
   function tallyLine(gameId: string): string | null {
     const finals = matches.filter(
       (m) => m.gameId === gameId && m.status === "final",
     );
     if (finals.length === 0) return null;
     const wins = new Map<string, { name: string; wins: number }>();
+    let draws = 0;
     for (const m of finals) {
+      if (m.outcome === "tie") draws += 1;
       for (const p of m.players) {
         const entry = wins.get(p.playerId) ?? { name: p.name, wins: 0 };
         if (p.playerId === m.winnerPlayerId) entry.wins += 1;
         wins.set(p.playerId, entry);
       }
     }
-    return [...wins.values()]
+    const line = [...wins.values()]
       .sort((a, b) => b.wins - a.wins)
       .map((n) => `${n.name} ${n.wins}`)
       .join(" - ");
+    return draws > 0 ? `${line} (${draws} drawn)` : line;
   }
 
   return (
