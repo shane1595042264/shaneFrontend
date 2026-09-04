@@ -1,5 +1,6 @@
 import type { Components } from "react-markdown";
 import { MermaidDiagram } from "@/components/mermaid-diagram";
+import { responsiveTableComponents } from "@/lib/markdown-table";
 
 // hast helpers: the `pre` override inspects its single <code> child for
 // language-mermaid and reroutes to MermaidDiagram. Overriding `pre` (not
@@ -25,7 +26,10 @@ function mermaidChild(node: HastNode | undefined): HastNode | null {
   return classes.includes("language-mermaid") ? child : null;
 }
 
+// Journal entry bodies and their editor previews get the mermaid `pre`
+// override on top of the shared responsive-table wrapper (SHAN-449).
 export const markdownComponents: Components = {
+  ...responsiveTableComponents,
   pre(props) {
     const { node, children, ...rest } = props as {
       node?: HastNode;

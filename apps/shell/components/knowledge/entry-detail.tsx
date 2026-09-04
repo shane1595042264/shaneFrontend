@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { responsiveTableComponents } from "@/lib/markdown-table";
 import { MarkdownEditor } from "@shane/ui";
 import type { KnowledgeEntry, KnowledgeConnection } from "@/lib/knowledge-api";
 import {
@@ -337,7 +338,7 @@ export function EntryDetail({
                   Definition
                 </h3>
                 <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 text-gray-300">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={responsiveTableComponents}>
                     {entry.definition}
                   </ReactMarkdown>
                 </div>
@@ -348,7 +349,7 @@ export function EntryDetail({
               <div className="mb-4">
                 <h3 className="text-xs text-gray-500 uppercase mb-1">Example</h3>
                 <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 italic text-gray-300">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={responsiveTableComponents}>
                     {entry.exampleSentence}
                   </ReactMarkdown>
                 </div>

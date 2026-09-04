@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { responsiveTableComponents } from "@/lib/markdown-table";
 import type { Metadata } from "next";
 import { DOC_PAGES, getDocPage } from "@/lib/docs/registry";
 
@@ -45,7 +46,7 @@ export default async function DocPageView({ params }: PageProps) {
         </a>
       </nav>
       <article className="prose prose-invert prose-sm max-w-none prose-pre:overflow-x-auto prose-table:text-sm">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{page.body}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={responsiveTableComponents}>{page.body}</ReactMarkdown>
       </article>
     </main>
   );

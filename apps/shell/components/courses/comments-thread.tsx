@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { responsiveTableComponents } from "@/lib/markdown-table";
 import { MarkdownEditor } from "@shane/ui";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -239,7 +240,7 @@ export function CourseCommentsThread({ courseId, courseOwnerId }: Props) {
           </div>
         ) : (
           <div className="prose prose-invert prose-sm max-w-none prose-p:my-2">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{c.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={responsiveTableComponents}>{c.content}</ReactMarkdown>
           </div>
         )}
         {!isReply && (
