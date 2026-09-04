@@ -9,6 +9,7 @@ import conventions from "./content/conventions";
 import journalApi from "./content/journal-api";
 import imagesApi from "./content/images-api";
 import coursesApi from "./content/courses-api";
+import scoreboardApi from "./content/scoreboard-api";
 import tripsApi from "./content/trips-api";
 import knowledgeApi from "./content/knowledge-api";
 import elementsDirectory from "./content/elements-directory";
@@ -62,6 +63,13 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The course catalog: AI classification on create, covers, star ratings, and comments.",
     body: coursesApi,
+  },
+  {
+    slug: "scoreboard-api",
+    title: "Scoreboard API",
+    description:
+      "The IRL game scoreboard: games, players, live matches, scoring, and the game-icons search.",
+    body: scoreboardApi,
   },
   {
     slug: "trips-api",

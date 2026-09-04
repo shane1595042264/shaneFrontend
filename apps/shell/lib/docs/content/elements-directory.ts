@@ -11,7 +11,7 @@ Every element on the periodic table, its route, backend mount, and auth model, i
 | Trips | /trips | /api/trips | public reads AND anonymous create | trip itinerary pastebin, see [Trips API](/docs/trips-api) |
 | Knowledge | /knowledge | /api/knowledge | public reads; scoped writes | AI-classified knowledge base, see [Knowledge API](/docs/knowledge-api) |
 | Vocabulary | /vocabulary | /api/vocabulary | public reads; knowledge:write writes | narrower view of the same data |
-| Scoreboard | /scoreboard | /api/scoreboard | public reads; entries:write writes | IRL game scoreboard (games, players, live matches) |
+| Scoreboard | /scoreboard | /api/scoreboard | public reads; entries:write writes | IRL game scoreboard, see [Scoreboard API](/docs/scoreboard-api) |
 | Tea | /journal/tea | /api/tea-entries | authed author; PIN-gated shares | private entries unlocked per-entry via the X-Tea-Pin header |
 | Skincare | /skincare | /api/skincare | authed only, owner-scoped | AM/PM routine tracker |
 | Practice | /practice | /api/practice | authed, practice:write writes | training sessions + vocab SRS |
