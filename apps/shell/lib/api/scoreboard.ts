@@ -86,20 +86,37 @@ export const listGames = () =>
 export const listPlayers = () =>
   api<{ players: Player[] }>("/api/scoreboard/players").then((r) => r.players);
 
-export const listMatches = (opts?: {
+const MATCHES_PAGE_SIZE = 100;
+const MATCHES_MAX = 5000;
+
+/**
+ * The Hall tallies wins per player and the Cabinet lists a game's history, both
+ * client-side over the whole array, so a single capped page would silently
+ * under-count once the scoreboard passes the page size. Drain via nextCursor
+ * instead, the same way the course catalog does. The cap just bounds a runaway
+ * loop.
+ */
+export async function listMatches(opts?: {
   gameId?: string;
   status?: "live" | "final";
-  limit?: number;
-}) => {
-  const params = new URLSearchParams();
-  if (opts?.gameId) params.set("gameId", opts.gameId);
-  if (opts?.status) params.set("status", opts.status);
-  if (opts?.limit) params.set("limit", String(opts.limit));
-  const qs = params.toString();
-  return api<{ matches: Match[] }>(
-    `/api/scoreboard/matches${qs ? `?${qs}` : ""}`,
-  ).then((r) => r.matches);
-};
+}): Promise<Match[]> {
+  const out: Match[] = [];
+  let cursor: string | null = null;
+  while (out.length < MATCHES_MAX) {
+    const params = new URLSearchParams({ limit: String(MATCHES_PAGE_SIZE) });
+    if (opts?.gameId) params.set("gameId", opts.gameId);
+    if (opts?.status) params.set("status", opts.status);
+    if (cursor) params.set("cursor", cursor);
+    const page: { matches: Match[]; nextCursor: string | null } = await api<{
+      matches: Match[];
+      nextCursor: string | null;
+    }>(`/api/scoreboard/matches?${params}`);
+    out.push(...page.matches);
+    if (page.matches.length === 0 || !page.nextCursor) break;
+    cursor = page.nextCursor;
+  }
+  return out;
+}
 
 /** Icon typeahead. Returns [] on any failure so the form degrades gracefully. */
 export async function searchIcons(

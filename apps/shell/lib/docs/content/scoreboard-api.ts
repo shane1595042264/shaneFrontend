@@ -16,10 +16,12 @@ The IRL game scoreboard at /scoreboard. Mounted at \`/api/scoreboard\`. Three no
 |---|---|---|
 | GET | /games | \`{games, stats}\`, oldest first. \`stats\` is \`[{gameId, playerId, wins}]\` counted over final matches only, so a game nobody has finished is simply absent. Tied matches have no winner and are counted under \`playerId: null\` |
 | GET | /players | \`{players}\`, oldest first |
-| GET | /matches | \`{matches}\` newest first, each with an embedded \`players\` array of \`{playerId, name, color, score, position}\` |
+| GET | /matches | \`{matches, nextCursor}\` newest first, each match with an embedded \`players\` array of \`{playerId, name, color, score, position}\` |
 | GET | /matches/:id | \`{match}\`, same shape; 404 if unknown |
 
-\`GET /matches\` takes \`gameId\`, \`status\` (\`live\` or \`final\`), \`limit\` (1..100, default 50) and \`cursor\`. **The cursor is an ISO datetime on \`createdAt\`, not a date string** (the journal's date-based cursor does not apply here): pass the \`createdAt\` of the last match you saw to get the next page.
+\`GET /matches\` takes \`gameId\`, \`status\` (\`live\` or \`final\`), \`limit\` (1..100, default 50) and \`cursor\`. **The cursor is an ISO datetime on \`createdAt\`, not a date string** (the journal's date-based cursor does not apply here). Do not build it yourself: page by passing back the \`nextCursor\` the previous response gave you, and stop when it is \`null\`. A full page always carries a \`nextCursor\`, so the last page of an exact multiple of \`limit\` costs one extra empty request -- the same contract as \`GET /api/courses\` and \`GET /api/journal/entries\`.
+
+Aggregate over every page, not just the first. Win tallies computed from a single capped page under-count as soon as the history outgrows it.
 
 ## Reads (authed)
 

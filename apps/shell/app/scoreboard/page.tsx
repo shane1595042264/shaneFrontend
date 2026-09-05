@@ -44,7 +44,7 @@ function ScoreboardContent() {
       const [g, p, m] = await Promise.all([
         listGames(),
         listPlayers(),
-        listMatches({ limit: 100 }),
+        listMatches(),
       ]);
       setGames(g.games);
       setPlayers(p);
