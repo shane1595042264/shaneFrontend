@@ -66,15 +66,30 @@ async function fetchAllTrips(): Promise<TripRow[]> {
 type CourseRowLite = { slug: string; updatedAt: string | null };
 
 async function fetchAllCourses(): Promise<CourseRowLite[]> {
+  const PAGE_SIZE = 100;
+  const rows: CourseRowLite[] = [];
+  let cursor: string | null | undefined;
   try {
-    const res = await fetch(`${API_URL}/api/courses`, { next: { revalidate: 3600 } });
-    if (!res.ok) return [];
-    const data = (await res.json()) as {
-      courses: { slug: string; updatedAt: string | null }[];
-    };
-    return data.courses.map((c) => ({ slug: c.slug, updatedAt: c.updatedAt }));
+    // Same cursor drain as the journal above: the endpoint pages at 100 and
+    // the sitemap needs every slug.
+    while (rows.length < 5000) {
+      const qs = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (cursor) qs.set("cursor", cursor);
+      const res = await fetch(`${API_URL}/api/courses?${qs}`, {
+        next: { revalidate: 3600 },
+      });
+      if (!res.ok) return rows;
+      const data = (await res.json()) as {
+        courses: { slug: string; updatedAt: string | null }[];
+        nextCursor: string | null;
+      };
+      rows.push(...data.courses.map((c) => ({ slug: c.slug, updatedAt: c.updatedAt })));
+      if (data.courses.length === 0 || !data.nextCursor) break;
+      cursor = data.nextCursor;
+    }
+    return rows;
   } catch {
-    return [];
+    return rows;
   }
 }
 

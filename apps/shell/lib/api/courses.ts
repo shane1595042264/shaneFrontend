@@ -74,8 +74,30 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export const listCourses = () =>
-  api<{ courses: Course[] }>("/api/courses").then((r) => r.courses.map(absolutize));
+const COURSES_PAGE_SIZE = 100;
+const COURSES_MAX = 5000;
+
+/**
+ * The catalog filters and sorts client-side, so it needs every course. The
+ * endpoint pages at 100, so drain it via nextCursor. The cap mirrors the
+ * journal drain in app/journal/page.tsx and just bounds a runaway loop.
+ */
+export async function listCourses(): Promise<Course[]> {
+  const out: Course[] = [];
+  let cursor: string | null = null;
+  while (out.length < COURSES_MAX) {
+    const qs = new URLSearchParams({ limit: String(COURSES_PAGE_SIZE) });
+    if (cursor) qs.set("cursor", cursor);
+    const page: { courses: Course[]; nextCursor: string | null } = await api<{
+      courses: Course[];
+      nextCursor: string | null;
+    }>(`/api/courses?${qs}`);
+    out.push(...page.courses.map(absolutize));
+    if (page.courses.length === 0 || !page.nextCursor) break;
+    cursor = page.nextCursor;
+  }
+  return out;
+}
 
 export const getCourse = (slug: string) =>
   api<{ course: Course }>(`/api/courses/${encodeURIComponent(slug)}`).then((r) =>
