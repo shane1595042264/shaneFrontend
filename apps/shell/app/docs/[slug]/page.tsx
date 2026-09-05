@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { responsiveTableComponents } from "@/lib/markdown-table";
+import { DocHashScroll } from "@/components/docs/hash-scroll";
 import type { Metadata } from "next";
 import { DOC_PAGES, getDocPage } from "@/lib/docs/registry";
 import {
@@ -110,6 +111,7 @@ export default async function DocPageView({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
+      <DocHashScroll />
       <nav className="mb-6 flex items-center justify-between gap-3 text-sm">
         <Link href="/docs" className="text-gray-500 hover:text-gray-300">
           &larr; Documentation
