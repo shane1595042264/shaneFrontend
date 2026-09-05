@@ -9,7 +9,21 @@ One page of rules shared by every module, so the per-module docs stay short.
 
 ## Errors
 
-Every error is JSON \`{"error": "message"}\`. Validation failures (bad params, query, or body) return 400 with the zod error object. Unhandled throws return 500 \`{"error":"Internal server error"}\`.
+Every error is JSON with a top-level \`error\` string — no exceptions. Unhandled throws return 500 \`{"error":"Internal Server Error"}\`; an unmatched route returns 404 \`{"error":"Not Found","path":"/api/nope"}\`.
+
+Validation failures (bad params, query, or body) return 400 and add a structured \`details\` array alongside the summary:
+
+\`\`\`json
+{
+  "error": "Validation failed: limit: Expected number, received nan; cursor: YYYY-MM-DD",
+  "details": [
+    { "path": "limit", "message": "Expected number, received nan" },
+    { "path": "cursor", "message": "YYYY-MM-DD" }
+  ]
+}
+\`\`\`
+
+\`details[].path\` is the dot-joined field path (\`notes.0.text\` for array elements) and is omitted for object-level errors. \`error\` folds the first 5 issues into one readable line and appends \`(+N more)\`; \`details\` always carries every issue. Read \`details\` for field-level form errors, \`error\` when you just need one message to show.
 
 ## Auth posture
 

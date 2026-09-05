@@ -38,19 +38,22 @@ export interface UpdateLoanInput {
 
 async function unwrapError(res: Response, fallback: string): Promise<never> {
   const err = await res.json().catch(() => ({}));
-  // A plain string is our own handler's { error } shape. zValidator failures
-  // instead return { error: <ZodError> } whose `error` is an object — surface
-  // its issue messages instead of letting it stringify to "[object Object]".
-  if (typeof err.error === "string") {
-    throw new Error(err.error);
-  }
-  const issues = err.error?.issues;
-  if (Array.isArray(issues) && issues.length > 0) {
-    const message = issues
-      .map((i: { message?: string }) => i.message)
+  // SHAN-451: every backend error is now { error: string }, and validation
+  // failures add a structured { details: [{ path?, message }] }. Prefer the
+  // per-field details so the form shows "amount: Expected number" rather than
+  // the folded summary; fall back to the plain message otherwise.
+  const details = err.details;
+  if (Array.isArray(details) && details.length > 0) {
+    const message = details
+      .map((d: { path?: string; message?: string }) =>
+        d.path && d.message ? `${d.path}: ${d.message}` : d.message
+      )
       .filter(Boolean)
       .join("; ");
     if (message) throw new Error(message);
+  }
+  if (typeof err.error === "string") {
+    throw new Error(err.error);
   }
   throw new Error(`${fallback}: ${res.status}`);
 }
