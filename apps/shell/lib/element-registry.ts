@@ -92,6 +92,16 @@ const externalElements: ElementConfig[] = [
     status: "live",
     description: "AI-powered book reader. Reading captures vocab into the knowledge base.",
   },
+  {
+    id: "wattpad",
+    symbol: "Wp",
+    name: "Wattpad",
+    category: "creative",
+    type: "external",
+    url: "https://www.wattpad.com/user/JuntaoLi",
+    status: "live",
+    description: "Wattpad profile & stories",
+  },
 ];
 
 /** All registered elements — internal manifests + external/coming-soon */
