@@ -35,7 +35,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${page.title} — Documentation — Shane`,
     description: page.description,
     alternates: { canonical: url },
-    openGraph: { title: page.title, description: page.description, url },
+    // siteName/type match what /journal/[date], /trips/[slug] and
+    // /courses/[slug] emit. The og:image and twitter:image come from the
+    // sibling opengraph-image.tsx file convention, which is why `images` is
+    // deliberately absent here (SHAN-456).
+    openGraph: {
+      title: page.title,
+      description: page.description,
+      url,
+      siteName: "Shane — Periodic Table of Life",
+      type: "article",
+    },
   };
 }
 
