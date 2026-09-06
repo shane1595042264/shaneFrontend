@@ -5,8 +5,10 @@ import { NextResponse, type NextRequest } from "next/server";
 //   1. SHAN-224 fast path — synchronous regex check for /journal/:date. Returns
 //      404 for structurally-invalid dates (e.g. /journal/not-a-date,
 //      /journal/2026-99-99, /journal/2024-02-30) with no backend round-trip.
-//   2. SHAN-231 backend existence check — for valid-format journal dates and
-//      single-segment /trips/:slug paths, HEAD the backend with a 1.5s timeout
+//   2. SHAN-231 backend existence check — for valid-format journal dates
+//      (SHAN-454: including their read-only /history and /suggestions
+//      sub-pages) and single-segment /trips/:slug paths, HEAD the backend
+//      with a 1.5s timeout
 //      and return 404 on backend-404. On timeout/network error we fail open
 //      (pass through to Next), which preserves the pre-fix soft-404 UI rather
 //      than introducing a new Railway-down failure mode.
@@ -121,6 +123,20 @@ const TEA_NOT_FOUND_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
+// SHAN-454: read-only sub-pages hanging off a journal date. They render the
+// same "does this entry exist" question as the date page, so they must share
+// its existence check — without this, /journal/<any-string>/history and
+// /journal/<any-string>/suggestions answer HTTP 200 with a real <title> and no
+// noindex, giving crawlers an unbounded space of soft-404s (SHAN-224/231/375/405
+// class). /edit, /append and /suggest are deliberately NOT matched: edit?new=1
+// is the create-the-first-version flow for a date that legitimately has no
+// entry yet, append/suggest render a "be the first to write" CTA in that case,
+// and all three are already robots-disallowed so they cost no crawl budget.
+// The tea tree can't collide here — /journal/tea/:id returns from the branch
+// above, and /journal/tea/new and /journal/tea/:id/edit don't fit this shape.
+const JOURNAL_DATE_SUBPATH_RE =
+  /^\/journal\/([^\/]+)\/(?:history|suggestions(?:\/[^\/]+)?)\/?$/;
+
 // Set of YYYY-MM-DD strings that could be "today" for any viewer worldwide:
 // UTC today plus the day on either side covers UTC-12 through UTC+14. We pass
 // these through to the page even when no entry exists yet, so the "Write
@@ -213,12 +229,20 @@ export async function middleware(req: NextRequest) {
   // Intercept the /journal/:date page and its /journal/:date/opengraph-image
   // sub-path so both share one existence check — without the sub-path, the
   // per-date OG image route soft-404s (renders a 200 PNG for dates that have no
-  // entry) while the page correctly 404s. Deeper paths like
-  // /journal/[date]/suggestions or /journal/inbox/foo fall through to Next's
-  // normal routing (the optional group only matches opengraph-image).
+  // entry) while the page correctly 404s. SHAN-454 folds the read-only
+  // /history and /suggestions sub-pages into the same check so a sub-page can
+  // never disagree with its parent about whether the entry exists. Other paths
+  // under /journal (inbox/foo, :date/edit, …) fall through to Next's routing.
   const journalMatch = pathname.match(/^\/journal\/([^\/]+)(?:\/opengraph-image)?\/?$/);
-  if (journalMatch) {
-    const segment = journalMatch[1];
+  const journalSubpathMatch = journalMatch
+    ? null
+    : pathname.match(JOURNAL_DATE_SUBPATH_RE);
+  const journalSegment = journalMatch?.[1] ?? journalSubpathMatch?.[1];
+  if (journalSegment !== undefined) {
+    const segment = journalSegment;
+    // "tea"/"inbox"/"feed.xml" are sibling routes, never dates — and
+    // /journal/tea/:id/history isn't a route, so this also keeps the tea tree
+    // out of the date existence check.
     if (JOURNAL_NON_DATE_SEGMENTS.has(segment)) return NextResponse.next();
     if (!isValidJournalDate(segment)) {
       // SHAN-224 fast path: structurally invalid date, no backend call needed.
