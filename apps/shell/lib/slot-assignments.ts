@@ -1,8 +1,7 @@
 import type { ElementConfig } from "@shane/types";
 import { PERIODIC_TABLE_ELEMENTS } from "./periodic-table-data";
 import { getAuthHeaders } from "./auth-api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { API_URL } from "@/lib/api-url";
 
 /** Sorted list of all valid atomic numbers in periodic table order */
 const ALL_ATOMIC_NUMBERS = PERIODIC_TABLE_ELEMENTS

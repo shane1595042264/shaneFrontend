@@ -1,12 +1,12 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toPlainExcerpt } from "@/lib/journal-text";
+import { API_URL } from "@/lib/api-url";
 
 // Shared data + rendering layer for the journal feeds. Both the RSS feed
 // (/journal/feed.xml) and the JSON Feed (/journal/feed.json) build on this so
 // the two stay in lockstep — they differ only in serialization.
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 
 export const SITE_URL = "https://shanejli.com";

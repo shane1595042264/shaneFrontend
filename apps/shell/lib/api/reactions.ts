@@ -1,6 +1,5 @@
 import { getAuthHeaders } from "@/lib/auth-api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { API_URL } from "@/lib/api-url";
 
 export const EMOJI_SET = ["+1", "-1", "laugh", "heart", "hooray", "rocket", "eyes", "confused"] as const;
 export type Emoji = typeof EMOJI_SET[number];

@@ -1,6 +1,5 @@
 import { getAuthHeaders } from "./auth-api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { API_URL } from "@/lib/api-url";
 
 // "owed_to_me" = someone borrowed from you; "i_owe" = you owe someone else.
 export type LoanDirection = "owed_to_me" | "i_owe";

@@ -1,6 +1,5 @@
 import { getAuthHeaders } from "@/lib/auth-api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { API_URL, BACKEND_ORIGIN } from "@/lib/api-url";
 
 export interface UploadedImage {
   /** Absolute URL — safe to embed directly in markdown rendered from any host. */
@@ -71,5 +70,7 @@ export async function uploadImage(file: Blob, filename = "image"): Promise<Uploa
     throw new Error(err.error || `Image upload failed (${res.status})`);
   }
   const data = (await res.json()) as { id: string; url: string };
-  return { id: data.id, url: `${API_URL}${data.url}` };
+  // Absolute on purpose: this URL is embedded in journal markdown and read by
+  // feeds and other clients that cannot resolve a same-origin path.
+  return { id: data.id, url: `${BACKEND_ORIGIN}${data.url}` };
 }

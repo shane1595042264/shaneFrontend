@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { CourseInteractive } from "@/components/courses/course-interactive";
 import type { Course } from "@/lib/api/courses";
+import { API_URL } from "@/lib/api-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const SITE_URL = "https://shanejli.com";
 
 // Escape `<` so a title containing "</script>" cannot break out of the

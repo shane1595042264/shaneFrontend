@@ -1,7 +1,6 @@
 import { getAuthHeaders } from "@/lib/auth-api";
 import type { ReactionState } from "@/lib/api/reactions";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { API_URL } from "@/lib/api-url";
 
 export interface CommentAuthor {
   id: string;

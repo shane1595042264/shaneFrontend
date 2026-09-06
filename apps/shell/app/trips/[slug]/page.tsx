@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { TripActions } from "@/components/trips/trip-actions";
 import { RelativeTime } from "@/lib/format-time";
+import { API_URL } from "@/lib/api-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const SITE_URL = "https://shanejli.com";
 
 // Escape `<` so an uploaded trip whose title or body contains "</script>"

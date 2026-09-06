@@ -1,8 +1,7 @@
 // apps/shell/lib/api/journal.ts
 import { getAuthHeaders } from "@/lib/auth-api";
 import { revalidateJournalEntry } from "@/lib/journal-revalidate";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { API_URL } from "@/lib/api-url";
 
 export interface JournalAuthor {
   id: string;

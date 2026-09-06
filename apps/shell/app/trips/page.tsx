@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { RelativeTime } from "@/lib/format-time";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { API_URL } from "@/lib/api-url";
 
 // Render at request time, not build time — avoids "/api/trips returns 404
 // while the backend deploy is still propagating" build failures.

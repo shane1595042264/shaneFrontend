@@ -1,10 +1,10 @@
 import { ImageResponse } from "next/og";
+import { API_URL } from "@/lib/api-url";
 
 export const alt = "Trip itinerary — Shane";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const FALLBACK_BODY =
   "A trip itinerary on Shane Li's periodic table of life — routes, stays, and the plan for the days ahead.";
 

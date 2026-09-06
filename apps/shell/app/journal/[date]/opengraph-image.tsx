@@ -1,11 +1,11 @@
 import { ImageResponse } from "next/og";
 import { toPlainExcerpt } from "@/lib/journal-text";
+import { API_URL } from "@/lib/api-url";
 
 export const alt = "Journal entry — Shane";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 const FALLBACK_BODY =
   "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.";

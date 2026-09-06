@@ -2,8 +2,8 @@
 import { JournalIndexHeader } from "@/components/journal/journal-index-header";
 import { JournalSearchList } from "@/components/journal/journal-search-list";
 import { toPlainExcerpt } from "@/lib/journal-text";
+import { API_URL } from "@/lib/api-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 const SITE_URL = "https://shanejli.com";
 

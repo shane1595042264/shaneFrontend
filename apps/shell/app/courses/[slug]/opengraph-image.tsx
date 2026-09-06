@@ -1,11 +1,10 @@
 import { ImageResponse } from "next/og";
 import { CATEGORY_STYLES } from "@/components/courses/category-styles";
+import { API_URL } from "@/lib/api-url";
 
 export const alt = "Course card";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 interface CourseLite {
   title: string;

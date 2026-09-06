@@ -12,8 +12,8 @@ import { ActivitySidebar } from "@/components/journal/activity-sidebar";
 import { readingTimeMinutes, toPlainExcerpt, countWords } from "@/lib/journal-text";
 import { MissingEntryCta } from "@/components/journal/missing-entry-cta";
 import { relativeDayLabel } from "@/lib/timezone";
+import { API_URL } from "@/lib/api-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 const SITE_URL = "https://shanejli.com";
 

@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 import { allElements } from "@/lib/element-registry";
 import { isDisallowedForCrawlers } from "@/lib/seo-routes";
 import { DOC_PAGES } from "@/lib/docs/registry";
+import { API_URL } from "@/lib/api-url";
 
 const SITE_URL = "https://shanejli.com";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 
 type InternalElement = { route: string };

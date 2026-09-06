@@ -1,6 +1,5 @@
 import { getAuthHeaders } from "./auth-api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { API_URL } from "@/lib/api-url";
 
 export interface EvaluationResult {
   product_name: string;
