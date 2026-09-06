@@ -41,7 +41,7 @@ export const DOC_PAGES: DocPage[] = [
     slug: "conventions",
     title: "API Conventions",
     description:
-      "Error shape, validation, pagination cursors, If-Match concurrency, and wire-format rules shared by every module.",
+      "Error shape, validation, pagination cursors, ETag conditional GET, If-Match concurrency, and wire-format rules shared by every module.",
     body: conventions,
   },
   {
