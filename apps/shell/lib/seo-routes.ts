@@ -26,6 +26,10 @@ export const CRAWLER_DISALLOW: string[] = [
   // subtree is thin/soft-404. The prefix match covers every nested
   // /trips/groups/* route with one entry.
   "/trips/groups",
+  // The HTML upload form. Signed-in-only (uploading needs a JWT), so anonymous
+  // crawlers see just the sign-in gate. /trips/groups/new was already covered
+  // by the prefix entry above, which is why this sibling slipped through.
+  "/trips/new",
   // Blitz sync hand-off popup (SHAN-443): AuthGate-wrapped, single purpose.
   "/blitz/connect",
   "/journal/tea",

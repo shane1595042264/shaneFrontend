@@ -3,10 +3,13 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 import { uploadTripFile } from "@/lib/api/trips";
+import { LoginButton } from "@/components/login-button";
 
 export default function NewTripPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [titleOverride, setTitleOverride] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -38,6 +41,41 @@ export default function NewTripPage() {
       setUploading(false);
     }
   };
+
+  // Uploading needs a JWT (uploadTripFile sends getAuthHeaders()), so a
+  // signed-out visitor who fills this form can only ever get a 401 back. Gate
+  // the form the way every other mutation page does (journal edit / append /
+  // suggest, tea new / edit) instead of failing at submit time.
+  if (authLoading) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12" aria-busy={true}>
+        <div role="status" aria-label="Loading trip upload form">
+          <span className="sr-only">Loading trip upload form…</span>
+          <div className="h-3 w-28 rounded bg-white/8 animate-pulse" />
+          <div className="mt-3 mb-6 h-7 w-40 rounded bg-white/8 animate-pulse" />
+          <div className="min-h-[180px] w-full rounded-md border-2 border-dashed border-white/10 bg-white/8 animate-pulse" />
+          <div className="mt-6 mb-1 h-3 w-20 rounded bg-white/8 animate-pulse" />
+          <div className="h-11 w-full rounded border border-white/10 bg-white/8 animate-pulse" />
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="h-11 w-full rounded bg-white/8 animate-pulse sm:w-24" />
+            <div className="h-11 w-full rounded border border-white/10 bg-white/8 animate-pulse sm:w-24" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
+        <Link href="/trips" className="text-gray-500 hover:text-gray-300">← back to trips</Link>
+        <div className="mt-6 flex flex-col items-start gap-3">
+          <p>Sign in with Google to upload a trip.</p>
+          <LoginButton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
