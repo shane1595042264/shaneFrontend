@@ -29,12 +29,12 @@ Reads (public):
 |---|---|---|
 | GET | /entries | \`?limit=1..100&cursor=YYYY-MM-DD&from=&to=&q=\`; \`q\` is case-insensitive substring over body and appends; returns \`{entries, nextCursor}\` |
 | GET | /entries/:date | \`{entry, author, content, currentVersionNum, appends}\`; the If-Match seed |
-| GET | /entries/:date/versions | full content per version |
-| GET | /entries/:date/versions/:num | one version |
+| GET | /entries/:date/versions | metadata only, NO \`content\`; \`?limit=1..100&cursor=<versionNum>\` returns \`{versions, nextCursor}\` descending by versionNum |
+| GET | /entries/:date/versions/:num | one version, with \`content\`: this is where you read a body |
 | GET | /entries/:date/appends | append timeline |
 | GET | /entries/:date/neighbors | \`{prev, next}\` published dates |
 | GET | /entries/:date/suggestions | \`?status=pending\\|approved\\|rejected\\|withdrawn\` |
-| GET | /suggestions/:id | one suggestion |
+| GET | /suggestions/:id | one suggestion; includes \`baseVersionNum\` (the list endpoint does not) so you can fetch its base body from /versions/:num |
 | GET | /entries/:date/comments | with author objects |
 | GET | /entries/:date/reactions | \`{summary, mine}\` |
 | GET | /comments/:id/reactions | \`{summary, mine}\` |

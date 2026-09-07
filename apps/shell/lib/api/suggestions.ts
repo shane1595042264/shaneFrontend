@@ -15,6 +15,13 @@ export interface Suggestion {
   proposerId: string;
   proposer: SuggestionProposer | null;
   baseVersionId: string;
+  /**
+   * versionNum of `baseVersionId`. Only `GET /suggestions/:id` populates it
+   * (SHAN-461) — the list endpoint does not — so it is optional. It exists so
+   * the detail page can fetch that one version's body instead of downloading
+   * the whole version history to look the row up by id.
+   */
+  baseVersionNum?: number | null;
   proposedContent: string;
   status: "pending" | "approved" | "rejected" | "withdrawn";
   decidedBy: string | null;

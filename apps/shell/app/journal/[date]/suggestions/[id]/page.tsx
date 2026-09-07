@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getEntry, listVersions } from "@/lib/api/journal";
+import { getEntry, getVersion } from "@/lib/api/journal";
 import {
   approveSuggestion,
   getSuggestion,
@@ -43,16 +43,22 @@ export default function SuggestionDetailPage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([getSuggestion(id), getEntry(date), listVersions(date)])
-      .then(async ([sug, entry, versions]) => {
+    Promise.all([getSuggestion(id), getEntry(date)])
+      .then(async ([sug, entry]) => {
         setS(sug);
         if (entry) {
           setAuthorId(entry.entry.authorId);
           setCurrentNum(entry.currentVersionNum);
           setCurrentContent(entry.content);
         }
-        const base = versions.find((v) => v.id === sug.baseVersionId);
-        if (base) setBaseContent(base.content);
+        // Fetch only the base version's body. This used to list every version
+        // (each carrying its full body) just to find the one whose id matched
+        // baseVersionId; the backend now hands back the number directly so a
+        // single-version read is enough (SHAN-461).
+        if (sug.baseVersionNum != null) {
+          const base = await getVersion(date, sug.baseVersionNum);
+          setBaseContent(base.content);
+        }
       })
       .catch((e) => setError(humanizeError(e, "Failed to load suggestion")))
       .finally(() => setLoading(false));

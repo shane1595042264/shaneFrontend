@@ -1,20 +1,38 @@
 // apps/shell/app/journal/[date]/history/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { listVersions, getEntry, revertEntry, type JournalVersion } from "@/lib/api/journal";
+import { listVersions, getVersion, getEntry, revertEntry, type JournalVersion } from "@/lib/api/journal";
 import { RelativeTime } from "@/lib/format-time";
 import { humanizeError } from "@/lib/humanize-error";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+
+// One page of history. Version rows are metadata only since SHAN-461, so a page
+// costs the same whether the bodies behind it are 200 bytes or 100k.
+const PAGE_SIZE = 25;
+
+/** Per-version body, fetched only when a reader expands that version. */
+type BodyState =
+  | { status: "loading" }
+  | { status: "ready"; content: string }
+  | { status: "error"; message: string };
 
 export default function HistoryPage() {
   const params = useParams<{ date: string }>();
   const date = params.date;
   const { user } = useAuth();
   const [versions, setVersions] = useState<JournalVersion[]>([]);
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [moreError, setMoreError] = useState<string | null>(null);
+  const [bodies, setBodies] = useState<Record<number, BodyState>>({});
+  // Versions are immutable, so a fetched body stays valid for the page lifetime
+  // and a revert never invalidates it. The ref stops a double toggle in one tick
+  // from firing two requests before `bodies` has re-rendered.
+  const inFlight = useRef<Set<number>>(new Set());
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [currentNum, setCurrentNum] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,9 +43,10 @@ export default function HistoryPage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([listVersions(date), getEntry(date)])
-      .then(([vs, entry]) => {
-        setVersions(vs);
+    Promise.all([listVersions(date, { limit: PAGE_SIZE }), getEntry(date)])
+      .then(([page, entry]) => {
+        setVersions(page.versions);
+        setNextCursor(page.nextCursor);
         if (entry) {
           setAuthorId(entry.entry.authorId);
           setCurrentNum(entry.currentVersionNum);
@@ -38,6 +57,39 @@ export default function HistoryPage() {
   }, [date]);
 
   const isAuthor = !!user && user.id === authorId;
+
+  const loadBody = async (versionNum: number) => {
+    if (bodies[versionNum]?.status === "ready") return;
+    if (inFlight.current.has(versionNum)) return;
+    inFlight.current.add(versionNum);
+    setBodies((prev) => ({ ...prev, [versionNum]: { status: "loading" } }));
+    try {
+      const v = await getVersion(date, versionNum);
+      setBodies((prev) => ({ ...prev, [versionNum]: { status: "ready", content: v.content } }));
+    } catch (e) {
+      setBodies((prev) => ({
+        ...prev,
+        [versionNum]: { status: "error", message: humanizeError(e, "Failed to load this version") },
+      }));
+    } finally {
+      inFlight.current.delete(versionNum);
+    }
+  };
+
+  const loadMore = async () => {
+    if (nextCursor === null || loadingMore) return;
+    setLoadingMore(true);
+    setMoreError(null);
+    try {
+      const page = await listVersions(date, { limit: PAGE_SIZE, cursor: nextCursor });
+      setVersions((prev) => [...prev, ...page.versions]);
+      setNextCursor(page.nextCursor);
+    } catch (e) {
+      setMoreError(humanizeError(e, "Failed to load older versions"));
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const requestRevert = (target: number) => {
     setRevertError(null);
@@ -57,8 +109,12 @@ export default function HistoryPage() {
     setRevertError(null);
     try {
       await revertEntry(date, target, currentNum);
-      const [vs, entry] = await Promise.all([listVersions(date), getEntry(date)]);
-      setVersions(vs);
+      const [page, entry] = await Promise.all([
+        listVersions(date, { limit: PAGE_SIZE }),
+        getEntry(date),
+      ]);
+      setVersions(page.versions);
+      setNextCursor(page.nextCursor);
       if (entry) setCurrentNum(entry.currentVersionNum);
       setRevertConfirmTarget(null);
     } catch (e: any) {
@@ -106,6 +162,7 @@ export default function HistoryPage() {
         <ul className="divide-y divide-white/10 rounded-md border border-white/10">
           {versions.map((v) => {
             const isCurrent = v.versionNum === currentNum;
+            const body = bodies[v.versionNum];
             return (
               <li key={v.id} className="p-4">
                 <div className="flex items-baseline justify-between">
@@ -135,13 +192,33 @@ export default function HistoryPage() {
                     <RelativeTime iso={v.createdAt} />
                   </span>
                 </div>
-                <details className="mt-3">
+                <details
+                  className="mt-3"
+                  onToggle={(e) => {
+                    if (e.currentTarget.open) void loadBody(v.versionNum);
+                  }}
+                >
                   <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-300">
                     view content
                   </summary>
-                  <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded bg-black/30 p-3 font-mono text-xs text-white/80">
-                    {v.content}
-                  </pre>
+                  {body?.status === "ready" ? (
+                    <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded bg-black/30 p-3 font-mono text-xs text-white/80">
+                      {body.content}
+                    </pre>
+                  ) : body?.status === "error" ? (
+                    <p role="alert" className="mt-2 text-xs text-red-400">
+                      {body.message}{" "}
+                      <button
+                        type="button"
+                        onClick={() => void loadBody(v.versionNum)}
+                        className="underline hover:text-red-300"
+                      >
+                        Retry
+                      </button>
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs text-gray-500">Loading content...</p>
+                  )}
                 </details>
                 {isAuthor && !isCurrent && (
                   <button
@@ -157,6 +234,24 @@ export default function HistoryPage() {
             );
           })}
         </ul>
+      )}
+
+      {nextCursor !== null && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+            className="rounded border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loadingMore ? "Loading..." : "Load older versions"}
+          </button>
+          {moreError && (
+            <p role="alert" className="mt-2 text-xs text-red-400">
+              {moreError}
+            </p>
+          )}
+        </div>
       )}
 
       {error && <p className="mt-4 text-sm text-red-400">{error}</p>}

@@ -45,14 +45,34 @@ export interface EntryDetail {
   appends: JournalAppend[];
 }
 
+/**
+ * A row from `GET /entries/:date/versions`. Metadata only: the backend stopped
+ * sending `content` per row in SHAN-461, because versions are append-only and
+ * the list was carrying one full copy of the entry body per edit. Fetch a body
+ * with `getVersion(date, versionNum)` when you actually need to show it.
+ */
 export interface JournalVersion {
+  id: string;
+  entryId: string;
+  versionNum: number;
+  contentHash: string;
+  editorId: string;
+  editor: JournalAuthor | null;
+  source: "direct" | "suggestion" | "revert";
+  suggestionId: string | null;
+  parentVersionId: string | null;
+  createdAt: string;
+}
+
+/** One version from `GET /entries/:date/versions/:num` — the row that carries
+ *  the body. No `editor` object: that endpoint returns the raw version row. */
+export interface JournalVersionDetail {
   id: string;
   entryId: string;
   versionNum: number;
   content: string;
   contentHash: string;
   editorId: string;
-  editor: JournalAuthor | null;
   source: "direct" | "suggestion" | "revert";
   suggestionId: string | null;
   parentVersionId: string | null;
@@ -119,13 +139,24 @@ export async function deleteEntry(date: string): Promise<void> {
   await revalidateJournalEntry(date).catch(() => {});
 }
 
-export async function listVersions(date: string): Promise<JournalVersion[]> {
-  const res = await fetch(`${API_URL}/api/journal/entries/${date}/versions`);
+export async function listVersions(
+  date: string,
+  opts: { limit?: number; cursor?: number } = {}
+): Promise<{ versions: JournalVersion[]; nextCursor: number | null }> {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(opts)) if (v !== undefined) qs.set(k, String(v));
+  const suffix = qs.toString() ? `?${qs}` : "";
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/versions${suffix}`);
   if (!res.ok) throw new Error("Failed to list versions");
-  return (await res.json()).versions;
+  const json = await res.json();
+  // Coalesce a missing nextCursor to null. The two repos deploy independently,
+  // so for a few minutes this client can be talking to a backend that predates
+  // the paginated response; undefined would read as "there is more" and the
+  // load-more control would re-fetch page one forever.
+  return { versions: json.versions, nextCursor: json.nextCursor ?? null };
 }
 
-export async function getVersion(date: string, versionNum: number): Promise<JournalVersion> {
+export async function getVersion(date: string, versionNum: number): Promise<JournalVersionDetail> {
   const res = await fetch(`${API_URL}/api/journal/entries/${date}/versions/${versionNum}`);
   if (!res.ok) throw new Error("Failed to fetch version");
   return (await res.json()).version;
