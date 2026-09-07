@@ -153,7 +153,18 @@ function viewerTodayCandidates(): Set<string> {
 // is the SHAN-268 trip-planning groups feature with its own index page).
 // Anything in this set passes through to Next.js routing instead of being
 // HEAD-probed against /api/trips/:segment (which would 404).
-const TRIPS_NON_SLUG_SEGMENTS = new Set(["new", "groups", "opengraph-image"]);
+//
+// SHAN-460: only put a segment here if app/trips/<segment>/ actually exists.
+// "opengraph-image" used to sit in this set even though there is no
+// app/trips/opengraph-image.tsx, so /trips/opengraph-image skipped the
+// existence probe, fell through to /trips/[slug] and answered HTTP 200 with
+// the "Trip not found" body — the soft-404 this middleware exists to prevent.
+// Per-slug OG images were never the reason for that entry: they are already
+// covered by the optional (?:/opengraph-image)? group in the branch regex,
+// which captures the real slug as the segment. With the entry gone, the bare
+// path just asks the backend "is there a trip slugged opengraph-image?", gets
+// a 404, and returns the edge 404 like any other unknown slug.
+const TRIPS_NON_SLUG_SEGMENTS = new Set(["new", "groups"]);
 
 const COURSES_NOT_FOUND_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -175,10 +186,16 @@ const COURSES_NOT_FOUND_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-// Sibling paths under /courses/ that are NOT course detail pages. "covers"
-// is defensive: cover bytes are served by the backend host, but a relative
-// link must never trigger a backend HEAD probe of /api/courses/covers.
-const COURSES_NON_SLUG_SEGMENTS = new Set(["covers"]);
+// SHAN-460: segments under /courses/ that are neither a real route nor a
+// possible course slug. "covers" is here because cover bytes are served by the
+// backend host, so a relative cover link must never trigger a backend HEAD
+// probe of /api/courses/covers. It used to be a pass-through allowlist entry,
+// but app/courses/covers/ does not exist, so /courses/covers fell through to
+// /courses/[slug] and answered HTTP 200 with the "Course not found" body.
+// Returning the edge 404 here keeps the no-probe intent and fixes the status.
+// There are no real sibling routes under /courses/, so there is no
+// pass-through set for this branch.
+const COURSES_RESERVED_SEGMENTS = new Set(["covers"]);
 
 function notFoundResponse(html: string): NextResponse {
   return new NextResponse(html, {
@@ -283,7 +300,12 @@ export async function middleware(req: NextRequest) {
   const courseMatch = pathname.match(/^\/courses\/([^\/]+)(?:\/opengraph-image)?\/?$/);
   if (courseMatch) {
     const segment = courseMatch[1];
-    if (COURSES_NON_SLUG_SEGMENTS.has(segment)) return NextResponse.next();
+    // SHAN-460: reserved segment, so it can be neither a route nor a course.
+    // 404 straight away instead of passing through to /courses/[slug], which
+    // renders its not-found body at HTTP 200.
+    if (COURSES_RESERVED_SEGMENTS.has(segment)) {
+      return notFoundResponse(COURSES_NOT_FOUND_HTML);
+    }
     const exists = await backendExists(
       `/api/courses/${encodeURIComponent(segment)}`
     );
