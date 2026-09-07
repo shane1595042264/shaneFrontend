@@ -102,7 +102,7 @@ export function Hall({
       })}
 
       {games.length === 0 && (
-        <p className="rounded-lg border border-white/10 bg-black/20 p-8 text-center text-sm italic text-gray-500">
+        <p className="rounded-lg border border-white/10 bg-black/20 p-8 text-center text-sm italic text-gray-400">
           The hall is empty.{" "}
           {isAdmin
             ? "Add the first game below."

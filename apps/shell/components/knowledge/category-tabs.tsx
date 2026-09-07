@@ -10,7 +10,7 @@ function getCategoryStyle(category: string, active: boolean) {
   if (active) {
     return CATEGORY_COLORS[category] || "bg-purple-500/20 border-purple-500/40 text-purple-400";
   }
-  return "bg-white/5 border-white/10 text-gray-500 hover:text-gray-300 hover:bg-white/8";
+  return "bg-white/5 border-white/10 text-gray-400 hover:text-gray-300 hover:bg-white/8";
 }
 
 interface CategoryTabsProps {
@@ -27,7 +27,7 @@ export function CategoryTabs({ categories, selected, onSelect }: CategoryTabsPro
         className={`px-3 py-1.5 text-xs border rounded-full transition-colors ${
           selected === ""
             ? "bg-white/15 border-white/30 text-white"
-            : "bg-white/5 border-white/10 text-gray-500 hover:text-gray-300 hover:bg-white/8"
+            : "bg-white/5 border-white/10 text-gray-400 hover:text-gray-300 hover:bg-white/8"
         }`}
       >
         All

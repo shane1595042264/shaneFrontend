@@ -25,7 +25,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </p>
         </div>
         <LoginButton />
-        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300">
+        <Link href="/" className="text-sm text-gray-400 hover:text-gray-300">
           ← Home
         </Link>
       </div>

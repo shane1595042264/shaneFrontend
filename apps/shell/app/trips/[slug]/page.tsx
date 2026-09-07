@@ -155,12 +155,12 @@ export default async function TripPage({ params }: PageProps) {
       <header className="border-b border-white/10 bg-black px-4 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-sm">
-            <Link href="/trips" className="text-gray-500 hover:text-gray-300">← Trips</Link>
+            <Link href="/trips" className="text-gray-400 hover:text-gray-300">← Trips</Link>
             <span className="text-gray-600">/</span>
             <span className="font-medium text-white">{trip.title || trip.slug}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-400">
               <RelativeTime iso={trip.createdAt} />
               {" · "}
               {trip.ownerName ?? <span className="italic text-gray-600">Anonymous</span>}

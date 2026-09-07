@@ -98,7 +98,7 @@ export default function SuggestPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href={`/journal/${date}`} className="text-gray-400 hover:text-gray-300">← back</Link>
         <div className="mt-6 flex flex-col items-start gap-3">
           <p>Sign in with Google to suggest an edit.</p>
           <LoginButton />
@@ -109,7 +109,7 @@ export default function SuggestPage() {
   if (baseVersionNum === null || authorId === null) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href={`/journal/${date}`} className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">Entry not found.</p>
       </div>
     );
@@ -117,7 +117,7 @@ export default function SuggestPage() {
   if (authorId === user.id) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href={`/journal/${date}`} className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">You&apos;re the author of this entry — add a timestamped append instead.</p>
         <Link
           href={`/journal/${date}/append`}
@@ -145,11 +145,11 @@ export default function SuggestPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <Link href={`/journal/${date}`} className="text-sm text-gray-500 hover:text-gray-300">
+      <Link href={`/journal/${date}`} className="text-sm text-gray-400 hover:text-gray-300">
         ← back to entry
       </Link>
       <h1 className="mt-3 mb-1 font-mono text-2xl">
-        {date} — suggest <span className="text-sm font-normal text-gray-500">(based on v{baseVersionNum})</span>
+        {date} — suggest <span className="text-sm font-normal text-gray-400">(based on v{baseVersionNum})</span>
       </h1>
       <p className="mb-4 text-sm text-gray-400">
         The author will review and approve or reject. If the author edits the entry before deciding, your base will be out of date and the diff vs current may shift.

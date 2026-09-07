@@ -247,12 +247,12 @@ export function EntryDetail({
                 {entry.language}
               </span>
               {entry.partOfSpeech && (
-                <span className="text-xs text-gray-500 italic">
+                <span className="text-xs text-gray-400 italic">
                   {entry.partOfSpeech}
                 </span>
               )}
               {entry.pronunciation && (
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-gray-400">
                   {entry.pronunciation}
                 </span>
               )}
@@ -261,7 +261,7 @@ export function EntryDetail({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-500 hover:text-white text-xl"
+            className="text-gray-400 hover:text-white text-xl"
           >
             &times;
           </button>
@@ -276,7 +276,7 @@ export function EntryDetail({
         {editing ? (
           <div className="mb-4 space-y-3">
             <div>
-              <label className="text-xs text-gray-500 uppercase mb-1 block">
+              <label className="text-xs text-gray-400 uppercase mb-1 block">
                 Title
               </label>
               <input
@@ -288,7 +288,7 @@ export function EntryDetail({
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 uppercase mb-1 block">
+              <label className="text-xs text-gray-400 uppercase mb-1 block">
                 Definition
               </label>
               <MarkdownEditor
@@ -301,7 +301,7 @@ export function EntryDetail({
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 uppercase mb-1 block">
+              <label className="text-xs text-gray-400 uppercase mb-1 block">
                 Example
               </label>
               <MarkdownEditor
@@ -334,7 +334,7 @@ export function EntryDetail({
           <>
             {entry.definition && (
               <div className="mb-4">
-                <h3 className="text-xs text-gray-500 uppercase mb-1">
+                <h3 className="text-xs text-gray-400 uppercase mb-1">
                   Definition
                 </h3>
                 <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 text-gray-300">
@@ -347,7 +347,7 @@ export function EntryDetail({
 
             {entry.exampleSentence && (
               <div className="mb-4">
-                <h3 className="text-xs text-gray-500 uppercase mb-1">Example</h3>
+                <h3 className="text-xs text-gray-400 uppercase mb-1">Example</h3>
                 <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 italic text-gray-300">
                   <ReactMarkdown remarkPlugins={[remarkGfm]} components={responsiveTableComponents}>
                     {entry.exampleSentence}
@@ -358,7 +358,7 @@ export function EntryDetail({
 
             {(entry.labels as string[])?.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-xs text-gray-500 uppercase mb-1">Labels</h3>
+                <h3 className="text-xs text-gray-400 uppercase mb-1">Labels</h3>
                 <div className="flex flex-wrap gap-1">
                   {(entry.labels as string[]).map((label) => (
                     <span
@@ -413,7 +413,7 @@ export function EntryDetail({
         {/* Connections */}
         <div className="border-t border-white/8 pt-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs text-gray-500 uppercase">Connections</h3>
+            <h3 className="text-xs text-gray-400 uppercase">Connections</h3>
             <button
               onClick={() => setShowConnectForm(!showConnectForm)}
               className="text-xs text-blue-400 hover:text-blue-300"
@@ -473,7 +473,7 @@ export function EntryDetail({
                     className="flex items-center justify-between p-2 bg-white/5 rounded text-sm"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-xs px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-gray-500">
+                      <span className="text-xs px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-gray-400">
                         {conn.connectionType}
                       </span>
                       <span className="text-gray-300">
@@ -514,16 +514,16 @@ function EntrySource({ source }: { source: KnowledgeEntry["source"] }) {
 
   return (
     <div className="mb-4">
-      <h3 className="text-xs text-gray-500 uppercase mb-1">Source</h3>
+      <h3 className="text-xs text-gray-400 uppercase mb-1">Source</h3>
       {(book || author) && (
         <p className="text-sm text-gray-300">
           {book && <span className="italic">{book}</span>}
-          {book && author && <span className="text-gray-500"> &mdash; </span>}
+          {book && author && <span className="text-gray-400"> &mdash; </span>}
           {author && <span>{author}</span>}
         </p>
       )}
       {location && (
-        <p className="text-xs text-gray-500 mt-0.5">{location}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{location}</p>
       )}
       {app && (
         <span className="inline-block mt-1 text-xs px-1.5 py-0.5 border border-white/10 rounded text-gray-400">

@@ -273,7 +273,7 @@ function WhoOwesMeContent() {
                 const sign = v > 0 ? "+" : v < 0 ? "−" : "";
                 return (
                   <span key={cur}>
-                    {i > 0 && <span className="text-gray-500"> · </span>}
+                    {i > 0 && <span className="text-gray-400"> · </span>}
                     <span className={cls}>
                       {sign}
                       {formatAmount(Math.abs(v), cur)}
@@ -363,9 +363,9 @@ function WhoOwesMeContent() {
           Outstanding loans
         </h2>
         {loading ? (
-          <p className="text-gray-500 text-sm">Loading…</p>
+          <p className="text-gray-400 text-sm">Loading…</p>
         ) : outstanding.length === 0 ? (
-          <p className="text-gray-500 text-sm">No one owes you anything. Yet.</p>
+          <p className="text-gray-400 text-sm">No one owes you anything. Yet.</p>
         ) : (
           <ul className="divide-y divide-white/5 border border-white/10 rounded-lg overflow-hidden">
             {outstanding.map((entry) => (
@@ -508,7 +508,7 @@ function LoanRow({
             {entry.description}
           </div>
         )}
-        <div className="text-xs text-gray-500 mt-1">
+        <div className="text-xs text-gray-400 mt-1">
           {DIRECTION_COPY[entry.direction].verb} <RelativeTime iso={entry.createdAt} />
           {entry.repaidAt && (
             <>

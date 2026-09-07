@@ -12,7 +12,7 @@ export function BanList({ bans }: { bans: Ban[] }) {
             return (
               <div key={ban.id} className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                 <p className="text-sm text-red-400 font-medium">{ban.genericCategory}</p>
-                <p className="text-xs text-gray-500">{daysLeft} days left</p>
+                <p className="text-xs text-gray-400">{daysLeft} days left</p>
               </div>
             );
           })}

@@ -206,7 +206,7 @@ function DayDetail() {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
-        <p className="text-sm text-gray-500">Loading…</p>
+        <p className="text-sm text-gray-400">Loading…</p>
       </div>
     );
   }
@@ -224,7 +224,7 @@ function DayDetail() {
   if (!detail || !day) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
-        <Link href={`/trips/groups/${slug ?? ""}`} className="text-sm text-gray-500 hover:text-gray-300">
+        <Link href={`/trips/groups/${slug ?? ""}`} className="text-sm text-gray-400 hover:text-gray-300">
           ← back to group
         </Link>
         <p role="alert" className="mt-3 text-sm text-red-400">This day doesn&apos;t exist in the itinerary.</p>
@@ -245,7 +245,7 @@ function DayDetail() {
       const isEditing = editing?.kind === "meal" && editing.meal === row.meal;
       return (
         <li key={`meal-${row.meal}`} className="flex gap-3">
-          <span className="w-14 shrink-0 pt-1 text-right font-mono text-xs text-gray-500">{row.time}</span>
+          <span className="w-14 shrink-0 pt-1 text-right font-mono text-xs text-gray-400">{row.time}</span>
           <div className="flex-1 border-l border-dashed border-white/20 pl-3">
             {isEditing ? (
               <MealEditor
@@ -267,7 +267,7 @@ function DayDetail() {
                 {row.place ? (
                   <span className="ml-2 text-sm text-white/90">@ {row.place}</span>
                 ) : (
-                  <span className="ml-2 text-xs text-gray-500">add a place to eat</span>
+                  <span className="ml-2 text-xs text-gray-400">add a place to eat</span>
                 )}
               </button>
             )}
@@ -440,7 +440,7 @@ function DayDetail() {
         <section className="rounded-lg border border-white/15 bg-black/40 p-4 backdrop-blur-sm">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-sm font-medium text-gray-300">Timeline</h2>
-            <span className="text-[10px] text-gray-500">
+            <span className="text-[10px] text-gray-400">
               click to edit · ⇅ or drag to swap (times stay put)
             </span>
           </div>
@@ -452,7 +452,7 @@ function DayDetail() {
           <ol className="space-y-3">{timed.map(renderRow)}</ol>
           {anytime.length > 0 && (
             <>
-              <h3 className="mt-4 mb-2 text-xs uppercase tracking-wide text-gray-500">Anytime</h3>
+              <h3 className="mt-4 mb-2 text-xs uppercase tracking-wide text-gray-400">Anytime</h3>
               <ol className="space-y-3">{anytime.map(renderRow)}</ol>
             </>
           )}

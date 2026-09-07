@@ -142,7 +142,7 @@ function SkincareContent() {
             Two routines, ordered head to toe. Track products and how long you&apos;ve kept it up.
           </p>
         </div>
-        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300">
+        <Link href="/" className="text-sm text-gray-400 hover:text-gray-300">
           ← Home
         </Link>
       </header>
@@ -154,7 +154,7 @@ function SkincareContent() {
       )}
 
       {routines === null ? (
-        error ? null : <p className="text-sm text-gray-500">Loading…</p>
+        error ? null : <p className="text-sm text-gray-400">Loading…</p>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {ROUTINES.map(({ key, label, icon }) => (
@@ -225,7 +225,7 @@ function RoutineColumn({
       </div>
 
       {products.length === 0 ? (
-        <p className="mb-4 text-sm text-gray-500">No products yet. Add your first below.</p>
+        <p className="mb-4 text-sm text-gray-400">No products yet. Add your first below.</p>
       ) : (
         <ol className="mb-4 space-y-2">
           {products.map((p, idx) => (

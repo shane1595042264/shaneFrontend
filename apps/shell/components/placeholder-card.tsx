@@ -35,10 +35,10 @@ export function PlaceholderCard({ element, dimmed }: PlaceholderCardProps) {
         variants={itemVariants}
         className="flex flex-col items-center justify-between p-1 rounded border border-gray-700/40 bg-gray-900/30 w-full aspect-square select-none cursor-default opacity-30"
       >
-        <span aria-hidden="true" className="text-[7px] md:text-[9px] text-gray-500 self-start leading-none">
+        <span aria-hidden="true" className="text-[7px] md:text-[9px] text-gray-400 self-start leading-none">
           {element.atomicNumber}
         </span>
-        <span aria-hidden="true" className="text-xs md:text-sm font-semibold text-gray-500 leading-none">
+        <span aria-hidden="true" className="text-xs md:text-sm font-semibold text-gray-400 leading-none">
           {element.symbol}
         </span>
         <span aria-hidden="true" className="text-[6px] md:text-[8px] text-gray-600 truncate w-full text-center leading-none">

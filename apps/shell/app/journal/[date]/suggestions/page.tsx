@@ -51,7 +51,7 @@ export default function SuggestionsListPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8" aria-busy={loading}>
-      <Link href={`/journal/${date}`} className="text-sm text-gray-500 hover:text-gray-300">
+      <Link href={`/journal/${date}`} className="text-sm text-gray-400 hover:text-gray-300">
         ← back to entry
       </Link>
       <h1 className="mt-3 mb-4 font-mono text-2xl">{date} — suggestions</h1>
@@ -140,7 +140,7 @@ export default function SuggestionsListPage() {
                       />
                     ) : null}
                     <span className="text-gray-300">{proposerName}</span>
-                    <RelativeTime iso={s.createdAt} className="text-xs text-gray-500" />
+                    <RelativeTime iso={s.createdAt} className="text-xs text-gray-400" />
                   </span>
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${

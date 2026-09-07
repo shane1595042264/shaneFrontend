@@ -122,7 +122,7 @@ export function AddPlayerForm({
                 <button
                   type="button"
                   onClick={() => setEditingId(null)}
-                  className="text-gray-500 hover:text-gray-300"
+                  className="text-gray-400 hover:text-gray-300"
                 >
                   Cancel
                 </button>
@@ -139,7 +139,7 @@ export function AddPlayerForm({
                 <button
                   onClick={() => remove(p.id)}
                   aria-label={`Remove ${p.name}`}
-                  className="text-gray-500 hover:text-red-400"
+                  className="text-gray-400 hover:text-red-400"
                 >
                   &times;
                 </button>
@@ -148,7 +148,7 @@ export function AddPlayerForm({
           </li>
         ))}
         {players.length === 0 && (
-          <li className="text-sm italic text-gray-500">No players yet.</li>
+          <li className="text-sm italic text-gray-400">No players yet.</li>
         )}
       </ul>
       <form onSubmit={submit} className="flex gap-2">

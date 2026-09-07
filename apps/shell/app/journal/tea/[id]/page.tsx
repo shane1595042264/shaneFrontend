@@ -197,7 +197,7 @@ export default function TeaEntryReadPage() {
   if (notFound) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
-        <Link href="/journal" className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href="/journal" className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">This tea entry doesn&apos;t exist.</p>
       </div>
     );
@@ -207,7 +207,7 @@ export default function TeaEntryReadPage() {
     const isRateLimited = rateLimitedUntilMs !== null && remainingSec > 0;
     return (
       <div className="mx-auto max-w-md px-4 py-12">
-        <Link href="/journal" className="text-sm text-gray-500 hover:text-gray-300">← back to journal</Link>
+        <Link href="/journal" className="text-sm text-gray-400 hover:text-gray-300">← back to journal</Link>
         <h1 className="mt-4 flex items-center gap-2 text-xl font-semibold">
           <span aria-hidden>🍵</span> Tea entry — locked
         </h1>
@@ -253,7 +253,7 @@ export default function TeaEntryReadPage() {
   const e = data.entry;
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <Link href={data.isAuthor ? "/journal/tea" : "/journal"} className="text-sm text-gray-500 hover:text-gray-300">
+      <Link href={data.isAuthor ? "/journal/tea" : "/journal"} className="text-sm text-gray-400 hover:text-gray-300">
         ← back
       </Link>
       <header className="mt-4 mb-6">
@@ -266,7 +266,7 @@ export default function TeaEntryReadPage() {
             </span>
           )}
         </h1>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-400">
           {new Date(e.createdAt).toLocaleString()}
           {teaEntryWasEdited(e) && (
             <>
@@ -278,7 +278,7 @@ export default function TeaEntryReadPage() {
 
         {data.isAuthor && e.pin && (
           <div className="mt-4 flex items-center gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
-            <span className="text-gray-500">PIN</span>
+            <span className="text-gray-400">PIN</span>
             <span className="font-mono text-base tracking-[0.4em] text-white">
               {showPin ? e.pin : "••••"}
             </span>

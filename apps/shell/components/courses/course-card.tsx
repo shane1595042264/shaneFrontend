@@ -78,7 +78,7 @@ export function CourseCard({ course }: { course: Course }) {
               mine={course.myStars}
               canRate={false}
             />
-            <span className="text-xs tabular-nums text-gray-500">
+            <span className="text-xs tabular-nums text-gray-400">
               {course.commentCount} comment{course.commentCount === 1 ? "" : "s"}
             </span>
           </div>

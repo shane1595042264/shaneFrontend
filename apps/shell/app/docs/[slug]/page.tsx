@@ -123,12 +123,12 @@ export default async function DocPageView({ params }: PageProps) {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <DocHashScroll />
       <nav className="mb-6 flex items-center justify-between gap-3 text-sm">
-        <Link href="/docs" className="text-gray-500 hover:text-gray-300">
+        <Link href="/docs" className="text-gray-400 hover:text-gray-300">
           &larr; Documentation
         </Link>
         <a
           href={`/docs/raw/${page.slug}`}
-          className="font-mono text-xs text-gray-500 hover:text-gray-300"
+          className="font-mono text-xs text-gray-400 hover:text-gray-300"
         >
           raw markdown
         </a>
@@ -152,7 +152,7 @@ export default async function DocPageView({ params }: PageProps) {
               href={`/docs/${prev.slug}`}
               className="flex-1 rounded-lg border border-white/10 bg-black/20 p-3 hover:border-white/25 hover:bg-white/5"
             >
-              <span className="block text-xs uppercase tracking-wider text-gray-500">
+              <span className="block text-xs uppercase tracking-wider text-gray-400">
                 Previous
               </span>
               <span className="mt-0.5 block font-medium text-gray-200">&larr; {prev.title}</span>
@@ -165,7 +165,7 @@ export default async function DocPageView({ params }: PageProps) {
               href={`/docs/${next.slug}`}
               className="flex-1 rounded-lg border border-white/10 bg-black/20 p-3 text-right hover:border-white/25 hover:bg-white/5"
             >
-              <span className="block text-xs uppercase tracking-wider text-gray-500">Next</span>
+              <span className="block text-xs uppercase tracking-wider text-gray-400">Next</span>
               <span className="mt-0.5 block font-medium text-gray-200">{next.title} &rarr;</span>
             </Link>
           ) : (

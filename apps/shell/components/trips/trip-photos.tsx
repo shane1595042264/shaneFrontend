@@ -57,7 +57,7 @@ export function PhotoCredit({
   onDelete: (photoId: string) => void;
 }) {
   return (
-    <div className="mt-2 flex items-baseline justify-end gap-2 text-[10px] text-gray-500">
+    <div className="mt-2 flex items-baseline justify-end gap-2 text-[10px] text-gray-400">
       {photo?.attribution && <span className="truncate">{photo.attribution}</span>}
       {photo && canDelete && (
         <button
@@ -68,7 +68,7 @@ export function PhotoCredit({
           remove
         </button>
       )}
-      <label className="shrink-0 cursor-pointer text-gray-500 hover:text-gray-300">
+      <label className="shrink-0 cursor-pointer text-gray-400 hover:text-gray-300">
         {uploading ? "uploading…" : photo ? "replace photo" : "set photo"}
         <input
           type="file"

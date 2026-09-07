@@ -45,7 +45,7 @@ export function TripActions({ slug, title }: Props) {
         type="button"
         onClick={() => { setError(null); setConfirmOpen(true); }}
         disabled={deleting}
-        className="text-xs text-gray-500 hover:text-red-400 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        className="text-xs text-gray-400 hover:text-red-400 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
       >
         {deleting ? "Deleting…" : "Delete"}
       </button>

@@ -81,7 +81,7 @@ function ConnectBody() {
         <ManualField label="Access token" value={session?.accessToken ?? ""} secret />
         <ManualField label="Encryption password" value={session?.encryptKey ?? ""} secret />
       </dl>
-      <p className="text-gray-500 text-xs">
+      <p className="text-gray-400 text-xs">
         Treat the token and password like a password: together they unlock your tasks.
       </p>
     </div>

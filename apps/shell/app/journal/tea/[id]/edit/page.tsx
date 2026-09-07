@@ -99,7 +99,7 @@ export default function EditTeaEntryPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href="/journal" className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href="/journal" className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">Sign in to edit a tea entry.</p>
         <div className="mt-3">
           <LoginButton />
@@ -111,7 +111,7 @@ export default function EditTeaEntryPage() {
   if (notFound) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
-        <Link href="/journal/tea" className="text-gray-500 hover:text-gray-300">← back to tea entries</Link>
+        <Link href="/journal/tea" className="text-gray-400 hover:text-gray-300">← back to tea entries</Link>
         <p className="mt-4">This tea entry doesn&apos;t exist.</p>
       </div>
     );
@@ -121,7 +121,7 @@ export default function EditTeaEntryPage() {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <Link
         href={`/journal/tea/${params.id}`}
-        className="text-sm text-gray-500 hover:text-gray-300"
+        className="text-sm text-gray-400 hover:text-gray-300"
       >
         ← back to entry
       </Link>
@@ -133,7 +133,7 @@ export default function EditTeaEntryPage() {
       </p>
 
       <label className="mb-3 block">
-        <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Title (optional)</span>
+        <span className="mb-1 block text-xs uppercase tracking-wider text-gray-400">Title (optional)</span>
         <input
           type="text"
           value={title}
@@ -145,7 +145,7 @@ export default function EditTeaEntryPage() {
       </label>
 
       <label className="mb-4 block">
-        <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">4-digit PIN</span>
+        <span className="mb-1 block text-xs uppercase tracking-wider text-gray-400">4-digit PIN</span>
         <div className="flex items-center gap-2">
           <input
             type={showPin ? "text" : "password"}

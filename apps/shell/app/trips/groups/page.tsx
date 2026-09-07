@@ -82,7 +82,7 @@ function GroupsIndex() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
-      <Link href="/trips" className="text-sm text-gray-500 hover:text-gray-300">← back to trips</Link>
+      <Link href="/trips" className="text-sm text-gray-400 hover:text-gray-300">← back to trips</Link>
       <header className="mt-3 mb-8 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Trip Planning Groups</h1>
@@ -121,7 +121,7 @@ function GroupsIndex() {
       </section>
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading…</p>
+        <p className="text-sm text-gray-400">Loading…</p>
       ) : error ? (
         <p role="alert" className="text-sm text-red-400">{error}</p>
       ) : groups.length === 0 ? (
@@ -137,7 +137,7 @@ function GroupsIndex() {
                 className="block rounded-md border border-white/10 bg-black/20 p-4 transition-colors hover:bg-black/30"
               >
                 <h2 className="font-medium text-white">{g.title}</h2>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-400">
                   <RelativeTime iso={g.createdAt} />
                   {" · "}
                   {g.memberCount} {g.memberCount === 1 ? "member" : "members"}

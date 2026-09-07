@@ -2,14 +2,14 @@ import type { ApiToken } from "@/lib/api/tokens";
 import { RelativeTime } from "@/lib/format-time";
 
 export function TokenList({ tokens, onRevoke }: { tokens: ApiToken[]; onRevoke: (id: string) => void }) {
-  if (tokens.length === 0) return <p className="text-sm text-gray-500">No tokens yet.</p>;
+  if (tokens.length === 0) return <p className="text-sm text-gray-400">No tokens yet.</p>;
   return (
     <ul className="divide-y rounded border">
       {tokens.map((t) => (
         <li key={t.id} className="flex items-center justify-between p-3">
           <div>
             <div className="font-medium">{t.name}</div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-400">
               {t.scopes.join(", ") || "no scopes"} · last used {t.lastUsedAt ? <RelativeTime iso={t.lastUsedAt} /> : "never"}
               {t.revokedAt && " · REVOKED"}
             </div>

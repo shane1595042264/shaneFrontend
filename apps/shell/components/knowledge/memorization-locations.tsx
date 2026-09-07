@@ -75,7 +75,7 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
   return (
     <div className="mb-4">
       <div className="flex items-center gap-2 mb-1">
-        <h3 className="text-xs text-gray-500 uppercase">Memorization Locations</h3>
+        <h3 className="text-xs text-gray-400 uppercase">Memorization Locations</h3>
         <span className="text-xs text-gray-600">
           {Math.min(current.length, LONG_TERM_THRESHOLD)}/{LONG_TERM_THRESHOLD}
         </span>

@@ -81,7 +81,7 @@ function DoneContent({ sessionId }: { sessionId: string }) {
             </ul>
           </div>
         ) : (
-          <p className="mt-6 text-sm text-gray-500">Keep going — no words hit level 3 this round.</p>
+          <p className="mt-6 text-sm text-gray-400">Keep going — no words hit level 3 this round.</p>
         )}
 
         {footer}
@@ -108,7 +108,7 @@ function DoneContent({ sessionId }: { sessionId: string }) {
               <span>
                 <span className={earned ? "text-emerald-400" : "text-gray-400"}>{earned ? "✓" : "—"}</span>{" "}
                 {it.word} · {it.setsCompleted}/{setsPerStrike} sets
-                {it.locationName ? <span className="ml-2 text-xs text-gray-500">@ {it.locationName}</span> : null}
+                {it.locationName ? <span className="ml-2 text-xs text-gray-400">@ {it.locationName}</span> : null}
               </span>
             </li>
           );

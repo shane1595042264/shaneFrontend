@@ -346,7 +346,7 @@ export default function KnowledgePage() {
       <div className="text-xs text-gray-600">
         {entries.length} entr{entries.length !== 1 ? "ies" : "y"}
         {editMode && (
-          <span className="ml-3 text-gray-500">
+          <span className="ml-3 text-gray-400">
             (click to select, shift-click for range)
           </span>
         )}

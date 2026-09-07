@@ -385,7 +385,7 @@ export function MarkdownEditor({
             Preview
           </button>
         )}
-        <span className="ml-auto hidden text-[11px] text-gray-500 sm:inline">
+        <span className="ml-auto hidden text-[11px] text-gray-400 sm:inline">
           Ctrl+Shift+P preview · Ctrl+B/I/K · Ctrl+Shift+7/8/L
         </span>
       </div>
@@ -445,7 +445,7 @@ export function MarkdownEditor({
               {value}
             </ReactMarkdown>
           ) : (
-            <p className="text-gray-500 italic">Nothing to preview.</p>
+            <p className="text-gray-400 italic">Nothing to preview.</p>
           )}
         </div>
       )}

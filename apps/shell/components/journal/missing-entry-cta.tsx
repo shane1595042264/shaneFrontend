@@ -13,13 +13,13 @@ export function MissingEntryCta({ date, isToday }: Props) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <p className="text-gray-500 text-sm italic">Loading…</p>;
+    return <p className="text-gray-400 text-sm italic">Loading…</p>;
   }
 
   if (!user) {
     return (
       <div className="flex flex-col items-start gap-3">
-        <p className="text-gray-500 text-sm italic">
+        <p className="text-gray-400 text-sm italic">
           {isToday
             ? "No entry yet for today. Sign in to write one."
             : "No entry yet for this date. Sign in to write one."}

@@ -112,7 +112,7 @@ export function NotesMargin({
       </form>
 
       {notes.length === 0 ? (
-        <p className="text-xs text-gray-500">No notes yet.</p>
+        <p className="text-xs text-gray-400">No notes yet.</p>
       ) : (
         <ul className="space-y-2">
           {notes.map((n) => (
@@ -121,7 +121,7 @@ export function NotesMargin({
                 {anchorLabel(n)}
               </p>
               <p className="mt-0.5 whitespace-pre-wrap text-xs text-white/90">{n.body}</p>
-              <p className="mt-1 flex items-baseline justify-between text-[10px] text-gray-500">
+              <p className="mt-1 flex items-baseline justify-between text-[10px] text-gray-400">
                 <span>
                   {n.authorName ?? "Anonymous"} · <RelativeTime iso={n.createdAt} />
                 </span>

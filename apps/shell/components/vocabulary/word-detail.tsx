@@ -189,12 +189,12 @@ export function WordDetail({
                 {word.language}
               </span>
               {word.partOfSpeech && (
-                <span className="text-xs text-gray-500 italic">
+                <span className="text-xs text-gray-400 italic">
                   {word.partOfSpeech}
                 </span>
               )}
               {word.pronunciation && (
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-gray-400">
                   {word.pronunciation}
                 </span>
               )}
@@ -203,7 +203,7 @@ export function WordDetail({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-500 hover:text-white text-xl"
+            className="text-gray-400 hover:text-white text-xl"
           >
             &times;
           </button>
@@ -217,7 +217,7 @@ export function WordDetail({
 
         {word.definition && (
           <div className="mb-4">
-            <h3 className="text-xs text-gray-500 uppercase mb-1">
+            <h3 className="text-xs text-gray-400 uppercase mb-1">
               Definition
             </h3>
             <p className="text-sm text-gray-300">{word.definition}</p>
@@ -226,7 +226,7 @@ export function WordDetail({
 
         {word.exampleSentence && (
           <div className="mb-4">
-            <h3 className="text-xs text-gray-500 uppercase mb-1">Example</h3>
+            <h3 className="text-xs text-gray-400 uppercase mb-1">Example</h3>
             <p className="text-sm text-gray-300 italic">
               {word.exampleSentence}
             </p>
@@ -235,7 +235,7 @@ export function WordDetail({
 
         {(word.labels as string[])?.length > 0 && (
           <div className="mb-4">
-            <h3 className="text-xs text-gray-500 uppercase mb-1">Labels</h3>
+            <h3 className="text-xs text-gray-400 uppercase mb-1">Labels</h3>
             <div className="flex flex-wrap gap-1">
               {(word.labels as string[]).map((label) => (
                 <span
@@ -260,7 +260,7 @@ export function WordDetail({
         {/* Connections */}
         <div className="border-t border-white/8 pt-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs text-gray-500 uppercase">Connections</h3>
+            <h3 className="text-xs text-gray-400 uppercase">Connections</h3>
             <button
               onClick={() => setShowConnectForm(!showConnectForm)}
               className="text-xs text-blue-400 hover:text-blue-300"
@@ -320,7 +320,7 @@ export function WordDetail({
                     className="flex items-center justify-between p-2 bg-white/5 rounded text-sm"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-xs px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-gray-500">
+                      <span className="text-xs px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-gray-400">
                         {conn.connectionType}
                       </span>
                       <span className="text-gray-300">

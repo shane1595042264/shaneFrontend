@@ -61,7 +61,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
           <button
             type="button"
             onClick={() => { setManualMode(false); }}
-            className="text-xs text-gray-500 hover:text-gray-300 self-start"
+            className="text-xs text-gray-400 hover:text-gray-300 self-start"
           >
             Switch to URL input
           </button>
@@ -98,7 +98,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
       <button
         type="button"
         onClick={() => setManualMode(true)}
-        className="text-xs text-gray-500 hover:text-gray-300"
+        className="text-xs text-gray-400 hover:text-gray-300"
       >
         Enter product manually instead
       </button>

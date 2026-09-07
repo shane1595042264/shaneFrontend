@@ -93,7 +93,7 @@ function TeaEntriesIndexContent() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <Link href="/journal" className="text-sm text-gray-500 hover:text-gray-300">← back to journal</Link>
+      <Link href="/journal" className="text-sm text-gray-400 hover:text-gray-300">← back to journal</Link>
       <header className="mt-4 mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
           <span aria-hidden>🍵</span> My tea entries
@@ -122,7 +122,7 @@ function TeaEntriesIndexContent() {
             className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-white/30 focus:outline-none"
           />
           {isFiltering && filtered !== null && (
-            <p className="mt-2 text-xs text-gray-500" aria-live="polite">
+            <p className="mt-2 text-xs text-gray-400" aria-live="polite">
               Showing {filtered.length} of {entries.length}{" "}
               {entries.length === 1 ? "entry" : "entries"}
             </p>
@@ -139,9 +139,9 @@ function TeaEntriesIndexContent() {
           ))}
         </div>
       ) : entries.length === 0 ? (
-        <p className="text-sm text-gray-500 italic">No tea entries yet.</p>
+        <p className="text-sm text-gray-400 italic">No tea entries yet.</p>
       ) : filtered && filtered.length === 0 ? (
-        <p className="text-sm text-gray-500 italic">No matches.</p>
+        <p className="text-sm text-gray-400 italic">No matches.</p>
       ) : (
         <ul className="divide-y divide-white/8 border-y border-white/8">
           {(filtered ?? entries).map((e) => {
@@ -156,7 +156,7 @@ function TeaEntriesIndexContent() {
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 truncate text-base text-white">
                       <span className="truncate">
-                        {e.title?.trim() || <span className="text-gray-500 italic">Untitled tea entry</span>}
+                        {e.title?.trim() || <span className="text-gray-400 italic">Untitled tea entry</span>}
                       </span>
                       {edited && (
                         <span className="shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
@@ -169,7 +169,7 @@ function TeaEntriesIndexContent() {
                         {excerpt}
                       </p>
                     )}
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-400">
                       {new Date(e.createdAt).toLocaleString()}
                       {edited && (
                         <>

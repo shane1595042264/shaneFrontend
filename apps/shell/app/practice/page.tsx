@@ -66,13 +66,13 @@ function PracticeIndexContent() {
       {error && <p role="alert" className="mb-4 text-sm text-red-400">{error}</p>}
 
       {items === null || visibleItems === null ? (
-        error ? null : <p className="text-sm text-gray-500">Loading…</p>
+        error ? null : <p className="text-sm text-gray-400">Loading…</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-400">
           No practice-able items yet. <Link href="/knowledge" className="underline">Configure an item</Link>.
         </p>
       ) : visibleItems.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-400">
           All items are solidified. Toggle <span className="font-medium">Show solidified</span> above to view them.
         </p>
       ) : (
@@ -84,7 +84,7 @@ function PracticeIndexContent() {
                 className="block rounded-md border border-white/10 bg-black/20 p-4 hover:bg-black/30"
               >
                 <h2 className="font-medium text-white">{it.word}</h2>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-400">
                   {it.category} · {it.prescription.setMode === "time" ? `${it.prescription.setSize}s` : `${it.prescription.setSize} reps`} per set
                 </p>
                 <p className="mt-2 text-xs">
@@ -96,7 +96,7 @@ function PracticeIndexContent() {
                     </span>
                   )}
                 </p>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-400">
                   {it.lastPracticedAt ? (
                     <>Last practiced <RelativeTime iso={it.lastPracticedAt} /></>
                   ) : (

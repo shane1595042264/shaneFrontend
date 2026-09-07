@@ -24,7 +24,7 @@ export function AddWordForm({ onSubmit, loading }: AddWordFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
       <div className="flex-1 min-w-[200px]">
-        <label className="block text-xs text-gray-500 mb-1">Word / Phrase</label>
+        <label className="block text-xs text-gray-400 mb-1">Word / Phrase</label>
         <input
           type="text"
           value={word}
@@ -35,7 +35,7 @@ export function AddWordForm({ onSubmit, loading }: AddWordFormProps) {
       </div>
 
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Language</label>
+        <label className="block text-xs text-gray-400 mb-1">Language</label>
         <select
           value={language}
           onChange={(e) => setLanguage(e.target.value)}

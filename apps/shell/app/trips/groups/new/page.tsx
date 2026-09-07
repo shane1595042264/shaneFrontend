@@ -37,7 +37,7 @@ function NewGroupForm() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
+      <Link href="/trips/groups" className="text-sm text-gray-400 hover:text-gray-300">← back to groups</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">New trip group</h1>
 
       <form onSubmit={submit} className="space-y-4">
@@ -55,7 +55,7 @@ function NewGroupForm() {
             required
             className="block min-h-11 w-full rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm text-white/90 focus:border-white/40 focus:outline-none"
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-gray-400">
             Slug is generated from the title. Share the slug with friends so they can join.
           </p>
         </div>

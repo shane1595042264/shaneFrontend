@@ -47,7 +47,7 @@ export function WordCard({ word, onClick, onDelete, deleting }: WordCardProps) {
       <div className="flex items-baseline gap-2 mb-1">
         <span className="text-lg font-semibold text-white">{word.word}</span>
         {word.pronunciation && (
-          <span className="text-xs text-gray-500">{word.pronunciation}</span>
+          <span className="text-xs text-gray-400">{word.pronunciation}</span>
         )}
       </div>
 
@@ -58,7 +58,7 @@ export function WordCard({ word, onClick, onDelete, deleting }: WordCardProps) {
           {word.language}
         </span>
         {word.partOfSpeech && (
-          <span className="text-xs text-gray-500 italic">
+          <span className="text-xs text-gray-400 italic">
             {word.partOfSpeech}
           </span>
         )}
@@ -75,7 +75,7 @@ export function WordCard({ word, onClick, onDelete, deleting }: WordCardProps) {
           {(word.labels as string[]).map((label) => (
             <span
               key={label}
-              className="text-xs px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-gray-500"
+              className="text-xs px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-gray-400"
             >
               {label}
             </span>

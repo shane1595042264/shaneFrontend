@@ -91,7 +91,7 @@ export default function AppendEntryPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href={`/journal/${date}`} className="text-gray-400 hover:text-gray-300">← back</Link>
         <div className="mt-6 flex flex-col items-start gap-3">
           <p>Sign in with Google to append to this entry.</p>
           <LoginButton />
@@ -102,7 +102,7 @@ export default function AppendEntryPage() {
   if (entryMissing) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href={`/journal/${date}`} className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">No entry exists for this date yet.</p>
         <Link
           href={`/journal/${date}/edit?new=1`}
@@ -116,7 +116,7 @@ export default function AppendEntryPage() {
   if (authorId !== null && authorId !== user.id) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href={`/journal/${date}`} className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">Only the entry author can append. You can suggest an edit instead.</p>
         <Link
           href={`/journal/${date}/suggest`}
@@ -149,7 +149,7 @@ export default function AppendEntryPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <Link href={`/journal/${date}`} className="text-sm text-gray-500 hover:text-gray-300">
+      <Link href={`/journal/${date}`} className="text-sm text-gray-400 hover:text-gray-300">
         ← back to entry
       </Link>
       <h1 className="mt-3 mb-1 font-mono text-2xl">{date} — append</h1>

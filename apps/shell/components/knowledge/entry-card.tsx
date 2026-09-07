@@ -110,7 +110,7 @@ export function EntryCard({
       <div className="flex items-baseline gap-2 mb-1">
         <span className="text-lg font-semibold text-white">{entry.word}</span>
         {entry.pronunciation && (
-          <span className="text-xs text-gray-500">{entry.pronunciation}</span>
+          <span className="text-xs text-gray-400">{entry.pronunciation}</span>
         )}
       </div>
 
@@ -126,7 +126,7 @@ export function EntryCard({
           {entry.language}
         </span>
         {entry.partOfSpeech && (
-          <span className="text-xs text-gray-500 italic">
+          <span className="text-xs text-gray-400 italic">
             {entry.partOfSpeech}
           </span>
         )}
@@ -151,7 +151,7 @@ export function EntryCard({
           {(entry.labels as string[]).map((label) => (
             <span
               key={label}
-              className="text-xs px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-gray-500"
+              className="text-xs px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-gray-400"
             >
               {label}
             </span>

@@ -47,7 +47,7 @@ export function ShareActions({ date, formattedDate }: ShareActionsProps) {
         type="button"
         onClick={handleCopy}
         aria-label="Copy link to this entry"
-        className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-200 hover:bg-white/5 transition-colors"
+        className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors"
       >
         <svg
           width="14"
@@ -71,7 +71,7 @@ export function ShareActions({ date, formattedDate }: ShareActionsProps) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Share this entry on X (formerly Twitter)"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-200 hover:bg-white/5 transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors"
       >
         <svg
           width="14"

@@ -159,7 +159,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
     const tzTag = timezoneTagFor(c.authorTimezone, viewerTz);
     return (
       <li key={c.id} className={`rounded border border-white/10 ${isReply ? "bg-black/20" : "bg-black/10"} p-3`}>
-        <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-500">
+        <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-400">
           <span className="flex items-center gap-2">
             {c.author?.avatarUrl ? (
               <img
@@ -275,7 +275,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
 
   return (
     <section className="mt-10 border-t border-white/10 pt-6" aria-busy={loading}>
-      <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-gray-500">
+      <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-gray-400">
         Comments {comments.length > 0 && <span className="ml-1 text-gray-400">({comments.length})</span>}
       </h2>
 
@@ -296,7 +296,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
           ))}
         </div>
       ) : topLevel.length === 0 ? (
-        <p className="text-sm text-gray-500">No comments yet.</p>
+        <p className="text-sm text-gray-400">No comments yet.</p>
       ) : (
         <ul className="space-y-3">{topLevel.map((c) => renderComment(c, false))}</ul>
       )}
@@ -304,7 +304,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
       {user ? (
         <div className="mt-4 rounded border border-white/10 bg-black/20 p-3">
           {replyTo && (
-            <div className="mb-2 text-xs text-gray-500">
+            <div className="mb-2 text-xs text-gray-400">
               Replying to{" "}
               <span className="text-gray-300">
                 {comments.find((c) => c.id === replyTo)?.author?.name?.trim() || "Anonymous"}
@@ -338,7 +338,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
           </button>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-gray-500">Sign in to comment.</p>
+        <p className="mt-4 text-sm text-gray-400">Sign in to comment.</p>
       )}
 
       {deleteConfirmId && (

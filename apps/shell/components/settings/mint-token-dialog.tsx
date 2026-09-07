@@ -81,7 +81,7 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
         {raw ? (
           <>
             <h3 id="mint-token-dialog-title" className="mb-2 font-medium">Token created — copy it now</h3>
-            <p className="mb-3 text-xs text-gray-500">This is the only time you'll see this value.</p>
+            <p className="mb-3 text-xs text-gray-400">This is the only time you'll see this value.</p>
             <pre className="mb-3 break-all rounded bg-gray-100 p-2 font-mono text-sm">{raw}</pre>
             {copyFeedback === "error" && (
               <p role="alert" className="mb-3 text-sm text-red-600">

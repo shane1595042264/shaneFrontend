@@ -72,7 +72,7 @@ export default function PracticeSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <Link href="/practice" className="text-sm text-gray-500 hover:text-gray-300">← back</Link>
+      <Link href="/practice" className="text-sm text-gray-400 hover:text-gray-300">← back</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">Practice settings</h1>
       <p className="mb-6 text-sm text-gray-400">These thresholds apply to all users. Changing them retroactively recomputes everyone's progress.</p>
 
@@ -122,7 +122,7 @@ export default function PracticeSettingsPage() {
       )}
 
       {settings && (
-        <p className="mt-6 text-xs text-gray-500">Last updated <RelativeTime iso={settings.updatedAt} />{settings.updatedBy ? ` by ${settings.updatedBy}` : ""}</p>
+        <p className="mt-6 text-xs text-gray-400">Last updated <RelativeTime iso={settings.updatedAt} />{settings.updatedBy ? ` by ${settings.updatedBy}` : ""}</p>
       )}
     </div>
   );

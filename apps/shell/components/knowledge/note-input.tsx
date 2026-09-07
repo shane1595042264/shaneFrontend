@@ -78,7 +78,7 @@ export function NoteInput({
 
       {mode === "ai" ? (
         <>
-          <label className="block text-xs text-gray-500">
+          <label className="block text-xs text-gray-400">
             What did you learn? (AI will classify it automatically)
           </label>
           <MarkdownEditor
@@ -104,7 +104,7 @@ export function NoteInput({
         </>
       ) : (
         <>
-          <label className="block text-xs text-gray-500">
+          <label className="block text-xs text-gray-400">
             Add a card exactly as typed — no AI, so links and formatting are kept.
           </label>
           <input

@@ -147,7 +147,7 @@ export default function HistoryPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <Link href={`/journal/${date}`} className="text-sm text-gray-500 hover:text-gray-300">
+      <Link href={`/journal/${date}`} className="text-sm text-gray-400 hover:text-gray-300">
         ← back to entry
       </Link>
       <h1 className="mt-3 mb-4 font-mono text-2xl">
@@ -177,7 +177,7 @@ export default function HistoryPage() {
                       </span>
                     )}
                   </div>
-                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span className="flex items-center gap-1.5 text-xs text-gray-400">
                     {v.editor?.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -198,7 +198,7 @@ export default function HistoryPage() {
                     if (e.currentTarget.open) void loadBody(v.versionNum);
                   }}
                 >
-                  <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-300">
+                  <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-300">
                     view content
                   </summary>
                   {body?.status === "ready" ? (
@@ -217,7 +217,7 @@ export default function HistoryPage() {
                       </button>
                     </p>
                   ) : (
-                    <p className="mt-2 text-xs text-gray-500">Loading content...</p>
+                    <p className="mt-2 text-xs text-gray-400">Loading content...</p>
                   )}
                 </details>
                 {isAuthor && !isCurrent && (

@@ -133,7 +133,7 @@ export function Cabinet({
     <div className="space-y-8">
       <button
         onClick={onBack}
-        className="text-sm text-gray-500 hover:text-gray-300"
+        className="text-sm text-gray-400 hover:text-gray-300"
       >
         &larr; Back to the hall
       </button>
@@ -246,7 +246,7 @@ export function Cabinet({
               );
             })}
             {players.length === 0 && (
-              <p className="text-sm italic text-gray-500">
+              <p className="text-sm italic text-gray-400">
                 Add players in the hall first.
               </p>
             )}
@@ -295,7 +295,7 @@ export function Cabinet({
           Record wall
         </h3>
         {finals.length === 0 ? (
-          <p className="rounded-lg border border-white/10 bg-black/20 p-6 text-center text-sm italic text-gray-500">
+          <p className="rounded-lg border border-white/10 bg-black/20 p-6 text-center text-sm italic text-gray-400">
             No finished matches yet.
           </p>
         ) : (
@@ -360,13 +360,13 @@ export function Cabinet({
                       <button
                         type="button"
                         onClick={() => setEditingLocationId(null)}
-                        className="text-xs text-gray-500 underline hover:text-gray-300"
+                        className="text-xs text-gray-400 underline hover:text-gray-300"
                       >
                         Cancel
                       </button>
                     </form>
                   ) : (
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-400">
                       {new Date(m.playedAt).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "short",
@@ -392,7 +392,7 @@ export function Cabinet({
                     </button>
                     <button
                       onClick={() => removeMatch(m.id)}
-                      className="text-gray-500 underline hover:text-red-400"
+                      className="text-gray-400 underline hover:text-red-400"
                     >
                       Delete
                     </button>

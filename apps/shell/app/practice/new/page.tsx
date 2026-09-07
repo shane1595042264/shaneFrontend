@@ -108,7 +108,7 @@ function NewSessionContent() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <Link href="/practice" className="text-sm text-gray-500 hover:text-gray-300">← back</Link>
+      <Link href="/practice" className="text-sm text-gray-400 hover:text-gray-300">← back</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">New session</h1>
 
       {/* Mode toggle */}
@@ -172,15 +172,15 @@ function NewSessionContent() {
               Preview ({preview !== null ? preview.length : error ? "—" : "…"} items)
             </h2>
             {preview === null ? (
-              error ? null : <p className="text-xs text-gray-500">Loading…</p>
+              error ? null : <p className="text-xs text-gray-400">Loading…</p>
             ) : preview.length === 0 ? (
-              <p className="text-xs text-gray-500">No items match. Try a different filter or configure more items in /knowledge.</p>
+              <p className="text-xs text-gray-400">No items match. Try a different filter or configure more items in /knowledge.</p>
             ) : (
               <ol className="list-decimal space-y-1 pl-5 text-sm">
                 {preview.map((it) => (
                   <li key={it.itemId}>
                     {it.word}
-                    <span className="ml-2 text-xs text-gray-500">
+                    <span className="ml-2 text-xs text-gray-400">
                       ({it.prescription.setMode === "time" ? `${it.prescription.setSize}s` : `${it.prescription.setSize} reps`})
                     </span>
                   </li>
@@ -260,9 +260,9 @@ function NewSessionContent() {
 
           <section className={error ? "" : "mt-8"}>
             {!location.trim() ? (
-              <p className="text-xs text-gray-500">Pick a location to see how many words are ready.</p>
+              <p className="text-xs text-gray-400">Pick a location to see how many words are ready.</p>
             ) : counts === null ? (
-              <p className="text-xs text-gray-500">Checking…</p>
+              <p className="text-xs text-gray-400">Checking…</p>
             ) : (
               <p className="text-sm text-gray-400">
                 <span className="text-gray-200">{counts.dueAvailable}</span> due ·{" "}

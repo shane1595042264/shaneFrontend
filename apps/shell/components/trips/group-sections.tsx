@@ -94,7 +94,7 @@ export function GroupSections({
       title="Sections"
       right={
         sections.length > 0 ? (
-          <span className="text-xs font-normal text-gray-500">{sections.length}</span>
+          <span className="text-xs font-normal text-gray-400">{sections.length}</span>
         ) : undefined
       }
     >
@@ -119,7 +119,7 @@ export function GroupSections({
       </form>
 
       {sections.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-400">
           No sections yet. Create a shared checklist — packing lists, pre-trip todos, anything.
         </p>
       ) : (
@@ -184,7 +184,7 @@ function TodoSection({
         <h3 className="text-sm font-medium text-white/90">
           <span className="mr-1.5 inline-block transition-transform group-open/todo:rotate-90">›</span>
           ☑ {section.title}
-          <span className="ml-2 text-xs font-normal text-gray-500">
+          <span className="ml-2 text-xs font-normal text-gray-400">
             {doneCount}/{section.items.length}
           </span>
         </h3>
@@ -217,7 +217,7 @@ function TodoSection({
                 }
                 className="h-4 w-4 accent-green-500"
               />
-              <span className={`text-sm ${item.done ? "text-gray-500 line-through" : "text-white/90"}`}>
+              <span className={`text-sm ${item.done ? "text-gray-400 line-through" : "text-white/90"}`}>
                 {item.text}
               </span>
               {item.addedBy && (

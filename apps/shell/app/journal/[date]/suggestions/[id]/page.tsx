@@ -178,11 +178,11 @@ export default function SuggestionDetailPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <Link href={`/journal/${date}/suggestions`} className="text-sm text-gray-500 hover:text-gray-300">
+      <Link href={`/journal/${date}/suggestions`} className="text-sm text-gray-400 hover:text-gray-300">
         ← all suggestions
       </Link>
       <h1 className="mt-3 mb-1 font-mono text-2xl">{date} — suggestion</h1>
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-gray-400">
         {s.proposer?.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

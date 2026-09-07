@@ -69,7 +69,7 @@ function InviteLinkBox({ slug }: { slug: string }) {
 
   return (
     <div>
-      <label htmlFor={`invite-${slug}`} className="block text-[10px] uppercase tracking-wider text-gray-500">
+      <label htmlFor={`invite-${slug}`} className="block text-[10px] uppercase tracking-wider text-gray-400">
         Invite link
       </label>
       <div className="mt-1 flex items-stretch gap-2">
@@ -168,7 +168,7 @@ function ItineraryEditor({
         {draft.days.map((d, di) => (
           <li key={di} className="rounded-md border border-blue-400/30 bg-black/20 p-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-gray-500">Day {d.day}</span>
+              <span className="text-xs text-gray-400">Day {d.day}</span>
               <input
                 value={d.title}
                 onChange={(e) => patchDay(di, { title: e.target.value })}
@@ -305,7 +305,7 @@ function ItineraryView({
             {d.title}
             {d.location && <span className="ml-2 text-xs font-normal text-gray-400">{d.location}</span>}
           </span>
-          <span aria-hidden="true" className="shrink-0 text-xs text-gray-500">→</span>
+          <span aria-hidden="true" className="shrink-0 text-xs text-gray-400">→</span>
         </h3>
         <ul className="mt-2 space-y-1.5">
           {d.activities.map((a, i) => (
@@ -705,7 +705,7 @@ function GroupDetail() {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
-        <p className="text-sm text-gray-500">Loading…</p>
+        <p className="text-sm text-gray-400">Loading…</p>
       </div>
     );
   }
@@ -713,7 +713,7 @@ function GroupDetail() {
   if (forbidden && slug) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
-        <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
+        <Link href="/trips/groups" className="text-sm text-gray-400 hover:text-gray-300">← back to groups</Link>
         <h1 className="mt-3 mb-3 text-2xl font-semibold">Not a member yet</h1>
         <p className="mb-4 text-sm text-gray-400">
           You haven't joined this group. Join to see members and ideas.
@@ -793,11 +793,11 @@ function GroupDetail() {
     <div className="mx-auto max-w-7xl px-4 py-12 lg:grid lg:grid-cols-[170px_minmax(0,1fr)_300px] lg:gap-8">
     <PageToc entries={tocEntries} />
     <div className="min-w-0">
-      <Link href="/trips/groups" className="text-sm text-gray-500 hover:text-gray-300">← back to groups</Link>
+      <Link href="/trips/groups" className="text-sm text-gray-400 hover:text-gray-300">← back to groups</Link>
 
       <header className="mt-3 mb-6">
         <h1 className="text-3xl font-semibold tracking-tight">{detail.title}</h1>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-400">
           Created <RelativeTime iso={detail.createdAt} />
           {" · "}
           {detail.members.length} {detail.members.length === 1 ? "member" : "members"}
@@ -812,7 +812,7 @@ function GroupDetail() {
       <CollapsibleSection
         id="members"
         title="Members"
-        right={<span className="text-xs font-normal text-gray-500">{detail.members.length}</span>}
+        right={<span className="text-xs font-normal text-gray-400">{detail.members.length}</span>}
       >
         <ul className="flex flex-wrap gap-2">
           {detail.members.map((m) => (
@@ -822,7 +822,7 @@ function GroupDetail() {
             >
               {m.name ?? "Anonymous"}
               {m.role === "owner" && <span className="ml-1 text-blue-400">·owner</span>}
-              <span className="ml-1 text-gray-500">
+              <span className="ml-1 text-gray-400">
                 · joined <RelativeTime iso={m.joinedAt} />
               </span>
             </li>
@@ -858,7 +858,7 @@ function GroupDetail() {
         title="Idea inbox"
         right={
           detail.ideas.length > 0 ? (
-            <span className="text-xs font-normal text-gray-500">{detail.ideas.length}</span>
+            <span className="text-xs font-normal text-gray-400">{detail.ideas.length}</span>
           ) : undefined
         }
       >
@@ -868,7 +868,7 @@ function GroupDetail() {
           </p>
         )}
         {detail.ideas.length === 0 ? (
-          <p className="text-sm text-gray-500">No ideas yet. Drop the first one above.</p>
+          <p className="text-sm text-gray-400">No ideas yet. Drop the first one above.</p>
         ) : (
           <ul className="space-y-2">
             {detail.ideas.map((idea) => (
@@ -877,7 +877,7 @@ function GroupDetail() {
                 className="rounded-md border border-white/10 bg-black/20 p-3"
               >
                 <p className="whitespace-pre-wrap text-sm text-white/90">{idea.body}</p>
-                <div className="mt-2 flex items-baseline justify-between text-xs text-gray-500">
+                <div className="mt-2 flex items-baseline justify-between text-xs text-gray-400">
                   <span>
                     {idea.authorName ?? "Anonymous"}
                     {" · "}
@@ -906,7 +906,7 @@ function GroupDetail() {
           <span className="mr-1.5 inline-block transition-transform group-open/sec:rotate-90">›</span>
           Itinerary
           {detail.itineraryGeneratedAt && (
-            <span className="ml-2 text-xs font-normal text-gray-500">
+            <span className="ml-2 text-xs font-normal text-gray-400">
               generated <RelativeTime iso={detail.itineraryGeneratedAt} />
             </span>
           )}
@@ -1047,7 +1047,7 @@ function GroupDetail() {
             onDeletePhoto={handleDeletePhoto}
           />
         ) : (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-400">
             {detail.isOwner
               ? detail.ideas.length === 0
                 ? "No itinerary yet. Post some ideas below, then consolidate."
@@ -1078,7 +1078,7 @@ function GroupDetail() {
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="text-sm text-white/90">
                       {s.authorName ?? "Anonymous"} suggested a new itinerary
-                      <span className="ml-2 text-xs text-gray-500">
+                      <span className="ml-2 text-xs text-gray-400">
                         <RelativeTime iso={s.createdAt} />
                         {" · "}
                         {s.changedDays.length === 0
@@ -1114,7 +1114,7 @@ function GroupDetail() {
                       other.
                     </p>
                   )}
-                  <p className="mt-1.5 text-xs text-gray-500">{s.itinerary.summary}</p>
+                  <p className="mt-1.5 text-xs text-gray-400">{s.itinerary.summary}</p>
                 </li>
               ))}
           </ul>

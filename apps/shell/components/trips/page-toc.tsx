@@ -38,7 +38,7 @@ export function PageToc({ entries }: { entries: TocEntry[] }) {
                   <li key={s.id}>
                     <a
                       href={`#${s.id}`}
-                      className="-ml-px block truncate border-l border-transparent py-0.5 pl-6 text-[11px] text-gray-500 hover:border-white/40 hover:text-gray-200"
+                      className="-ml-px block truncate border-l border-transparent py-0.5 pl-6 text-[11px] text-gray-400 hover:border-white/40 hover:text-gray-200"
                     >
                       {s.label}
                     </a>

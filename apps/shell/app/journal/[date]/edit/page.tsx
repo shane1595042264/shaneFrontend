@@ -92,7 +92,7 @@ export default function EditEntryPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href={`/journal/${date}`} className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">Sign in to edit.</p>
       </div>
     );
@@ -102,7 +102,7 @@ export default function EditEntryPage() {
   if (!isNew && entryExists) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href={`/journal/${date}`} className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href={`/journal/${date}`} className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">Entries are append-only. You can&apos;t edit existing content — add a new timestamped append instead.</p>
         <Link
           href={`/journal/${date}/append`}
@@ -135,7 +135,7 @@ export default function EditEntryPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <Link href={`/journal/${date}`} className="text-sm text-gray-500 hover:text-gray-300">
+      <Link href={`/journal/${date}`} className="text-sm text-gray-400 hover:text-gray-300">
         ← back to entry
       </Link>
       <h1 className="mt-3 mb-4 font-mono text-2xl">{date} — create</h1>

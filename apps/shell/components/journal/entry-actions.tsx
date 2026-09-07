@@ -48,14 +48,14 @@ export function EntryActions({ date, authorId }: Props) {
       <div className="flex items-center gap-3 text-sm">
         <Link
           href={`/journal/${date}/history`}
-          className="text-gray-500 hover:text-gray-300 transition-colors"
+          className="text-gray-400 hover:text-gray-300 transition-colors"
         >
           History
         </Link>
         {isAuthor && (
           <Link
             href={`/journal/${date}/append`}
-            className="text-gray-500 hover:text-gray-300 transition-colors"
+            className="text-gray-400 hover:text-gray-300 transition-colors"
           >
             Append
           </Link>
@@ -63,7 +63,7 @@ export function EntryActions({ date, authorId }: Props) {
         {!loading && user && user.id !== authorId && (
           <Link
             href={`/journal/${date}/suggest`}
-            className="text-gray-500 hover:text-gray-300 transition-colors"
+            className="text-gray-400 hover:text-gray-300 transition-colors"
           >
             Suggest edit
           </Link>
@@ -73,7 +73,7 @@ export function EntryActions({ date, authorId }: Props) {
             type="button"
             onClick={() => { setError(null); setConfirmOpen(true); }}
             disabled={deleting}
-            className="text-gray-500 hover:text-red-400 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            className="text-gray-400 hover:text-red-400 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {deleting ? "Deleting…" : "Delete"}
           </button>

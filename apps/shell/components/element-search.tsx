@@ -178,14 +178,14 @@ export function ElementSearch({
             type="button"
             onClick={clear}
             aria-label="Clear search"
-            className="absolute right-1 top-1/2 flex h-9 w-8 -translate-y-1/2 items-center justify-center rounded text-gray-500 hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="absolute right-1 top-1/2 flex h-9 w-8 -translate-y-1/2 items-center justify-center rounded text-gray-400 hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             <span aria-hidden="true">&times;</span>
           </button>
         ) : (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-white/15 px-1.5 py-px text-[10px] leading-tight text-gray-500 sm:block"
+            className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-white/15 px-1.5 py-px text-[10px] leading-tight text-gray-400 sm:block"
           >
             /
           </span>
@@ -205,7 +205,7 @@ export function ElementSearch({
           accessibility tree because the status region above already announces
           it, and duplicating it would read twice. */}
       {unavailableName && (
-        <p aria-hidden="true" className="mt-1 text-[11px] text-gray-500">
+        <p aria-hidden="true" className="mt-1 text-[11px] text-gray-400">
           {unavailableName} is not available yet.
         </p>
       )}
@@ -218,7 +218,7 @@ export function ElementSearch({
           className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto rounded-md border border-white/15 bg-gray-950/95 py-1 shadow-xl backdrop-blur"
         >
           {results.length === 0 && (
-            <li className="px-3 py-2 text-xs text-gray-500">
+            <li className="px-3 py-2 text-xs text-gray-400">
               No elements match &ldquo;{trimmed}&rdquo;
             </li>
           )}
@@ -250,20 +250,20 @@ export function ElementSearch({
                   <span className="block truncate text-xs text-gray-100">
                     {element.name}
                     {isComingSoon && (
-                      <span className="ml-1 text-[10px] text-gray-500">
+                      <span className="ml-1 text-[10px] text-gray-400">
                         (soon)
                       </span>
                     )}
                     {element.type === "external" && !isComingSoon && (
                       <span
                         aria-hidden="true"
-                        className="ml-1 text-[10px] text-gray-500"
+                        className="ml-1 text-[10px] text-gray-400"
                       >
                         &#8599;
                       </span>
                     )}
                   </span>
-                  <span className="block truncate text-[10px] text-gray-500">
+                  <span className="block truncate text-[10px] text-gray-400">
                     {element.description}
                   </span>
                 </span>

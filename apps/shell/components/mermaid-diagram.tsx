@@ -54,7 +54,7 @@ export function MermaidDiagram({ code }: { code: string }) {
         <code className="language-mermaid">{code}</code>
       </pre>
       {error && (
-        <p role="note" className="not-prose -mt-2 mb-4 text-xs text-gray-500">
+        <p role="note" className="not-prose -mt-2 mb-4 text-xs text-gray-400">
           Diagram failed to render: {error}
         </p>
       )}

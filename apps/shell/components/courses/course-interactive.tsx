@@ -147,7 +147,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16">
       <nav className="flex items-center gap-3 py-4 text-sm">
-        <Link href="/courses" className="text-gray-500 hover:text-gray-300">
+        <Link href="/courses" className="text-gray-400 hover:text-gray-300">
           &larr; Courses
         </Link>
       </nav>
@@ -217,7 +217,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
             onRate={handleRate}
             onClear={handleClearRating}
           />
-          {!user && <span className="text-xs text-gray-500">Sign in to rate</span>}
+          {!user && <span className="text-xs text-gray-400">Sign in to rate</span>}
         </div>
       </div>
 

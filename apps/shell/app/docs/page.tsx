@@ -19,15 +19,15 @@ export default function DocsIndexPage() {
         <ul className="mt-2 space-y-1 font-mono text-sm text-gray-300">
           <li>
             <a className="hover:text-white" href="/llms.txt">/llms.txt</a>{" "}
-            <span className="text-gray-500">index of these docs</span>
+            <span className="text-gray-400">index of these docs</span>
           </li>
           <li>
             <a className="hover:text-white" href="/llms-full.txt">/llms-full.txt</a>{" "}
-            <span className="text-gray-500">every page in one fetch</span>
+            <span className="text-gray-400">every page in one fetch</span>
           </li>
           <li>
             <span>/docs/raw/&lt;slug&gt;</span>{" "}
-            <span className="text-gray-500">any page as raw markdown</span>
+            <span className="text-gray-400">any page as raw markdown</span>
           </li>
         </ul>
       </div>
@@ -41,7 +41,7 @@ export default function DocsIndexPage() {
             >
               <span className="flex items-baseline justify-between gap-3">
                 <span className="font-semibold text-white">{p.title}</span>
-                <span className="font-mono text-xs text-gray-500">/docs/{p.slug}</span>
+                <span className="font-mono text-xs text-gray-400">/docs/{p.slug}</span>
               </span>
               <span className="mt-1 block text-sm text-gray-400">{p.description}</span>
             </Link>

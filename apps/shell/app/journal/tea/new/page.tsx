@@ -33,7 +33,7 @@ export default function NewTeaEntryPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-gray-400">
-        <Link href="/journal" className="text-gray-500 hover:text-gray-300">← back</Link>
+        <Link href="/journal" className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">Sign in to write a tea entry.</p>
         <div className="mt-3">
           <LoginButton />
@@ -65,7 +65,7 @@ export default function NewTeaEntryPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <Link href="/journal" className="text-sm text-gray-500 hover:text-gray-300">
+      <Link href="/journal" className="text-sm text-gray-400 hover:text-gray-300">
         ← back to journal
       </Link>
       <h1 className="mt-3 mb-1 flex items-center gap-2 font-mono text-2xl">
@@ -76,7 +76,7 @@ export default function NewTeaEntryPage() {
       </p>
 
       <label className="mb-3 block">
-        <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Title (optional)</span>
+        <span className="mb-1 block text-xs uppercase tracking-wider text-gray-400">Title (optional)</span>
         <input
           type="text"
           value={title}
@@ -88,7 +88,7 @@ export default function NewTeaEntryPage() {
       </label>
 
       <label className="mb-4 block">
-        <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">4-digit PIN</span>
+        <span className="mb-1 block text-xs uppercase tracking-wider text-gray-400">4-digit PIN</span>
         <div className="flex items-center gap-2">
           <input
             type={showPin ? "text" : "password"}

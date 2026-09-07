@@ -123,7 +123,7 @@ export function ItineraryCalendar({
               <div className="text-[11px] font-medium text-white/90">
                 {fmtDayDate(d.date) ?? `Day ${d.day}`}
               </div>
-              <div className="truncate text-[10px] text-gray-500">
+              <div className="truncate text-[10px] text-gray-400">
                 {d.location ?? d.title}
               </div>
             </div>
@@ -283,7 +283,7 @@ function EventEditor({
       >
         <h3 className="mb-1 text-sm font-medium text-white/90">
           {fmtDayDate(day.date) ?? `Day ${day.day}`}
-          {day.location && <span className="ml-2 text-xs text-gray-500">{day.location}</span>}
+          {day.location && <span className="ml-2 text-xs text-gray-400">{day.location}</span>}
         </h3>
         {canEdit ? (
           <form onSubmit={handleSubmit} className="space-y-2">
@@ -339,10 +339,10 @@ function EventEditor({
         ) : (
           <div className="text-sm text-gray-300">
             <p>
-              <span className="font-mono text-xs text-gray-500">{activity.time ?? "all day"}</span>{" "}
+              <span className="font-mono text-xs text-gray-400">{activity.time ?? "all day"}</span>{" "}
               {activity.title}
             </p>
-            {activity.notes && <p className="mt-1 text-xs text-gray-500">{activity.notes}</p>}
+            {activity.notes && <p className="mt-1 text-xs text-gray-400">{activity.notes}</p>}
             <button
               type="button"
               onClick={onClose}

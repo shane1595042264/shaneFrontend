@@ -70,7 +70,7 @@ export default function InboxPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
-        <Link href="/journal" className="text-gray-500 hover:text-gray-300">← back to journal</Link>
+        <Link href="/journal" className="text-gray-400 hover:text-gray-300">← back to journal</Link>
         <p className="mt-4">Sign in to view your inbox.</p>
         <div className="mt-3">
           <LoginButton />
@@ -89,7 +89,7 @@ export default function InboxPage() {
       <div className="mx-auto max-w-3xl px-4 py-12">
         <h1 className="mb-2 text-2xl font-semibold">Inbox</h1>
         <p className="text-sm text-gray-400">No pending suggestions on your entries.</p>
-        <Link href="/journal" className="mt-3 inline-block text-sm text-gray-500 hover:text-gray-300">
+        <Link href="/journal" className="mt-3 inline-block text-sm text-gray-400 hover:text-gray-300">
           ← all entries
         </Link>
       </div>
@@ -119,7 +119,7 @@ export default function InboxPage() {
               <h2 className="font-mono text-sm">{date}</h2>
               <Link
                 href={`/journal/${date}/suggestions`}
-                className="text-xs text-gray-500 hover:text-gray-300"
+                className="text-xs text-gray-400 hover:text-gray-300"
               >
                 view all suggestions →
               </Link>
@@ -147,7 +147,7 @@ export default function InboxPage() {
                         ) : null}
                         <span className="text-gray-300">{proposerName}</span>
                       </span>
-                      <RelativeTime iso={item.suggestion.createdAt} className="text-xs text-gray-500" />
+                      <RelativeTime iso={item.suggestion.createdAt} className="text-xs text-gray-400" />
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs text-gray-400">
                       {toPlainExcerpt(item.suggestion.proposedContent, 200)}
@@ -161,7 +161,7 @@ export default function InboxPage() {
         ))}
       </div>
 
-      <Link href="/journal" className="mt-8 inline-block text-sm text-gray-500 hover:text-gray-300">
+      <Link href="/journal" className="mt-8 inline-block text-sm text-gray-400 hover:text-gray-300">
         ← all entries
       </Link>
     </div>

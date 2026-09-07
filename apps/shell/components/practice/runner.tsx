@@ -227,7 +227,7 @@ export function PracticeRunner({ session, items, setsPerStrike }: Props) {
           <div className={`my-8 font-mono text-8xl tabular-nums ${timer?.phase === "rest" ? "text-emerald-400" : "text-blue-400"}`}>
             {timer === null ? formatMMSS(phaseDuration) : formatMMSS(remaining)}
           </div>
-          <p className="text-xs uppercase tracking-wider text-gray-500">
+          <p className="text-xs uppercase tracking-wider text-gray-400">
             {timer?.phase ?? "ready"}
             {presc.setMode === "reps" ? ` · ${presc.setSize} reps target` : ""}
           </p>

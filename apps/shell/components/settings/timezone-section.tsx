@@ -69,7 +69,7 @@ export function TimezoneSection() {
 
   if (!user) {
     return (
-      <p className="text-sm text-gray-500">Sign in to set your timezone.</p>
+      <p className="text-sm text-gray-400">Sign in to set your timezone.</p>
     );
   }
 
@@ -93,7 +93,7 @@ export function TimezoneSection() {
     <section className="mb-10">
       <header className="mb-3">
         <h2 className="text-lg font-medium">Time zone</h2>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-400">
           Drives what counts as &ldquo;today&rdquo; on the journal and tags your posts so viewers in other zones aren&apos;t confused.
         </p>
       </header>
@@ -118,7 +118,7 @@ export function TimezoneSection() {
         >
           {saving ? "Saving…" : "Save"}
         </button>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-gray-400">
           Currently {getTodayInTimezone(value)} in <span className="font-mono">{value}</span>
         </span>
       </div>

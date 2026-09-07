@@ -192,7 +192,7 @@ export async function ActivitySidebar({ date }: Props) {
 
   if (acts.length === 0) {
     return (
-      <aside className="sticky top-6 rounded border border-white/10 bg-black/10 p-3 text-xs text-gray-500">
+      <aside className="sticky top-6 rounded border border-white/10 bg-black/10 p-3 text-xs text-gray-400">
         No activity recorded for this date.
       </aside>
     );
@@ -208,7 +208,7 @@ export async function ActivitySidebar({ date }: Props) {
 
   return (
     <aside className="sticky top-6 space-y-3 text-sm">
-      <h2 className="text-xs font-medium uppercase tracking-wider text-gray-500">
+      <h2 className="text-xs font-medium uppercase tracking-wider text-gray-400">
         Activity
       </h2>
       {[...grouped.entries()].map(([source, rawItems]) => {

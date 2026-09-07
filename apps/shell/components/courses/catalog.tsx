@@ -119,7 +119,7 @@ export function CoursesCatalog() {
           ))}
         </div>
       ) : courses.length === 0 ? (
-        <p className="rounded-lg border border-white/10 bg-black/20 p-8 text-center text-sm italic text-gray-500">
+        <p className="rounded-lg border border-white/10 bg-black/20 p-8 text-center text-sm italic text-gray-400">
           The catalog is empty.{" "}
           {user ? "Register the first course above." : "Courses appear here once registered."}
         </p>

@@ -68,7 +68,7 @@ export default function NewTripPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
-        <Link href="/trips" className="text-gray-500 hover:text-gray-300">← back to trips</Link>
+        <Link href="/trips" className="text-gray-400 hover:text-gray-300">← back to trips</Link>
         <div className="mt-6 flex flex-col items-start gap-3">
           <p>Sign in with Google to upload a trip.</p>
           <LoginButton />
@@ -79,7 +79,7 @@ export default function NewTripPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <Link href="/trips" className="text-sm text-gray-500 hover:text-gray-300">← back to trips</Link>
+      <Link href="/trips" className="text-sm text-gray-400 hover:text-gray-300">← back to trips</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">Upload a trip</h1>
 
       <label
@@ -113,14 +113,14 @@ export default function NewTripPage() {
         {file ? (
           <>
             <span className="text-sm text-white">{file.name}</span>
-            <span id="trip-file-help" className="mt-1 text-xs text-gray-500">
+            <span id="trip-file-help" className="mt-1 text-xs text-gray-400">
               {(file.size / 1024).toFixed(1)} KB · click or press Enter to pick a different file
             </span>
           </>
         ) : (
           <>
             <span className="text-sm text-gray-300">Drop an HTML file here, or click to pick one.</span>
-            <span id="trip-file-help" className="mt-1 text-xs text-gray-500">Max 10 MB. Title is extracted from the file automatically.</span>
+            <span id="trip-file-help" className="mt-1 text-xs text-gray-400">Max 10 MB. Title is extracted from the file automatically.</span>
           </>
         )}
       </label>

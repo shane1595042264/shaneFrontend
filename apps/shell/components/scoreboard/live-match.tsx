@@ -91,7 +91,7 @@ export function LiveMatch({
       <div className="flex items-center justify-between">
         <button
           onClick={onExit}
-          className="text-sm text-gray-500 hover:text-gray-300"
+          className="text-sm text-gray-400 hover:text-gray-300"
         >
           &larr; {game ? game.name : "Back"}
         </button>
@@ -123,7 +123,7 @@ export function LiveMatch({
                 <button
                   type="button"
                   onClick={() => setEditingLocation(false)}
-                  className="text-xs text-gray-500 underline hover:text-gray-300"
+                  className="text-xs text-gray-400 underline hover:text-gray-300"
                 >
                   Cancel
                 </button>
@@ -171,7 +171,7 @@ export function LiveMatch({
             >
               {i > 0 && (
                 <span
-                  className="absolute -left-3 top-1/2 hidden -translate-y-1/2 text-xs font-bold tracking-widest text-gray-500 lg:block"
+                  className="absolute -left-3 top-1/2 hidden -translate-y-1/2 text-xs font-bold tracking-widest text-gray-400 lg:block"
                   aria-hidden="true"
                 >
                   VS

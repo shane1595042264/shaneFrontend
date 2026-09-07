@@ -53,7 +53,7 @@ function HistoryItem({ decision }: { decision: Decision }) {
           ) : (
             <p className="text-sm text-white truncate">{decision.productName}</p>
           )}
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-400">
             ${decision.price.toFixed(2)} &middot; {decision.genericCategory}
           </p>
         </div>
@@ -107,7 +107,7 @@ function HistoryItem({ decision }: { decision: Decision }) {
                     <div>Threshold:</div>
                     <div className="text-white">
                       D{decision.threshold}
-                      <span className="text-gray-500 ml-1">
+                      <span className="text-gray-400 ml-1">
                         ({decision.price.toFixed(2)} / {formatMoney(decision.remainingBudget)} &times; 20)
                       </span>
                     </div>
@@ -120,7 +120,7 @@ function HistoryItem({ decision }: { decision: Decision }) {
                     <div className={decision.roll >= (decision.threshold ?? 0) ? "text-green-400" : "text-red-400"}>
                       {decision.roll}
                       {decision.threshold !== null && (
-                        <span className="text-gray-500 ml-1">
+                        <span className="text-gray-400 ml-1">
                           (needed {decision.threshold}+)
                         </span>
                       )}
@@ -130,7 +130,7 @@ function HistoryItem({ decision }: { decision: Decision }) {
               </div>
 
               {/* Date (shown inline above on >=sm, here on mobile) */}
-              <RelativeTime iso={decision.createdAt} className="block sm:hidden text-gray-500" />
+              <RelativeTime iso={decision.createdAt} className="block sm:hidden text-gray-400" />
 
               {/* Verdict explanation */}
               <div className="pt-1 border-t border-white/5 text-gray-400">

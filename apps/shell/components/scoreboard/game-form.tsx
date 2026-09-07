@@ -208,7 +208,7 @@ export function GameForm({
           ))}
         </div>
         {searching && (
-          <p className="mt-1 text-xs text-gray-500">Searching art...</p>
+          <p className="mt-1 text-xs text-gray-400">Searching art...</p>
         )}
       </div>
 

@@ -82,7 +82,7 @@ export function VocabRunner({ session, cards }: { session: Session; cards: Vocab
 
       <main className="flex flex-1 flex-col items-center justify-center px-4 text-center">
         <h2 className="text-4xl font-semibold">{current.word}</h2>
-        <p className="mt-3 text-xs tracking-widest text-gray-500">
+        <p className="mt-3 text-xs tracking-widest text-gray-400">
           Lv {dots} at {session.locationName}
         </p>
 
@@ -92,7 +92,7 @@ export function VocabRunner({ session, cards }: { session: Session; cards: Vocab
             onClick={() => setRevealed(true)}
             className="mt-10 rounded bg-white px-6 py-3 text-lg font-medium text-black hover:bg-gray-200"
           >
-            Reveal <span className="ml-2 text-xs text-gray-500">Space</span>
+            Reveal <span className="ml-2 text-xs text-gray-400">Space</span>
           </button>
         ) : (
           <>

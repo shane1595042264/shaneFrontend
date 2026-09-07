@@ -71,7 +71,7 @@ export function LocationPrompt({ onPick, onSkip }: Props) {
       <button
         type="button"
         onClick={onSkip}
-        className="mt-3 text-xs text-gray-500 hover:text-gray-300"
+        className="mt-3 text-xs text-gray-400 hover:text-gray-300"
       >
         Skip (won't count toward solidification)
       </button>

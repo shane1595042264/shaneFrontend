@@ -156,7 +156,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
           isReply ? "bg-black/20" : "bg-black/10"
         } p-3`}
       >
-        <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-500">
+        <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-400">
           <span className="flex items-center gap-2">
             {c.author?.avatarUrl ? (
               <img
@@ -255,7 +255,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
 
   return (
     <section className="mt-6 border-t border-white/10 pt-4">
-      <h3 className="mb-3 text-xs text-gray-500 uppercase">
+      <h3 className="mb-3 text-xs text-gray-400 uppercase">
         Comments
         {comments.length > 0 && (
           <span className="ml-1 text-gray-400">({comments.length})</span>
@@ -265,7 +265,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
       {loading ? (
         <p className="text-sm text-gray-400">Loading…</p>
       ) : topLevel.length === 0 ? (
-        <p className="text-sm text-gray-500">No comments yet.</p>
+        <p className="text-sm text-gray-400">No comments yet.</p>
       ) : (
         <ul className="space-y-3">{topLevel.map((c) => renderComment(c, false))}</ul>
       )}
@@ -273,7 +273,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
       {user ? (
         <div className="mt-4 rounded border border-white/10 bg-black/20 p-3">
           {replyTo && (
-            <div className="mb-2 text-xs text-gray-500">
+            <div className="mb-2 text-xs text-gray-400">
               Replying to{" "}
               <span className="text-gray-300">
                 {comments.find((c) => c.id === replyTo)?.author?.name?.trim() || "Anonymous"}
@@ -297,7 +297,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
           />
           {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="hidden text-[11px] text-gray-500 sm:inline">
+            <span className="hidden text-[11px] text-gray-400 sm:inline">
               Ctrl+Enter to post
             </span>
             <button
@@ -311,7 +311,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
           </div>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-gray-500">Sign in to comment.</p>
+        <p className="mt-4 text-sm text-gray-400">Sign in to comment.</p>
       )}
 
       {deleteConfirmId && (

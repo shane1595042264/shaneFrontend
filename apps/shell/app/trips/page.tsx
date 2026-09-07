@@ -84,7 +84,7 @@ export default async function TripsIndexPage() {
                 <h2 className="font-medium text-white">
                   {t.title || <span className="italic text-gray-400">Untitled</span>}
                 </h2>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-400">
                   <RelativeTime iso={t.createdAt} />
                   {" · "}
                   {t.ownerName ?? <span className="italic text-gray-600">Anonymous</span>}

@@ -27,13 +27,13 @@ function HistoryContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <Link href="/practice" className="text-sm text-gray-500 hover:text-gray-300">← back</Link>
+      <Link href="/practice" className="text-sm text-gray-400 hover:text-gray-300">← back</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">Session history</h1>
       {error && <p role="alert" className="mb-4 text-sm text-red-400">{error}</p>}
       {sessions === null ? (
         error ? null : <p className="text-sm text-gray-400">Loading…</p>
       ) : sessions.length === 0 ? (
-        <p className="text-sm text-gray-500">No sessions yet.</p>
+        <p className="text-sm text-gray-400">No sessions yet.</p>
       ) : (
         <ul className="space-y-2">
           {sessions.map((s) => {

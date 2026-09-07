@@ -77,7 +77,7 @@ export function JournalIndexHeader() {
       </a>
       {!user && (
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-400">
             Sign in to claim a date or suggest edits.
           </span>
           <LoginButton />

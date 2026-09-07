@@ -83,7 +83,7 @@ function ScoreboardContent() {
             Friendly competitions, recorded for posterity.
           </p>
         </div>
-        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300">
+        <Link href="/" className="text-sm text-gray-400 hover:text-gray-300">
           &larr; Home
         </Link>
       </header>

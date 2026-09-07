@@ -217,7 +217,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
       <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
         <Link
           href="/journal"
-          className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+          className="inline-block mb-6 text-sm text-gray-400 hover:text-gray-300 transition-colors"
         >
           &larr; All entries
         </Link>
@@ -234,7 +234,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
               <Link
                 href={`/journal/${prevDate}`}
                 aria-keyshortcuts="ArrowLeft j"
-                className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+                className="group flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
               >
                 <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
                 <span>{formatDateShort(prevDate)}</span>
@@ -246,7 +246,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
               <Link
                 href={`/journal/${nextDate}`}
                 aria-keyshortcuts="ArrowRight k"
-                className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+                className="group flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
               >
                 <span>{formatDateShort(nextDate)}</span>
                 <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
@@ -330,7 +330,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
 
       <Link
         href="/journal"
-        className="inline-block mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors print:hidden"
+        className="inline-block mb-6 text-sm text-gray-400 hover:text-gray-300 transition-colors print:hidden"
       >
         &larr; All entries
       </Link>
@@ -350,7 +350,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
                   edited
                 </Link>
               )}
-              <span className="ml-auto text-xs font-normal text-gray-500">
+              <span className="ml-auto text-xs font-normal text-gray-400">
                 {readingTimeMinutes(fullContent)} min read
               </span>
             </h2>
@@ -385,12 +385,12 @@ export default async function JournalEntryPage({ params }: PageProps) {
               <ol className="mt-8 space-y-4 border-l border-white/10 pl-4">
                 {data.appends.map((a) => (
                   <li key={a.id} id={`append-${a.id}`} className="relative scroll-mt-6">
-                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
+                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
                       <span aria-hidden className="absolute -left-[1.125rem] top-1.5 h-2 w-2 rounded-full bg-white/20" />
                       <a
                         href={`#append-${a.id}`}
                         aria-label="Permalink to this sub-entry"
-                        className="font-mono text-gray-500 transition-colors hover:text-gray-200 focus-visible:text-gray-200 focus-visible:outline-none"
+                        className="font-mono text-gray-400 transition-colors hover:text-gray-200 focus-visible:text-gray-200 focus-visible:outline-none"
                       >
                         <RelativeTime iso={a.createdAt} />
                       </a>
@@ -422,7 +422,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
               <Link
                 href={`/journal/${prevDate}`}
                 aria-keyshortcuts="ArrowLeft j"
-                className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+                className="group flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
               >
                 <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
                 <span>{formatDateShort(prevDate)}</span>
@@ -434,7 +434,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
               <Link
                 href={`/journal/${nextDate}`}
                 aria-keyshortcuts="ArrowRight k"
-                className="group flex items-center gap-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
+                className="group flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
               >
                 <span>{formatDateShort(nextDate)}</span>
                 <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
