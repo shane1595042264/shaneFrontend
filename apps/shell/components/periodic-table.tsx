@@ -20,12 +20,18 @@ import {
   resolveSlots,
   saveSlotAssignments,
 } from "@/lib/slot-assignments";
+import { useAuth } from "@/lib/auth-context";
 
 interface PeriodicTableProps {
   elements: ElementConfig[];
 }
 
 export function PeriodicTable({ elements }: PeriodicTableProps) {
+  // Rearranging persists through an auth-only PUT, so only offer the drag to
+  // signed-in visitors. Otherwise the save 401s and the toast reads as a broken
+  // site rather than "you aren't signed in".
+  const { user } = useAuth();
+  const canRearrange = user !== null;
   const [slotMap, setSlotMap] = useState<SlotMap>(() => resolveSlots(elements, {}));
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
@@ -172,7 +178,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
             data-element-id={assignedApp.id}
             style={{ gridRow: row, gridColumn: col }}
             className={`relative ${isDropping ? "ring-2 ring-white/50 rounded-md" : ""}`}
-            draggable
+            draggable={canRearrange}
             onDragStart={() => handleDragStart(assignedApp.id)}
             onDragOver={(e) => handleDragOver(e as unknown as React.DragEvent, chemEl.atomicNumber)}
             onDragLeave={handleDragLeave}

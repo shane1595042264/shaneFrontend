@@ -1,6 +1,6 @@
 import type { ElementConfig } from "@shane/types";
 import { PERIODIC_TABLE_ELEMENTS } from "./periodic-table-data";
-import { getAuthHeaders } from "./auth-api";
+import { getAuthHeaders, getStoredToken } from "./auth-api";
 import { API_URL } from "@/lib/api-url";
 
 /** Sorted list of all valid atomic numbers in periodic table order */
@@ -13,6 +13,11 @@ export type SlotMap = Record<number, string>; // atomicNumber -> appId
 // ---- API client ----
 
 export async function fetchSlotAssignments(): Promise<SlotMap> {
+  // Slot assignments are per-user data behind requireAuth, so without a token
+  // the request is a guaranteed 401 that shows up as a console error on every
+  // signed-out homepage load. Same early return fetchCurrentUser() uses.
+  if (!getStoredToken()) return {};
+
   try {
     const res = await fetch(`${API_URL}/api/slot-assignments`, {
       headers: { ...getAuthHeaders() },
