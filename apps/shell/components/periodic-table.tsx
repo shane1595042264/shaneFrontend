@@ -50,9 +50,16 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
     [query, searchResults]
   );
 
-  // Fetch saved assignments client-side only — they're per-user data behind requireAuth.
-  // SSR has no localStorage token, so server-side fetches were guaranteed 401.
+  // Fetch saved assignments client-side only: they're per-user data behind
+  // requireAuth, and SSR has no localStorage token, so server-side fetches were
+  // guaranteed 401. Waiting for the resolved session rather than firing on mount
+  // also covers the stale-token case, where a revoked token is still in
+  // localStorage and the request would 401 despite getStoredToken() being set.
   useEffect(() => {
+    if (!canRearrange) {
+      setSlotMap(resolveSlots(elements, {}));
+      return;
+    }
     let cancelled = false;
     fetchSlotAssignments().then((saved) => {
       if (cancelled) return;
@@ -61,7 +68,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
     return () => {
       cancelled = true;
     };
-  }, [elements]);
+  }, [elements, canRearrange]);
 
   const appToSlot = new Map<string, number>();
   for (const [atomic, appId] of Object.entries(slotMap)) {

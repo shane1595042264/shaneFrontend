@@ -69,7 +69,21 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
   const res = await fetch(`${API_URL}/api/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+
+  // A revoked or expired token otherwise sits in localStorage forever, so every
+  // later page load keeps sending authed requests that are guaranteed to 401.
+  // Only a definitive answer clears it: this route replies 200 {user: null} for
+  // a token it no longer recognises, and 401 if the middleware rejects it. A
+  // 5xx or a proxy hiccup must never sign a good session out.
+  if (res.status === 401) {
+    clearStoredToken();
+    return null;
+  }
   if (!res.ok) return null;
   const data = await res.json();
+  if (!data.user) {
+    clearStoredToken();
+    return null;
+  }
   return data.user;
 }
