@@ -9,6 +9,7 @@ import { listVersions, getVersion, getEntry, revertEntry, type JournalVersion } 
 import { RelativeTime } from "@/lib/format-time";
 import { humanizeError } from "@/lib/humanize-error";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { SuggestionDiff } from "@/components/journal/suggestion-diff";
 
 // One page of history. Version rows are metadata only since SHAN-461, so a page
 // costs the same whether the bodies behind it are 200 bytes or 100k.
@@ -19,6 +20,9 @@ type BodyState =
   | { status: "loading" }
   | { status: "ready"; content: string }
   | { status: "error"; message: string };
+
+/** What an expanded row shows: the diff against its predecessor, or the raw body. */
+type RowView = "changes" | "full";
 
 export default function HistoryPage() {
   const params = useParams<{ date: string }>();
@@ -33,6 +37,7 @@ export default function HistoryPage() {
   // and a revert never invalidates it. The ref stops a double toggle in one tick
   // from firing two requests before `bodies` has re-rendered.
   const inFlight = useRef<Set<number>>(new Set());
+  const [rowViews, setRowViews] = useState<Record<number, RowView>>({});
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [currentNum, setCurrentNum] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,6 +79,16 @@ export default function HistoryPage() {
     } finally {
       inFlight.current.delete(versionNum);
     }
+  };
+
+  // A row's default view is the diff, which needs the predecessor's body too.
+  // versionNum is dense from 1 on the backend (createVersion writes
+  // latest.versionNum + 1), so versionNum - 1 is guaranteed to exist for
+  // versionNum > 1 and will not 404. loadBody dedupes, so the shared
+  // predecessor of two adjacent expanded rows is only fetched once.
+  const loadRow = (versionNum: number) => {
+    const wanted = versionNum > 1 ? [versionNum - 1, versionNum] : [versionNum];
+    return Promise.all(wanted.map((n) => loadBody(n)));
   };
 
   const loadMore = async () => {
@@ -163,6 +178,18 @@ export default function HistoryPage() {
           {versions.map((v) => {
             const isCurrent = v.versionNum === currentNum;
             const body = bodies[v.versionNum];
+            // v1 has nothing before it, so there is no diff to show — that row
+            // stays a plain body view with no toggle.
+            const hasPrev = v.versionNum > 1;
+            const prevBody = hasPrev ? bodies[v.versionNum - 1] : undefined;
+            const view: RowView = hasPrev ? rowViews[v.versionNum] ?? "changes" : "full";
+            // In diff mode both bodies have to land before anything renders, and
+            // either one failing is the row's error.
+            const pending: (BodyState | undefined)[] = view === "changes" ? [prevBody, body] : [body];
+            const failure = pending.find(
+              (s): s is Extract<BodyState, { status: "error" }> => s?.status === "error"
+            );
+            const ready = pending.every((s) => s?.status === "ready");
             return (
               <li key={v.id} className="p-4">
                 <div className="flex items-baseline justify-between">
@@ -195,30 +222,58 @@ export default function HistoryPage() {
                 <details
                   className="mt-3"
                   onToggle={(e) => {
-                    if (e.currentTarget.open) void loadBody(v.versionNum);
+                    if (e.currentTarget.open) void loadRow(v.versionNum);
                   }}
                 >
                   <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-300">
-                    view content
+                    {hasPrev ? "view changes" : "view content"}
                   </summary>
-                  {body?.status === "ready" ? (
-                    <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded bg-black/30 p-3 font-mono text-xs text-white/80">
-                      {body.content}
-                    </pre>
-                  ) : body?.status === "error" ? (
+                  {hasPrev && (
+                    <div className="mt-2 flex gap-2 text-[11px]">
+                      {(["changes", "full"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          aria-pressed={view === mode}
+                          onClick={() => {
+                            setRowViews((prev) => ({ ...prev, [v.versionNum]: mode }));
+                            void loadRow(v.versionNum);
+                          }}
+                          className={`rounded border px-2 py-0.5 ${
+                            view === mode
+                              ? "border-white bg-white text-black"
+                              : "border-white/20 text-gray-300 hover:bg-white/5"
+                          }`}
+                        >
+                          {mode === "changes" ? `changes since v${v.versionNum - 1}` : "full content"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {failure ? (
                     <p role="alert" className="mt-2 text-xs text-red-400">
-                      {body.message}{" "}
+                      {failure.message}{" "}
                       <button
                         type="button"
-                        onClick={() => void loadBody(v.versionNum)}
+                        onClick={() => void loadRow(v.versionNum)}
                         className="underline hover:text-red-300"
                       >
                         Retry
                       </button>
                     </p>
-                  ) : (
-                    <p className="mt-2 text-xs text-gray-400">Loading content...</p>
-                  )}
+                  ) : !ready ? (
+                    <p className="mt-2 text-xs text-gray-400">
+                      {view === "changes" ? "Loading changes..." : "Loading content..."}
+                    </p>
+                  ) : view === "changes" && prevBody?.status === "ready" && body?.status === "ready" ? (
+                    <div className="mt-2 max-h-80 overflow-y-auto">
+                      <SuggestionDiff before={prevBody.content} after={body.content} />
+                    </div>
+                  ) : body?.status === "ready" ? (
+                    <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded bg-black/30 p-3 font-mono text-xs text-white/80">
+                      {body.content}
+                    </pre>
+                  ) : null}
                 </details>
                 {isAuthor && !isCurrent && (
                   <button
