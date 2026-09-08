@@ -29,6 +29,8 @@ Almost every GET is unauthenticated. Writes require a bearer token: either a bro
 | \`/docs/<slug>\` | rendered page |
 | \`/docs/raw/<slug>\` | the same page as raw markdown |
 
+The three machine-readable mirrors (\`/llms.txt\`, \`/llms-full.txt\`, \`/docs/raw/<slug>\`) send \`X-Robots-Tag: noindex\` so they do not compete with the rendered pages in search results. That header blocks the search listing, not the fetch: agents read them exactly as before.
+
 ## Repos
 
 - \`github.com/shane1595042264/shaneFrontend\` (Next.js, Turborepo)

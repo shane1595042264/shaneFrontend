@@ -22,6 +22,13 @@ export function GET() {
     "",
   ];
   return new Response(lines.join("\n"), {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      // SHAN-464: an agent surface, not a search result -- these plain-text
+      // files mirror the indexable /docs pages, so keep them out of the
+      // index. noindex blocks the listing, not the fetch, so agents read
+      // them exactly as before.
+      "X-Robots-Tag": "noindex",
+    },
   });
 }

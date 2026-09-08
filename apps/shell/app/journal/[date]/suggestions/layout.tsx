@@ -7,7 +7,7 @@ export async function generateMetadata({
   params: Promise<{ date: string }>;
 }): Promise<Metadata> {
   const { date } = await params;
-  return journalActionMetadata("Suggestions", date);
+  return journalActionMetadata("Suggestions", date, "suggestions");
 }
 
 export default function JournalSuggestionsLayout({ children }: { children: React.ReactNode }) {

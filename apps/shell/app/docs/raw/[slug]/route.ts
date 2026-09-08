@@ -16,6 +16,12 @@ export async function GET(
     return Response.json({ error: "Not found" }, { status: 404 });
   }
   return new Response(page.body, {
-    headers: { "Content-Type": "text/markdown; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/markdown; charset=utf-8",
+      // SHAN-464: this is the machine-readable mirror of the indexable page
+      // at /docs/<slug>. noindex keeps it out of search results without
+      // blocking the fetch, so agents read it exactly as before.
+      "X-Robots-Tag": "noindex",
+    },
   });
 }
