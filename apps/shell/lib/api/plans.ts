@@ -292,3 +292,60 @@ export const replaceSteps = (
     method: "PUT",
     body: JSON.stringify({ steps }),
   }).then((r) => r.steps);
+
+// ----- Completions (the tally, SHAN-471) -----
+
+/**
+ * One block ticked off on one calendar day. The backend's unique on
+ * (user, block, isoDate) means the runner can POST the same triple repeatedly
+ * as sets land — each write updates the row rather than stacking duplicates.
+ * `completedAt` is null while a block is only partially done.
+ */
+export interface PlanCompletion {
+  id: string;
+  userId: string;
+  planId: string;
+  blockId: string;
+  isoDate: string;
+  setsCompleted: number;
+  elapsedSeconds: number;
+  completedAt: string | null;
+}
+
+export const recordCompletion = (
+  planId: string,
+  body: {
+    blockId: string;
+    isoDate: string;
+    setsCompleted: number;
+    elapsedSeconds: number;
+    completed: boolean;
+  },
+  /** Set while persisting from a pagehide handler, where a normal fetch is cancelled. */
+  keepalive = false,
+) =>
+  api<{ completion: PlanCompletion }>(`${base}/${planId}/completions`, {
+    method: "POST",
+    body: JSON.stringify(body),
+    keepalive,
+  }).then((r) => r.completion);
+
+export const listCompletions = (planId: string, range?: { from?: string; to?: string }) => {
+  const qs = new URLSearchParams();
+  if (range?.from) qs.set("from", range.from);
+  if (range?.to) qs.set("to", range.to);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return api<{ completions: PlanCompletion[] }>(`${base}/${planId}/completions${suffix}`).then(
+    (r) => r.completions,
+  );
+};
+
+/**
+ * Target goes in the query string, not a body: the DELETE route reads it from
+ * the query precisely because a payload on a DELETE can be dropped in transit.
+ */
+export const deleteCompletion = (planId: string, blockId: string, isoDate: string) =>
+  api<void>(
+    `${base}/${planId}/completions?${new URLSearchParams({ blockId, isoDate })}`,
+    { method: "DELETE" },
+  );

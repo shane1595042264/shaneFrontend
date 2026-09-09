@@ -181,6 +181,12 @@ function PlanDetailContent({ planId }: { planId: string }) {
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link
+            href={`/practice/plans/${planId}/today`}
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
+          >
+            ▶ Run today
+          </Link>
           <label className="flex items-center gap-2 text-xs text-gray-400">
             Status
             <select

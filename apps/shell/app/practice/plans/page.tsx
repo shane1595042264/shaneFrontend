@@ -101,10 +101,10 @@ function PlansIndexContent() {
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {plans.map((plan) => (
-            <li key={plan.id}>
+            <li key={plan.id} className="flex flex-col">
               <Link
                 href={`/practice/plans/${plan.id}`}
-                className="block h-full rounded-md border border-white/10 bg-black/20 p-4 hover:bg-black/30"
+                className="block flex-1 rounded-md border border-white/10 bg-black/20 p-4 hover:bg-black/30"
               >
                 <h2 className="font-medium text-white">{plan.title}</h2>
                 {plan.goal && (
@@ -123,6 +123,15 @@ function PlansIndexContent() {
                   Updated <RelativeTime iso={plan.updatedAt} />
                 </p>
               </Link>
+              {/* Sits outside the card link: a link inside a link is invalid HTML. */}
+              {plan.status === "active" && (
+                <Link
+                  href={`/practice/plans/${plan.id}/today`}
+                  className="mt-2 inline-flex min-h-11 items-center justify-center rounded-md border border-white/20 px-4 text-sm hover:bg-white/5"
+                >
+                  ▶ Run today
+                </Link>
+              )}
             </li>
           ))}
         </ul>

@@ -11,6 +11,7 @@ import {
   type Session,
   type TimerState,
 } from "@/lib/api/practice";
+import { formatMMSS, playPing } from "@/lib/practice-timer";
 import { LocationPrompt } from "./location-prompt";
 
 interface Props {
@@ -22,30 +23,6 @@ interface Props {
 const DEFAULT_PRESCRIPTION = { setMode: "time" as const, setSize: 60, restSeconds: 30 };
 function prescriptionOf(item: SessionItem) {
   return item.prescription ?? DEFAULT_PRESCRIPTION;
-}
-
-function formatMMSS(secs: number): string {
-  const m = Math.floor(secs / 60);
-  const s = Math.floor(secs % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-let audioCtx: AudioContext | null = null;
-function playPing() {
-  if (typeof window === "undefined") return;
-  try {
-    audioCtx = audioCtx ?? new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.3);
-  } catch {
-    // autoplay restriction / no audio device — ignore
-  }
 }
 
 export function PracticeRunner({ session, items, setsPerStrike }: Props) {
