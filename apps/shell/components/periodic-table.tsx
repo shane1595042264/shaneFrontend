@@ -30,9 +30,14 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   // Rearranging persists through an auth-only PUT, so only offer the drag to
   // signed-in visitors. Otherwise the save 401s and the toast reads as a broken
   // site rather than "you aren't signed in".
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const canRearrange = user !== null;
   const [slotMap, setSlotMap] = useState<SlotMap>(() => resolveSlots(elements, {}));
+  // False until we know which arrangement to draw. The first render can only
+  // use the default registry order, and a signed-in visitor's saved order
+  // differs from it in most slots, so revealing the grid before the saved map
+  // lands makes ~14 cards visibly fly to new cells right after load (SHAN-470).
+  const [slotsResolved, setSlotsResolved] = useState(false);
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
   const [saveToast, setSaveToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -56,19 +61,35 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   // also covers the stale-token case, where a revoked token is still in
   // localStorage and the request would 401 despite getStoredToken() being set.
   useEffect(() => {
+    // Signed out is only knowable once the session has resolved; treating the
+    // still-loading state as signed out would mark the slots resolved and
+    // reveal the default arrangement a moment before the saved one arrives.
+    if (authLoading) return;
     if (!canRearrange) {
       setSlotMap(resolveSlots(elements, {}));
+      setSlotsResolved(true);
       return;
     }
     let cancelled = false;
     fetchSlotAssignments().then((saved) => {
       if (cancelled) return;
       setSlotMap(resolveSlots(elements, saved));
+      setSlotsResolved(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [elements, canRearrange]);
+  }, [elements, canRearrange, authLoading]);
+
+  // The grid is invisible until resolution, so a request that never settles
+  // (accepted but unanswered; fetchSlotAssignments already swallows outright
+  // failures) would hide the homepage indefinitely. Reveal at the default
+  // arrangement rather than leave the page looking broken.
+  useEffect(() => {
+    if (slotsResolved) return;
+    const timer = setTimeout(() => setSlotsResolved(true), 2000);
+    return () => clearTimeout(timer);
+  }, [slotsResolved]);
 
   const appToSlot = new Map<string, number>();
   for (const [atomic, appId] of Object.entries(slotMap)) {
@@ -180,8 +201,13 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
         cells.push(
           <motion.div
             key={`active-${assignedApp.id}`}
-            layout
-            layoutId={assignedApp.id}
+            // Both props are what make a cell change animate, and framer only
+            // animates a move when the previous render also had them (it needs
+            // the earlier measurement). Withholding them until the saved slots
+            // land means the settle render has no snapshot to animate from.
+            // Drags, which can only happen well after resolution, still animate.
+            layout={slotsResolved}
+            layoutId={slotsResolved ? assignedApp.id : undefined}
             data-element-id={assignedApp.id}
             style={{ gridRow: row, gridColumn: col }}
             className={`relative ${isDropping ? "ring-2 ring-white/50 rounded-md" : ""}`}
@@ -313,7 +339,10 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
           <motion.div
             variants={containerVariants}
             initial="hidden"
-            animate="visible"
+            // Hold the entrance (cards inherit it through itemVariants) until
+            // the arrangement is final, so the table fades in once, already in
+            // the right order, instead of fading in and then rearranging.
+            animate={slotsResolved ? "visible" : "hidden"}
             className="periodic-grid mx-auto"
             style={{
               display: "grid",
