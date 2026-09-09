@@ -40,6 +40,12 @@ function PracticeIndexContent() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
+            href="/practice/plans"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-white/20 px-4 text-sm hover:bg-white/5"
+          >
+            Plans
+          </Link>
+          <Link
             href="/practice/history"
             className="inline-flex min-h-11 items-center justify-center rounded-md border border-white/20 px-4 text-sm hover:bg-white/5"
           >
