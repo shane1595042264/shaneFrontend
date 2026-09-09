@@ -13,6 +13,7 @@ import scoreboardApi from "./content/scoreboard-api";
 import tripsApi from "./content/trips-api";
 import knowledgeApi from "./content/knowledge-api";
 import vocabularyApi from "./content/vocabulary-api";
+import trainingPlansApi from "./content/training-plans-api";
 import elementsDirectory from "./content/elements-directory";
 
 export interface DocPage {
@@ -92,6 +93,13 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The word list and its typed connection graph: filters, enrichment, ownership rules, and how it differs from the Knowledge API.",
     body: vocabularyApi,
+  },
+  {
+    slug: "training-plans-api",
+    title: "Training Plans API",
+    description:
+      "Goal-driven training plans for the Practice element: days, blocks, steps, the one-call nested create, and the completion tally.",
+    body: trainingPlansApi,
   },
   {
     slug: "elements-directory",

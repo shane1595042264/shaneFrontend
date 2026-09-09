@@ -14,7 +14,7 @@ Every element on the periodic table, its route, backend mount, and auth model, i
 | Scoreboard | /scoreboard | /api/scoreboard | public reads; entries:write writes | IRL game scoreboard, see [Scoreboard API](/docs/scoreboard-api) |
 | Tea | /journal/tea | /api/tea-entries | authed author; PIN-gated shares | private entries unlocked per-entry via the X-Tea-Pin header |
 | Skincare | /skincare | /api/skincare | authed only, owner-scoped | AM/PM routine tracker |
-| Practice | /practice | /api/practice | authed, practice:write writes | training sessions + vocab SRS |
+| Practice | /practice | /api/practice | authed, practice:write writes | training sessions, vocab SRS, and [training plans](/docs/training-plans-api) |
 | RNG Capitalist | /rng-capitalist | /api/rng | authed (any PAT), no scope | AI purchase-decision roulette; evaluate costs an LLM call, 10/min |
 | Who Owes Me | /who-owes-me | /api/loans | authed, no scope | personal loan ledger; non-owner mutations 403 |
 | Slot assignments | (homepage) | /api/slot-assignments | authed | periodic-table layout persistence; PUT replaces the whole map |
