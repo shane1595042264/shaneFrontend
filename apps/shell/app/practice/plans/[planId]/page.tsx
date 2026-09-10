@@ -6,6 +6,10 @@ import { useParams, useRouter } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { BlockForm, cleanBlockDraft } from "@/components/practice/block-form";
+import { PlanCalendar } from "@/components/practice/plan-calendar";
+import { PlanScheduleSettings } from "@/components/practice/plan-schedule-settings";
+import { useAuth } from "@/lib/auth-context";
+import { getTodayInTimezone, resolveViewerTimezone } from "@/lib/timezone";
 import {
   PLAN_STATUSES,
   WEEKDAY_LABELS,
@@ -92,6 +96,8 @@ function ConfirmButton({
 
 function PlanDetailContent({ planId }: { planId: string }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const today = getTodayInTimezone(resolveViewerTimezone(user));
   const [plan, setPlan] = useState<PlanTree | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -228,6 +234,14 @@ function PlanDetailContent({ planId }: { planId: string }) {
           {actionError}
         </p>
       )}
+
+      <PlanCalendar plan={plan} today={today} />
+
+      <PlanScheduleSettings
+        plan={plan}
+        busy={busy}
+        onSave={(patch) => run(() => updatePlan(planId, patch))}
+      />
 
       <div className="mt-8 flex items-center justify-between">
         <h2 className="text-sm font-medium uppercase tracking-wider text-gray-400">Days</h2>

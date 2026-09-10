@@ -49,7 +49,7 @@ Returns 201 \`{plan}\` with the full tree. **Positions come from array order**. 
 
 ## Field reference
 
-Plan: \`title\` (1..160, trimmed), \`goal\` (<=2000), \`description\` (<=5000), \`discipline\` (<=60), \`status\` \`draft\` | \`active\` | \`archived\` (default \`draft\`), \`visibility\` \`private\` | \`public\` (default \`private\`), \`startDate\` \`YYYY-MM-DD\`, \`daysPerWeek\` 1..7.
+Plan: \`title\` (1..160, trimmed), \`goal\` (<=2000), \`description\` (<=5000), \`discipline\` (<=60), \`status\` \`draft\` | \`active\` | \`archived\` (default \`draft\`), \`visibility\` \`private\` | \`public\` (default \`private\`), \`startDate\` \`YYYY-MM-DD\`, \`daysPerWeek\` 1..7, \`sessionTime\` \`"HH:MM"\` 24h local (null = all-day in the calendar feed), \`reminderMinutes\` 0..1440 (null = no alarm).
 
 Day: \`label\` (1..120), \`weekday\` 0..6 where 0 = Sunday (null means "the next session" rather than a pinned weekday), \`notes\` (<=2000).
 
@@ -78,6 +78,9 @@ Caps: 60 days per plan, 50 blocks per day, 50 steps per block.
 | POST | /api/practice/plans/:planId/completions | practice:write | records the tally; 201 \`{completion}\` |
 | GET | /api/practice/plans/:planId/completions | auth | \`?from=&to=\` (\`YYYY-MM-DD\`); \`{completions}\` |
 | DELETE | /api/practice/plans/:planId/completions | practice:write | \`?blockId=&isoDate=\` (query, not a body); 204 |
+| POST | /api/practice/plans/:planId/calendar-token | practice:write | mints the feed token (201) or returns the existing one (200); \`{"rotate": true}\` replaces it |
+| DELETE | /api/practice/plans/:planId/calendar-token | practice:write | revokes the feed; 204 |
+| GET | /api/practice/plans/:planId/calendar.ics | token in query | \`?token=<uuid>\`; \`text/calendar\` subscribable feed |
 
 Every nested resource is addressed under its plan, and a day or block that does not belong to the plan in the URL is a 404 (not a 403), so a private plan id is never confirmable by a stranger.
 
@@ -90,11 +93,34 @@ POST /api/practice/plans/:planId/completions
 
 Unique on (user, block, date), so re-POSTing the same triple **updates** rather than duplicating, which is safe for a runner that syncs mid-set. \`completed: false\` clears \`completedAt\` while keeping the partial \`setsCompleted\`/\`elapsedSeconds\`, which is what un-checking a block means. \`GET /completions\` always returns the caller's own tally, even on a public plan.
 
+## The schedule
+
+\`weekday\` and \`daysPerWeek\` together decide which calendar dates a plan runs on:
+
+- A day with a pinned \`weekday\` runs on that weekday, every week.
+- A day with \`weekday: null\` is **floating** and rotates through whatever weekly slots are left. Three floating days at \`daysPerWeek: 2\` run D1,D2 then D3,D1 then D2,D3 — the A/B/A shape a real program has.
+- Slot weekdays are picked Mon, Wed, Fri, Tue, Thu, Sat, Sun in that order, skipping any weekday a pinned day already owns, and capped at \`daysPerWeek\` (falling back to the number of days).
+- The rotation is anchored on \`startDate\`, and nothing is scheduled before it. A plan with no \`startDate\` still has a stable rotation, just an arbitrary phase.
+
+Floating days always get at least one slot, even when \`daysPerWeek\` is already spent on pinned days — a day that is never scheduled reads as a bug rather than as a cadence.
+
+## Calendar feed
+
+\`\`\`
+POST /api/practice/plans/:planId/calendar-token   ->  {"token": "…uuid…"}
+GET  /api/practice/plans/:planId/calendar.ics?token=…uuid…
+\`\`\`
+
+The \`.ics\` route is deliberately unauthenticated: a subscribing calendar server carries no session, so the token in the query string is the whole credential. It is looked up first and the path's \`planId\` only has to agree with it, so a wrong token cannot confirm a plan id exists. The token never appears in a plan read by anyone but the owner. Minting is idempotent (an already-pasted subscribe URL keeps working); \`rotate\` and \`DELETE\` are the escape hatches for a leaked URL.
+
+The feed carries one \`VEVENT\` per scheduled date over a rolling window (14 days back, 120 forward), with a stable per-date \`UID\` so a refresh updates events in place. With \`sessionTime\` set the events are timed and floating-local (no \`TZID\`, so the session is at 07:00 wherever you are) with a duration estimated from the day's blocks; without it they are all-day. \`reminderMinutes\` becomes a \`VALARM\`, which is how a plan reminds you at all — there is no push-notification service behind it.
+
 ## Gotchas
 
 - \`isoDate\` is a calendar date, not a timestamp. \`2026-02-30\` is a 400.
 - Whitespace-only \`title\`, \`label\` or step \`text\` is a 400, not a blank row.
 - \`PATCH\` with an empty body is a 400 ("Nothing to update").
+- The \`.ics\` feed is \`Cache-Control: no-store\`, but a subscriber refreshes on its own schedule (typically hours), so a plan edit is not visible in Google Calendar immediately.
 - A \`mode: "reps"\` block should carry \`targetReps\` and a \`mode: "time"\` block \`targetSeconds\`; neither is enforced server-side, so an agent that sets the wrong one produces a block the runner cannot time.
 `;
 export default body;

@@ -42,6 +42,12 @@ export interface Plan {
   visibility: PlanVisibility;
   startDate: string | null;
   daysPerWeek: number | null;
+  /** Local clock time a session starts, "HH:MM". Null = all-day in the feed. */
+  sessionTime: string | null;
+  /** Minutes before the session the calendar alarm fires. Null = no alarm. */
+  reminderMinutes: number | null;
+  /** Feed token, present only when the plan is read by its owner. */
+  icsToken: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -227,6 +233,8 @@ export const updatePlan = (
       | "visibility"
       | "startDate"
       | "daysPerWeek"
+      | "sessionTime"
+      | "reminderMinutes"
     >
   >,
 ) =>
@@ -292,6 +300,29 @@ export const replaceSteps = (
     method: "PUT",
     body: JSON.stringify({ steps }),
   }).then((r) => r.steps);
+
+// ----- Calendar feed (SHAN-473) -----
+
+/**
+ * Mint the plan's .ics token, or rotate it. Minting is idempotent, so pressing
+ * Subscribe twice does not invalidate a URL already pasted into a calendar app.
+ */
+export const mintCalendarToken = (planId: string, rotate = false) =>
+  api<{ token: string }>(`${base}/${planId}/calendar-token`, {
+    method: "POST",
+    body: JSON.stringify({ rotate }),
+  }).then((r) => r.token);
+
+export const revokeCalendarToken = (planId: string) =>
+  api<void>(`${base}/${planId}/calendar-token`, { method: "DELETE" });
+
+/**
+ * The subscribe URL a calendar app is given. Absolute and same-origin: it has
+ * to survive being pasted into Google Calendar, where a relative path means
+ * nothing, and shanejli.com rewrites /api to the backend anyway.
+ */
+export const calendarFeedUrl = (planId: string, token: string) =>
+  `${typeof window === "undefined" ? "https://shanejli.com" : window.location.origin}${base}/${planId}/calendar.ics?token=${token}`;
 
 // ----- Completions (the tally, SHAN-471) -----
 

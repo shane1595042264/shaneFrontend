@@ -3,8 +3,10 @@
 /**
  * Today view + day runner for a training plan (SHAN-471, Phase 3 of SHAN-467).
  *
- * Picks the day whose weekday matches the viewer's local date, renders its
- * blocks as a checklist, and runs one block at a time with the same
+ * Asks lib/plan-schedule which day the cadence puts on the viewer's local date
+ * (SHAN-473 — Phase 3 matched on a bare weekday and otherwise fell back to day
+ * one, so an unpinned plan showed the same day forever), renders its blocks as
+ * a checklist, and runs one block at a time with the same
  * work/rest/set timer shape as the session runner in ./runner.tsx. Every set
  * boundary, pause and check-off writes to POST /plans/:planId/completions,
  * which is unique on (user, block, isoDate) — so a mid-set sync updates the
@@ -16,6 +18,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { formatMMSS, playPing } from "@/lib/practice-timer";
 import { getTodayInTimezone, resolveViewerTimezone, weekdayLongLabel } from "@/lib/timezone";
+import { nextScheduledSession, scheduledDaysOn } from "@/lib/plan-schedule";
 import {
   WEEKDAY_LABELS,
   describePrescription,
@@ -81,10 +84,17 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
   const { user } = useAuth();
   const timezone = resolveViewerTimezone(user);
   const today = useMemo(() => getTodayInTimezone(timezone), [timezone]);
-  const todayWeekday = useMemo(() => new Date(`${today}T00:00:00Z`).getUTCDay(), [today]);
+
+  // What the cadence puts on today, and — when today is a rest day — the next
+  // date it does schedule, so the page can say so instead of guessing.
+  const scheduledToday = useMemo(() => scheduledDaysOn(plan, today), [plan, today]);
+  const upcoming = useMemo(
+    () => (scheduledToday.length > 0 ? null : nextScheduledSession(plan, today)),
+    [plan, today, scheduledToday],
+  );
 
   // Null until the viewer picks a day by hand; the derived `day` below falls
-  // back to today's weekday, then to the first day.
+  // back to today's scheduled day, then the next one, then the first day.
   const [pickedDayId, setPickedDayId] = useState<string | null>(null);
   const [completions, setCompletions] = useState<Record<string, PlanCompletion>>({});
   const [history, setHistory] = useState<PlanCompletion[]>([]);
@@ -94,8 +104,8 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
 
   const day = useMemo(() => {
     if (pickedDayId) return plan.days.find((d) => d.id === pickedDayId) ?? null;
-    return plan.days.find((d) => d.weekday === todayWeekday) ?? plan.days[0] ?? null;
-  }, [pickedDayId, plan.days, todayWeekday]);
+    return scheduledToday[0] ?? upcoming?.days[0] ?? plan.days[0] ?? null;
+  }, [pickedDayId, plan.days, scheduledToday, upcoming]);
 
   const blocksById = useMemo(() => {
     const map = new Map<string, PlanBlock>();
@@ -377,6 +387,24 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
         </p>
       )}
 
+      {plan.days.length > 0 && scheduledToday.length === 0 && (
+        <p className="mt-4 rounded-md border border-white/10 bg-black/20 p-3 text-sm text-gray-300">
+          Rest day — nothing is scheduled for today.{" "}
+          {upcoming ? (
+            <>
+              Next up is {upcoming.days.map((d) => d.label).join(" + ")} on{" "}
+              {weekdayLongLabel(upcoming.isoDate)}, {upcoming.isoDate}, shown below. Running it now
+              still logs against today.
+            </>
+          ) : (
+            <>
+              This plan schedules nothing in the next two months — check its start date and
+              cadence.
+            </>
+          )}
+        </p>
+      )}
+
       {plan.days.length > 1 && (
         <div className="mt-6 flex flex-wrap gap-2">
           {plan.days.map((d) => (
@@ -393,8 +421,12 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
               }`}
             >
               {d.label}
-              {d.weekday !== null && (
+              {d.weekday !== null ? (
                 <span className="text-gray-400"> · {WEEKDAY_LABELS[d.weekday]}</span>
+              ) : (
+                scheduledToday.some((s) => s.id === d.id) && (
+                  <span className="text-gray-400"> · today</span>
+                )
               )}
             </button>
           ))}
