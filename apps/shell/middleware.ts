@@ -5,13 +5,13 @@ import { NextResponse, type NextRequest } from "next/server";
 //   1. SHAN-224 fast path — synchronous regex check for /journal/:date. Returns
 //      404 for structurally-invalid dates (e.g. /journal/not-a-date,
 //      /journal/2026-99-99, /journal/2024-02-30) with no backend round-trip.
-//   2. SHAN-231 backend existence check — for valid-format journal dates
-//      (SHAN-454: including their read-only /history and /suggestions
-//      sub-pages) and single-segment /trips/:slug paths, HEAD the backend
-//      with a 1.5s timeout
-//      and return 404 on backend-404. On timeout/network error we fail open
-//      (pass through to Next), which preserves the pre-fix soft-404 UI rather
-//      than introducing a new Railway-down failure mode.
+//   2. SHAN-231 backend existence check — for single-segment /trips/:slug and
+//      /courses/:slug paths, HEAD the backend with a 1.5s timeout and return
+//      404 on backend-404. On timeout/network error we fail open (pass through
+//      to Next), which preserves the pre-fix soft-404 UI rather than
+//      introducing a new Railway-down failure mode. Journal dates dropped out
+//      of this layer in SHAN-475 when the journal went invite-only — see the
+//      journal branch below.
 //
 // Why this is needed: the Page+generateMetadata+notFound() pipeline in
 // Next 15.5.14 streams the not-found.tsx body with HTTP 200, so crawlers see
@@ -137,17 +137,6 @@ const TEA_NOT_FOUND_HTML = `<!DOCTYPE html>
 const JOURNAL_DATE_SUBPATH_RE =
   /^\/journal\/([^\/]+)\/(?:history|suggestions(?:\/[^\/]+)?)\/?$/;
 
-// Set of YYYY-MM-DD strings that could be "today" for any viewer worldwide:
-// UTC today plus the day on either side covers UTC-12 through UTC+14. We pass
-// these through to the page even when no entry exists yet, so the "Write
-// today's entry" CTA can land on a writeable page instead of an edge 404.
-function viewerTodayCandidates(): Set<string> {
-  const dayMs = 86_400_000;
-  const now = Date.now();
-  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
-  return new Set([iso(now - dayMs), iso(now), iso(now + dayMs)]);
-}
-
 // Sibling routes under /trips/ that are NOT trip detail pages. Matches the
 // folder layout in app/trips/ (new/page.tsx is the creation form; groups/
 // is the SHAN-268 trip-planning groups feature with its own index page).
@@ -243,13 +232,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Intercept the /journal/:date page and its /journal/:date/opengraph-image
-  // sub-path so both share one existence check — without the sub-path, the
-  // per-date OG image route soft-404s (renders a 200 PNG for dates that have no
-  // entry) while the page correctly 404s. SHAN-454 folds the read-only
-  // /history and /suggestions sub-pages into the same check so a sub-page can
-  // never disagree with its parent about whether the entry exists. Other paths
-  // under /journal (inbox/foo, :date/edit, …) fall through to Next's routing.
+  // Intercept /journal/:date, its /opengraph-image sub-path, and the read-only
+  // /history and /suggestions sub-pages (SHAN-454) so all of them agree on
+  // whether the date is even well formed. Other paths under /journal
+  // (inbox/foo, :date/edit, …) fall through to Next's routing.
   const journalMatch = pathname.match(/^\/journal\/([^\/]+)(?:\/opengraph-image)?\/?$/);
   const journalSubpathMatch = journalMatch
     ? null
@@ -259,20 +245,19 @@ export async function middleware(req: NextRequest) {
     const segment = journalSegment;
     // "tea"/"inbox"/"feed.xml" are sibling routes, never dates — and
     // /journal/tea/:id/history isn't a route, so this also keeps the tea tree
-    // out of the date existence check.
+    // out of the date check.
     if (JOURNAL_NON_DATE_SEGMENTS.has(segment)) return NextResponse.next();
     if (!isValidJournalDate(segment)) {
       // SHAN-224 fast path: structurally invalid date, no backend call needed.
       return notFoundResponse(JOURNAL_NOT_FOUND_HTML);
     }
-    // "Write today's entry" lands on a date that legitimately has no backend
-    // entry yet — the user is about to create it. Skip the existence check
-    // for any date that could be "today" in any viewer's timezone so the
-    // page renders the write CTA instead of an edge 404.
-    if (viewerTodayCandidates().has(segment)) return NextResponse.next();
-    // SHAN-231: format is valid — ask the backend whether an entry exists.
-    const exists = await backendExists(`/api/journal/entries/${segment}`);
-    if (exists === false) return notFoundResponse(JOURNAL_NOT_FOUND_HTML);
+    // SHAN-475 retired the SHAN-231 backend existence probe that used to run
+    // here. The journal is invite-only now, so an unauthenticated HEAD from the
+    // edge can only ever come back 403 — never the 404 this branch keyed on —
+    // making it pure latency. It would also be the wrong thing to keep: which
+    // dates have entries is exactly what the membership gate withholds, and the
+    // edge has no viewer identity to check membership against. A well-formed
+    // date therefore always renders, and the gate decides what it shows.
     return NextResponse.next();
   }
 

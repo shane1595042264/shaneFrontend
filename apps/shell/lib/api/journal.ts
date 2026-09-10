@@ -81,17 +81,25 @@ export interface JournalVersionDetail {
 
 export async function listEntries(
   opts: { from?: string; to?: string; q?: string; limit?: number; cursor?: string } = {},
-  init?: RequestInit
+  init?: { signal?: AbortSignal }
 ) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(opts)) if (v !== undefined) qs.set(k, String(v));
-  const res = await fetch(`${API_URL}/api/journal/entries?${qs}`, init);
+  // Auth headers are mandatory since SHAN-475: the journal is invite-only, so
+  // an anonymous list request 403s. Narrowed from RequestInit to {signal} so a
+  // caller can't hand in `headers` and silently drop the Authorization one.
+  const res = await fetch(`${API_URL}/api/journal/entries?${qs}`, {
+    signal: init?.signal,
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error("Failed to list entries");
   return (await res.json()) as { entries: JournalEntry[]; nextCursor: string | null };
 }
 
 export async function getEntry(date: string): Promise<EntryDetail | null> {
-  const res = await fetch(`${API_URL}/api/journal/entries/${date}`);
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}`, {
+    headers: getAuthHeaders(),
+  });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to fetch entry");
   return res.json();
@@ -110,8 +118,24 @@ export async function createEntry(date: string, content: string): Promise<{ entr
   return json;
 }
 
+/**
+ * Previous/next dated entry either side of `date`. Membership-gated like every
+ * other journal read, so it only resolves for a signed-in member.
+ */
+export async function getNeighbors(
+  date: string,
+): Promise<{ prev: string | null; next: string | null }> {
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/neighbors`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) return { prev: null, next: null };
+  return res.json();
+}
+
 export async function listAppends(date: string): Promise<JournalAppend[]> {
-  const res = await fetch(`${API_URL}/api/journal/entries/${date}/appends`);
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/appends`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error("Failed to list appends");
   return (await res.json()).appends;
 }
@@ -146,7 +170,9 @@ export async function listVersions(
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(opts)) if (v !== undefined) qs.set(k, String(v));
   const suffix = qs.toString() ? `?${qs}` : "";
-  const res = await fetch(`${API_URL}/api/journal/entries/${date}/versions${suffix}`);
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/versions${suffix}`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error("Failed to list versions");
   const json = await res.json();
   // Coalesce a missing nextCursor to null. The two repos deploy independently,
@@ -157,7 +183,9 @@ export async function listVersions(
 }
 
 export async function getVersion(date: string, versionNum: number): Promise<JournalVersionDetail> {
-  const res = await fetch(`${API_URL}/api/journal/entries/${date}/versions/${versionNum}`);
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/versions/${versionNum}`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error("Failed to fetch version");
   return (await res.json()).version;
 }

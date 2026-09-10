@@ -4,7 +4,7 @@ Every element on the periodic table, its route, backend mount, and auth model, i
 
 | Element | Route | Backend mount | Auth model | What it is |
 |---|---|---|---|---|
-| Journal | /journal | /api/journal | public reads; scoped writes | collaborative wiki-journal, see [Journal API](/docs/journal-api) |
+| Journal | /journal | /api/journal | invite-only: membership on every route, scoped writes | collaborative wiki-journal, see [Journal API](/docs/journal-api) |
 | Documentation | /docs | (frontend only) | fully public | these docs; /llms.txt, /llms-full.txt |
 | Blitz | blitz.shanejli.com (external, new tab) | /api/blitz (sync session) + sync.shanejli.com (SuperSync, its own service) | Sign in with Google inside Blitz; browser JWT only, no PAT access | self-hosted Super Productivity fork: tasks, Pomodoro, planner, cross-device sync; see [Auth and Tokens](/docs/auth) |
 | Courses | /courses | /api/courses | public reads; scoped writes | AI-classified course catalog, see [Courses API](/docs/courses-api) |

@@ -9,10 +9,15 @@
  * Keep crawlers off auth-gated / private / thin pages. Logged-out visitors to
  * these render only a sign-in gate (no public content), which Google treats as
  * soft-404s / low-quality and which waste crawl budget. Public content routes
- * (/journal, /journal/[date], the journal history subpage, /trips,
- * /knowledge, /vocabulary, /elements) stay crawlable.
+ * (/trips, /knowledge, /vocabulary, /elements) stay crawlable.
  */
 export const CRAWLER_DISALLOW: string[] = [
+  // SHAN-475: the whole journal is invite-only. A signed-out crawler sees only
+  // the "You need access" card on every URL under here, so one prefix entry
+  // covers the index, every date, the feeds, and every entry sub-page. This is
+  // also what keeps /journal out of sitemap.xml — liveInternalRoutes() filters
+  // the element route through isDisallowedForCrawlers().
+  "/journal",
   "/settings",
   "/who-owes-me",
   "/practice",
@@ -32,13 +37,10 @@ export const CRAWLER_DISALLOW: string[] = [
   "/trips/new",
   // Blitz sync hand-off popup (SHAN-443): AuthGate-wrapped, single purpose.
   "/blitz/connect",
+  // Kept explicitly even though "/journal" already covers it: tea entries are
+  // a separate PIN-gated feature that merely lives under this path, so it must
+  // stay disallowed if the journal tree ever moves.
   "/journal/tea",
-  "/journal/inbox",
-  // Mutation/form subpaths under a journal entry — auth-gated, thin, and
-  // duplicative of the public entry page they act on.
-  "/journal/*/edit",
-  "/journal/*/append",
-  "/journal/*/suggest",
 ];
 
 /**

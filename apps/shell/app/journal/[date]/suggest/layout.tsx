@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { JournalAccessGate } from "@/components/journal/journal-access-gate";
 import { journalActionMetadata } from "@/lib/journal-action-metadata";
 
 export async function generateMetadata({
@@ -10,6 +11,9 @@ export async function generateMetadata({
   return journalActionMetadata("Suggest", date, "suggest");
 }
 
+// SHAN-475: the journal is invite-only, so every read this page makes 403s for
+// a non-member. Gating at the layout turns that into the same request-access
+// card the entry page shows, instead of a dead form.
 export default function JournalSuggestLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <JournalAccessGate>{children}</JournalAccessGate>;
 }

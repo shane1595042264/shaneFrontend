@@ -7,16 +7,9 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://shanejli.com"),
   title: "Shane — Periodic Table of Life",
   description: "A periodic table of Shane's projects, tools, and creative work.",
-  alternates: {
-    // Site-wide feed autodiscovery so feed readers and crawlers that probe the
-    // site root find the journal feeds (RSS + JSON Feed). Journal routes
-    // override this with their own (identical) alternates, so there's no
-    // conflict at that segment.
-    types: {
-      "application/rss+xml": "/journal/feed.xml",
-      "application/feed+json": "/journal/feed.json",
-    },
-  },
+  // No site-wide feed autodiscovery: the journal feeds were retired in
+  // SHAN-475 when the journal went invite-only, and there is no other public
+  // feed to advertise.
   openGraph: {
     title: "Shane — Periodic Table of Life",
     description: "A periodic table of Shane's projects, tools, and creative work.",

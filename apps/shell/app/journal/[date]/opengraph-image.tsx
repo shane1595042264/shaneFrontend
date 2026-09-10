@@ -1,14 +1,15 @@
 import { ImageResponse } from "next/og";
-import { toPlainExcerpt } from "@/lib/journal-text";
-import { API_URL } from "@/lib/api-url";
 
 export const alt = "Journal entry — Shane";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
-const FALLBACK_BODY =
-  "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.";
+// SHAN-475: this card used to carry a 200-char excerpt of the entry. The
+// journal is invite-only now and an OG image is fetched unauthenticated by
+// link unfurlers and cached by them forever, so it must never contain entry
+// text. Every date renders the same branded "private" card — enough for a
+// shared link to look like something, nothing for a stranger to read.
+const PRIVATE_BODY = "A private journal entry. Members only.";
 
 interface Props {
   params: Promise<{ date: string }>;
@@ -28,32 +29,10 @@ function formatDate(dateStr: string): string {
   });
 }
 
-async function fetchEntry(date: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries/${date}`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      entry?: { content?: string };
-      content?: string;
-      appends?: Array<{ content: string }>;
-    };
-    const base = data.content ?? data.entry?.content ?? null;
-    if (base === null) return null;
-    const appendBodies = (data.appends ?? []).map((a) => a.content).filter(Boolean);
-    return appendBodies.length > 0 ? [base, ...appendBodies].join("\n\n") : base;
-  } catch {
-    return null;
-  }
-}
-
 export default async function Image({ params }: Props) {
   const { date } = await params;
-  const validDate = isValidDate(date);
-  const content = validDate ? await fetchEntry(date) : null;
-  const dateHeading = validDate ? formatDate(date) : "Journal — Shane";
-  const body = content ? toPlainExcerpt(content, 200, "…") : FALLBACK_BODY;
+  const dateHeading = isValidDate(date) ? formatDate(date) : "Journal — Shane";
+  const body = PRIVATE_BODY;
 
   return new ImageResponse(
     (

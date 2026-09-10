@@ -11,17 +11,10 @@ const SITE_URL = "https://shanejli.com";
 //
 // The canonical lives here rather than in app/layout.tsx on purpose: a root
 // canonical would cascade to every descendant that does not set its own
-// (e.g. /blitz/connect), making them claim to be the homepage. The cost is
-// that alternates.types must be repeated, because Next replaces the whole
-// `alternates` object rather than merging its fields -- omitting them here
-// would drop the root layout's feed autodiscovery from "/" alone.
+// (e.g. /blitz/connect), making them claim to be the homepage.
 export const metadata: Metadata = {
   alternates: {
     canonical: SITE_URL,
-    types: {
-      "application/rss+xml": "/journal/feed.xml",
-      "application/feed+json": "/journal/feed.json",
-    },
   },
 };
 const PERSON_ID = `${SITE_URL}/#person`;

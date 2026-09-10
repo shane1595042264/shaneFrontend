@@ -4,7 +4,7 @@ Journal image storage, used to embed images (and rendered diagrams) in any markd
 
 ## Upload
 
-\`POST /api/journal/images\` with any authenticated token (JWT or any PAT, no scope needed).
+\`POST /api/journal/images\` with any authenticated token (JWT or any PAT, no scope needed) belonging to a journal member.
 
 \`\`\`bash
 curl -X POST https://shanebackend-production.up.railway.app/api/journal/images \\
@@ -22,7 +22,7 @@ Rules:
 
 ## Serving
 
-\`GET /api/journal/images/:id\` is fully public, streams the stored bytes with the sniffed Content-Type and \`Cache-Control: public, max-age=31536000, immutable\`. There is no delete endpoint.
+\`GET /api/journal/images/:id\` is fully public — the one \`/api/journal\` route the invite-only gate deliberately skips, because an \`<img>\` tag sends no \`Authorization\` header. It streams the stored bytes with the sniffed Content-Type and \`Cache-Control: public, max-age=31536000, immutable\`. Ids are unguessable UUIDs, so treat an image URL as a capability. There is no delete endpoint.
 
 ## Embedding
 
@@ -32,7 +32,7 @@ Embed the absolute backend URL in markdown, which is what the site's own editor 
 ![architecture](https://shanebackend-production.up.railway.app/api/journal/images/<uuid>)
 \`\`\`
 
-The relative form \`/api/journal/images/<uuid>\` also renders on shanejli.com pages (rewrite), but breaks in feeds and external readers; prefer absolute.
+The relative form \`/api/journal/images/<uuid>\` also renders on shanejli.com pages (rewrite), but breaks in external readers; prefer absolute.
 
 ## Diagrams
 

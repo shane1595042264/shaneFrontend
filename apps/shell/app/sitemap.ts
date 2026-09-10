@@ -5,11 +5,8 @@ import { DOC_PAGES } from "@/lib/docs/registry";
 import { API_URL } from "@/lib/api-url";
 
 const SITE_URL = "https://shanejli.com";
-const JOURNAL_API_URL = process.env.NEXT_PUBLIC_JOURNAL_API_URL || API_URL;
 
 type InternalElement = { route: string };
-
-type JournalRow = { date: string; updatedAt: string | null };
 
 type TripRow = { slug: string; updatedAt: string | null };
 
@@ -21,35 +18,6 @@ function liveInternalRoutes(): InternalElement[] {
     // disallowed URL is a Search Console warning and wasted crawl budget.
     .filter((e) => !isDisallowedForCrawlers(e.route as string))
     .map((e) => ({ route: e.route as string }));
-}
-
-async function fetchAllJournalDates(): Promise<JournalRow[]> {
-  const PAGE_SIZE = 100;
-  const rows: JournalRow[] = [];
-  let cursor: string | null | undefined;
-  try {
-    // Drain pages via the backend's cursor pagination (cursor -> nextCursor).
-    // The endpoint has no offset/total contract; the safety cap mirrors
-    // fetchAllEntries() in app/journal/page.tsx.
-    while (rows.length < 5000) {
-      const qs = new URLSearchParams({ limit: String(PAGE_SIZE) });
-      if (cursor) qs.set("cursor", cursor);
-      const res = await fetch(`${JOURNAL_API_URL}/api/journal/entries?${qs}`, {
-        next: { revalidate: 3600 },
-      });
-      if (!res.ok) return rows;
-      const data = (await res.json()) as {
-        entries: { date: string; updatedAt: string | null }[];
-        nextCursor: string | null;
-      };
-      rows.push(...data.entries.map((e) => ({ date: e.date, updatedAt: e.updatedAt })));
-      if (data.entries.length === 0 || !data.nextCursor) break;
-      cursor = data.nextCursor;
-    }
-    return rows;
-  } catch {
-    return rows;
-  }
 }
 
 async function fetchAllTrips(): Promise<TripRow[]> {
@@ -70,8 +38,7 @@ async function fetchAllCourses(): Promise<CourseRowLite[]> {
   const rows: CourseRowLite[] = [];
   let cursor: string | null | undefined;
   try {
-    // Same cursor drain as the journal above: the endpoint pages at 100 and
-    // the sitemap needs every slug.
+    // Cursor drain: the endpoint pages at 100 and the sitemap needs every slug.
     while (rows.length < 5000) {
       const qs = new URLSearchParams({ limit: String(PAGE_SIZE) });
       if (cursor) qs.set("cursor", cursor);
@@ -94,19 +61,15 @@ async function fetchAllCourses(): Promise<CourseRowLite[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [journalDates, trips, courses] = await Promise.all([
-    fetchAllJournalDates(),
-    fetchAllTrips(),
-    fetchAllCourses(),
-  ]);
+  // No journal here on purpose: the journal went invite-only in SHAN-475, so
+  // /journal and every /journal/<date> is crawler-disallowed (the prefix entry
+  // in CRAWLER_DISALLOW filters the element route out of liveInternalRoutes)
+  // and enumerating the dates would publish exactly the index the gate exists
+  // to withhold.
+  const [trips, courses] = await Promise.all([fetchAllTrips(), fetchAllCourses()]);
   const elements = liveInternalRoutes();
 
   const now = new Date();
-
-  const latestJournalUpdate = journalDates.reduce<Date | null>((max, row) => {
-    const candidate = row.updatedAt ? new Date(row.updatedAt) : new Date(row.date + "T00:00:00Z");
-    return !max || candidate > max ? candidate : max;
-  }, null);
 
   const latestTripUpdate = trips.reduce<Date | null>((max, row) => {
     if (!row.updatedAt) return max;
@@ -124,26 +87,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   for (const el of elements) {
-    let lastModified: Date = now;
-    if (el.route === "/journal" && latestJournalUpdate) {
-      lastModified = latestJournalUpdate;
-    } else if (el.route === "/trips" && latestTripUpdate) {
-      lastModified = latestTripUpdate;
-    }
+    const lastModified: Date =
+      el.route === "/trips" && latestTripUpdate ? latestTripUpdate : now;
     entries.push({
       url: `${SITE_URL}${el.route}`,
       lastModified,
-      changeFrequency: el.route === "/journal" ? "daily" : "weekly",
-      priority: el.route === "/journal" ? 0.9 : 0.7,
-    });
-  }
-
-  for (const row of journalDates) {
-    entries.push({
-      url: `${SITE_URL}/journal/${row.date}`,
-      lastModified: row.updatedAt ? new Date(row.updatedAt) : new Date(row.date + "T00:00:00Z"),
-      changeFrequency: "monthly",
-      priority: 0.6,
+      changeFrequency: "weekly",
+      priority: 0.7,
     });
   }
 

@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 
+// Invite-only since SHAN-475, so the description here is a description of the
+// door, not of what is behind it, and there are no feed alternates left to
+// advertise. Nested routes re-declare `alternates` (Next replaces rather than
+// merges it), so the canonical below applies to /journal alone.
+const DESCRIPTION = "Shane Li's private journal. Members only.";
+
 export const metadata: Metadata = {
   title: "Journal — Shane",
-  description:
-    "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.",
+  description: DESCRIPTION,
   alternates: {
     canonical: "https://shanejli.com/journal",
-    types: {
-      "application/rss+xml": "/journal/feed.xml",
-      "application/feed+json": "/journal/feed.json",
-    },
   },
   openGraph: {
     title: "Journal — Shane",
-    description:
-      "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.",
+    description: DESCRIPTION,
     url: "https://shanejli.com/journal",
     siteName: "Shane — Periodic Table of Life",
     type: "website",
@@ -23,8 +23,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Journal — Shane",
-    description:
-      "Shane Li's daily journal — workouts, code, travel, and the texture of ordinary days.",
+    description: DESCRIPTION,
     images: ["/journal/opengraph-image"],
   },
 };

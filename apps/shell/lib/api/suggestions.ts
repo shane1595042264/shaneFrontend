@@ -59,13 +59,17 @@ export async function createSuggestion(date: string, baseVersionNum: number, con
 
 export async function listSuggestions(date: string, status?: string): Promise<Suggestion[]> {
   const qs = status ? `?status=${status}` : "";
-  const res = await fetch(`${API_URL}/api/journal/entries/${date}/suggestions${qs}`);
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/suggestions${qs}`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error("Failed to list suggestions");
   return (await res.json()).suggestions;
 }
 
 export async function getSuggestion(id: string): Promise<Suggestion> {
-  const res = await fetch(`${API_URL}/api/journal/suggestions/${id}`);
+  const res = await fetch(`${API_URL}/api/journal/suggestions/${id}`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error("Failed to fetch suggestion");
   return (await res.json()).suggestion;
 }

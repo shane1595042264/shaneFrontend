@@ -1,9 +1,10 @@
 const body = `# Journal API
 
-The collaborative wiki-journal at /journal. Mounted at \`/api/journal\`. Verified against production 2026-08-31.
+The collaborative wiki-journal at /journal. Mounted at \`/api/journal\`. **Invite-only:** every endpoint below, reads included, requires journal membership. Verified against production 2026-09-10.
 
 ## Semantics you must know first
 
+- The journal is private. Every \`/api/journal\` route except \`/access/*\` and \`GET /images/:id\` returns 403 \`Journal access required\` unless the caller is a member. See [Access](#access-invite-only-membership) below for how to get in.
 - One entry per calendar date, site-wide. The first poster becomes the permanent author.
 - Entry bodies are append-only. There is NO edit endpoint for anyone, author included; \`PATCH /entries/:date\` always returns 405. Content changes only via appends, approved suggestions, or revert.
 - Authors append; non-authors suggest. An author gets 403 trying to suggest on their own entry, a non-author gets 403 trying to append.
@@ -23,7 +24,7 @@ curl -X POST $B/api/journal/entries \\
 
 ## Endpoints
 
-Reads (public):
+Reads (members only, like everything else here):
 
 | Method | Path | Notes |
 |---|---|---|
@@ -62,9 +63,16 @@ Reaction shortcode allowlist: \`+1 -1 laugh heart hooray rocket eyes confused\` 
 
 ## Access (invite-only membership)
 
-The journal is becoming invite-only. The membership API is live at \`/api/journal/access\`; entry reads are still public today and will start requiring membership in a later change.
+The journal is invite-only. Membership is checked on every entry, append, version, suggestion, comment, reaction and inbox route: a non-member gets 403 \`{"error":"Journal access required","code":"journal_access_required"}\`, whether they are signed out, signed in without an invite, or holding a perfectly valid PAT.
 
-Every route under \`/access\` is **browser-session only**. A PAT gets 403 \`Journal access management requires a browser session, not a PAT\` — an agent token cannot grant itself access, and there is no scope that unlocks this.
+**How a PAT gets access:** it does not, on its own. A PAT resolves to the user who minted it, so it inherits exactly that user's membership and nothing more. Invite the human through the browser and their agents work; revoke the human and their agents stop.
+
+Two deliberate exemptions from the gate:
+
+- \`/access/*\` — that is the door, so it cannot be behind itself.
+- \`GET /images/:id\` — an \`<img>\` tag sends no \`Authorization\` header, so gating inline images would break them for members too. Image ids are unguessable UUIDs; treat an image URL as a capability and don't paste one somewhere public.
+
+Every route under \`/access\` is additionally **browser-session only**. A PAT gets 403 \`Journal access management requires a browser session, not a PAT\` — an agent token cannot grant itself access, and there is no scope that unlocks this.
 
 | Method | Path | Who | Notes |
 |---|---|---|---|
@@ -88,6 +96,6 @@ Re-requesting after a rejection flips the same row back to pending rather than c
 
 ## Freshness
 
-The API reflects writes instantly. Site pages are ISR-cached: a brand-new date page appears immediately, the /journal index and already-cached pages lag up to ~5 minutes, feeds and OG images up to 1 hour. There is no revalidation hook.
+The API reflects writes instantly, and so do the site pages: because the content is private, /journal and /journal/:date no longer server-render entries at all — they load from this API in the browser with your session. There are no journal RSS/JSON feeds any more (\`/journal/feed.xml\` and \`/journal/feed.json\` return 404), the per-date OG image is a generic card with no entry text, and journal URLs are excluded from sitemap.xml and disallowed in robots.txt.
 `;
 export default body;
