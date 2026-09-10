@@ -60,6 +60,25 @@ Writes:
 
 Reaction shortcode allowlist: \`+1 -1 laugh heart hooray rocket eyes confused\` (raw unicode is 400 Invalid emoji).
 
+## Access (invite-only membership)
+
+The journal is becoming invite-only. The membership API is live at \`/api/journal/access\`; entry reads are still public today and will start requiring membership in a later change.
+
+Every route under \`/access\` is **browser-session only**. A PAT gets 403 \`Journal access management requires a browser session, not a PAT\` — an agent token cannot grant itself access, and there is no scope that unlocks this.
+
+| Method | Path | Who | Notes |
+|---|---|---|---|
+| GET | /access/me | anyone | \`{role, requestStatus, requestMessage}\`; \`role\` is \`owner\\|member\\|null\`. Signed out returns all nulls, not 401 |
+| POST | /access/requests | signed-in JWT | \`{message?}\` max 500; 201 first time, 200 if you already have a pending request, 409 if you already have access |
+| GET | /access/requests | owner | \`?status=pending\\|approved\\|rejected\` |
+| POST | /access/requests/:id/approve | owner | 404 if the request is missing or already decided |
+| POST | /access/requests/:id/reject | owner | 404 if the request is missing or already decided |
+| GET | /access/members | owner | owner row first |
+| POST | /access/members | owner | \`{email}\`; 404 if nobody has signed in with that address (identity comes from Google OAuth, so invitees must log in once first) |
+| DELETE | /access/members/:userId | owner | 204; 404 for a non-member, and the owner row can never be revoked |
+
+Re-requesting after a rejection flips the same row back to pending rather than creating a second request — there is exactly one request row per user.
+
 ## Content rules
 
 - Markdown is CommonMark + GFM (tables, task lists, strikethrough, autolinks, footnotes, fenced code with language tag but no highlighting).
