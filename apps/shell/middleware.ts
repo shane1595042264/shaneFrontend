@@ -94,8 +94,19 @@ const TRIP_NOT_FOUND_HTML = `<!DOCTYPE html>
 
 // Sibling routes under /journal/ that are NOT date entries — must be
 // allowlisted so middleware doesn't 404 them. Matches the folder layout in
-// app/journal/ (feed.xml/route.ts, feed.json/route.ts, inbox/page.tsx, opengraph-image.tsx).
-const JOURNAL_NON_DATE_SEGMENTS = new Set(["feed.xml", "feed.json", "inbox", "opengraph-image", "tea"]);
+// app/journal/ (feed.xml/route.ts, feed.json/route.ts, inbox/page.tsx,
+// access/page.tsx, opengraph-image.tsx).
+const JOURNAL_NON_DATE_SEGMENTS = new Set([
+  "feed.xml",
+  "feed.json",
+  "inbox",
+  // SHAN-476: the owner's access-management page. Without this entry the date
+  // fast-path below reads "access" as a malformed date and hard-404s the route
+  // at the edge, before Next ever gets to render it.
+  "access",
+  "opengraph-image",
+  "tea",
+]);
 
 // SHAN-405: single-segment routes under /journal/tea/ that are NOT a tea entry
 // id — must pass through so the fast-path UUID 404 below doesn't swallow them.

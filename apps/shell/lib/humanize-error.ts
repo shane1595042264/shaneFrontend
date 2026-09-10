@@ -24,7 +24,14 @@ const NETWORK_MESSAGE = "Network error — check your connection and try again."
 //   Node/undici (SSR wrappers): "fetch failed"
 const NETWORK_PATTERN = /^failed to fetch$|^load failed$|^fetch failed$|networkerror/i;
 
-function isNetworkError(e: unknown): boolean {
+/**
+ * True when `e` is a browser-native fetch failure rather than an API error.
+ * Exported so callers that DO want to surface a deliberate API message (the
+ * journal access page shows "no account has signed in with that email yet",
+ * which is the actionable half of the UI) can still collapse connection
+ * failures to one sane string instead of "Failed to fetch".
+ */
+export function isNetworkError(e: unknown): boolean {
   // Every browser throws a TypeError for a failed fetch — that's the primary
   // signal. The anchored pattern is a fallback for re-wrapped errors.
   if (e instanceof TypeError) return true;
@@ -39,4 +46,16 @@ function isNetworkError(e: unknown): boolean {
  */
 export function humanizeError(e: unknown, fallback: string): string {
   return isNetworkError(e) ? NETWORK_MESSAGE : fallback;
+}
+
+/**
+ * Like humanizeError, but keeps a non-network Error's own message when it has
+ * one. Use this only where the API layer is known to throw messages written for
+ * a human; use humanizeError everywhere else, where a raw thrown string could
+ * leak through.
+ */
+export function humanizeActionError(e: unknown, fallback: string): string {
+  if (isNetworkError(e)) return NETWORK_MESSAGE;
+  const message = e instanceof Error ? e.message.trim() : "";
+  return message || fallback;
 }

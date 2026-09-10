@@ -41,6 +41,10 @@ export const CRAWLER_DISALLOW: string[] = [
   // a separate PIN-gated feature that merely lives under this path, so it must
   // stay disallowed if the journal tree ever moves.
   "/journal/tea",
+  // SHAN-476: owner-only access management. Also already covered by the
+  // "/journal" prefix; kept explicitly for the same reason as /journal/tea —
+  // it must stay disallowed even if that prefix ever narrows.
+  "/journal/access",
 ];
 
 /**
