@@ -7,6 +7,7 @@ import overview from "./content/overview";
 import auth from "./content/auth";
 import conventions from "./content/conventions";
 import journalApi from "./content/journal-api";
+import blogApi from "./content/blog-api";
 import imagesApi from "./content/images-api";
 import coursesApi from "./content/courses-api";
 import scoreboardApi from "./content/scoreboard-api";
@@ -51,6 +52,13 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The full collaborative journal write surface: entries, appends, versions, suggestions, comments, reactions.",
     body: journalApi,
+  },
+  {
+    slug: "blog-api",
+    title: "Blog API",
+    description:
+      "The public blog: slug-keyed posts, versioned titles and bodies, drafts, tags, and revert.",
+    body: blogApi,
   },
   {
     slug: "images-api",
