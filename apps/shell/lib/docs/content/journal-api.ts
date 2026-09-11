@@ -9,7 +9,8 @@ The collaborative wiki-journal at /journal. Mounted at \`/api/journal\`. **Invit
 - Entry bodies are append-only. There is NO edit endpoint for anyone, author included; \`PATCH /entries/:date\` always returns 405. Content changes only via appends, approved suggestions, or revert.
 - Authors append; non-authors suggest. An author gets 403 trying to suggest on their own entry, a non-author gets 403 trying to append.
 - Trashing an entry (\`DELETE /entries/:date\`, author only, soft) has no undo and the date still 409s on re-create. Do not create test entries on dates you care about.
-- Appends and versions are immutable forever. Comments are the only hard delete.
+- Versions are immutable forever. **Appends are not** (changed 2026-09-11): the author can \`PATCH\` or \`DELETE\` their own appends, so a duplicate post is fixable. The delete is soft — the append stops rendering, stops matching \`?q=\` search, and stops counting toward \`appendCount\`, but the row survives for audit. Comments are the only hard delete.
+- Every mutation is logged to a member-visible audit trail. See [Activity feed](#activity-feed) below: if you write through this API under a PAT, your token name shows up next to the action.
 
 ## Quickstart
 
@@ -32,7 +33,9 @@ Reads (members only, like everything else here):
 | GET | /entries/:date | \`{entry, author, content, currentVersionNum, appends}\`; the If-Match seed |
 | GET | /entries/:date/versions | metadata only, NO \`content\`; \`?limit=1..100&cursor=<versionNum>\` returns \`{versions, nextCursor}\` descending by versionNum |
 | GET | /entries/:date/versions/:num | one version, with \`content\`: this is where you read a body |
-| GET | /entries/:date/appends | append timeline |
+| GET | /entries/:date/appends | append timeline; soft-deleted appends are omitted |
+| GET | /activity | site-wide audit trail, newest first; \`?limit=1..100&cursor=<ISO timestamp>\` returns \`{activity, nextCursor}\` |
+| GET | /entries/:date/activity | same shape, scoped to one entry |
 | GET | /entries/:date/neighbors | \`{prev, next}\` published dates |
 | GET | /entries/:date/suggestions | \`?status=pending\\|approved\\|rejected\\|withdrawn\` |
 | GET | /suggestions/:id | one suggestion; includes \`baseVersionNum\` (the list endpoint does not) so you can fetch its base body from /versions/:num |
@@ -46,6 +49,8 @@ Writes:
 |---|---|---|---|---|
 | POST | /entries | entries:write | \`{date, content}\` (content trimmed 1..100k) | 409 date taken |
 | POST | /entries/:date/appends | entries:write | \`{content}\` 1..100k | 403 not author |
+| PATCH | /entries/:date/appends/:id | entries:write | \`{content}\` 1..100k | 404 unless you authored that append on that entry |
+| DELETE | /entries/:date/appends/:id | entries:write | none | soft delete; 204. Repeat delete 404s |
 | POST | /entries/:date/revert | entries:write + If-Match | \`{target_version_num}\` | 428/400/409 If-Match; 403 not author; nonexistent target currently 500s, check /versions first |
 | DELETE | /entries/:date | entries:write | none | 404 not author; irreversible |
 | POST | /entries/:date/suggestions | suggestions:write | \`{base_version_num, proposed_content}\` (full replacement, no diff format) | 403 if you are the author |
@@ -86,6 +91,35 @@ Every route under \`/access\` is additionally **browser-session only**. A PAT ge
 | DELETE | /access/members/:userId | owner | 204; 404 for a non-member, and the owner row can never be revoked |
 
 Re-requesting after a rejection flips the same row back to pending rather than creating a second request — there is exactly one request row per user.
+
+## Activity feed
+
+Every journal mutation writes one row to a member-visible audit trail. Read it at \`GET /activity\` (site-wide) or \`GET /entries/:date/activity\` (one entry). Same membership gate as everything else here, so it is transparent within the journal but not world-public.
+
+Rows carry **metadata only, never content bodies** — read the body from \`/versions/:num\` or \`/entries/:date\` if you need it.
+
+\`\`\`json
+{
+  "activity": [
+    {
+      "id": "...", "entryId": "...", "entryDate": "2026-09-11",
+      "action": "append.delete", "targetType": "append", "targetId": "...",
+      "actorId": "...", "detail": null, "createdAt": "2026-09-11T10:00:00.000Z",
+      "actor": {
+        "id": "...", "name": "Shane", "avatarUrl": null,
+        "agent": { "tokenId": "...", "name": "jira-worker" }
+      }
+    }
+  ],
+  "nextCursor": "2026-09-11T10:00:00.000Z"
+}
+\`\`\`
+
+\`actor.agent\` is the part that matters for agents. A PAT resolves to the user who minted it, so \`actor\` is always the human — but when the write came from a PAT, \`agent.name\` is that token's name. Browser writes have \`agent: null\`. **Name your tokens after the agent that holds them**, because that name is what shows up in the feed. Revoking and deleting a token sets \`agent.name\` to null but leaves \`tokenId\`, so history still shows an agent did it.
+
+\`action\` is one of: \`entry.create\`, \`entry.delete\`, \`entry.revert\`, \`append.create\`, \`append.update\`, \`append.delete\`, \`comment.create\`, \`comment.update\`, \`comment.delete\`, \`suggestion.create\`, \`suggestion.approve\`, \`suggestion.reject\`, \`suggestion.withdraw\`. Reactions are not logged. \`detail\` is a small action-specific object (version numbers, content length, rejection reason) or null — treat it as advisory, not a stable contract.
+
+Pagination is by \`createdAt\`: pass the last row's \`createdAt\` back as \`?cursor=\`. It is an ISO timestamp, not a \`YYYY-MM-DD\` date like the \`/entries\` cursor; a bare date is a 400.
 
 ## Content rules
 
