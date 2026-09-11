@@ -35,6 +35,18 @@ All writes share PAT bucket \`courses-write\` (60/min). Course mutations are own
 | PATCH | /comments/:id | comments:write | \`{content}\` | author only |
 | DELETE | /comments/:id | comments:write | none | comment author or course owner; 204 |
 
+## Launching a course (SHAN-477)
+
+Courses hosted on the \`supermassive-courses\` service are launched through a same-origin alias rather than their registered URL:
+
+| Registered \`url\` | Launch path |
+|---|---|
+| \`https://supermassive-courses-production.up.railway.app/courses/<slug>/\` | \`https://shanejli.com/learn/<slug>\` |
+
+\`/learn/:slug\` is a Next rewrite to the hosting origin, so the deck is served from \`shanejli.com\` and corporate DNS filters (which block \`*.up.railway.app\` as a newly-seen domain) never see the Railway hostname. Courses registered on any other host keep launching at their own URL.
+
+The API is unaffected: \`url\` stays the canonical registration key and the uniqueness target, and server-side fetches during classification still use it. \`/learn\` is robots-disallowed — \`/courses/:slug\` is the canonical, indexable page.
+
 ## Example
 
 \`\`\`bash

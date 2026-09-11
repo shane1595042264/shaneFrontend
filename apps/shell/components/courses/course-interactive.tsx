@@ -14,6 +14,7 @@ import {
   uploadCourseCover,
   type Course,
 } from "@/lib/api/courses";
+import { courseLaunchUrl } from "@/lib/course-launch-url";
 import { categoryStyle, DIFFICULTY_STYLES } from "./category-styles";
 import { GeneratedCover } from "./generated-cover";
 import { StarRating } from "./star-rating";
@@ -200,7 +201,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
       {/* CTA + rating */}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
         <a
-          href={course.url}
+          href={courseLaunchUrl(course.url)}
           target="_blank"
           rel="noopener noreferrer"
           className="min-h-11 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-gray-200"
