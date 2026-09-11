@@ -60,13 +60,48 @@ async function fetchAllCourses(): Promise<CourseRowLite[]> {
   }
 }
 
+type BlogRowLite = { slug: string; updatedAt: string | null };
+
+// Same cursor drain as courses. The blog cursor is a publishedAt timestamp
+// (not an isoDate like the journal's, SHAN-373), and the list endpoint is
+// public, so no auth header is needed or possible here.
+async function fetchAllBlogPosts(): Promise<BlogRowLite[]> {
+  const PAGE_SIZE = 100;
+  const rows: BlogRowLite[] = [];
+  let cursor: string | null | undefined;
+  try {
+    while (rows.length < 5000) {
+      const qs = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (cursor) qs.set("cursor", cursor);
+      const res = await fetch(`${API_URL}/api/blog/posts?${qs}`, {
+        next: { revalidate: 3600 },
+      });
+      if (!res.ok) return rows;
+      const data = (await res.json()) as {
+        posts: { slug: string; updatedAt: string | null }[];
+        nextCursor: string | null;
+      };
+      rows.push(...data.posts.map((p) => ({ slug: p.slug, updatedAt: p.updatedAt })));
+      if (data.posts.length === 0 || !data.nextCursor) break;
+      cursor = data.nextCursor;
+    }
+    return rows;
+  } catch {
+    return rows;
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // No journal here on purpose: the journal went invite-only in SHAN-475, so
   // /journal and every /journal/<date> is crawler-disallowed (the prefix entry
   // in CRAWLER_DISALLOW filters the element route out of liveInternalRoutes)
   // and enumerating the dates would publish exactly the index the gate exists
   // to withhold.
-  const [trips, courses] = await Promise.all([fetchAllTrips(), fetchAllCourses()]);
+  const [trips, courses, blogPosts] = await Promise.all([
+    fetchAllTrips(),
+    fetchAllCourses(),
+    fetchAllBlogPosts(),
+  ]);
   const elements = liveInternalRoutes();
 
   const now = new Date();
@@ -109,6 +144,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const row of courses) {
     entries.push({
       url: `${SITE_URL}/courses/${row.slug}`,
+      lastModified: row.updatedAt ? new Date(row.updatedAt) : now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    });
+  }
+
+  for (const row of blogPosts) {
+    entries.push({
+      url: `${SITE_URL}/blog/${row.slug}`,
       lastModified: row.updatedAt ? new Date(row.updatedAt) : now,
       changeFrequency: "monthly",
       priority: 0.6,

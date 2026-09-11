@@ -21,6 +21,7 @@ import scoreboardManifest from "@/app/scoreboard/manifest";
 import coursesManifest from "@/app/courses/manifest";
 import documentationManifest from "@/app/docs/manifest";
 import blitzManifest from "@/app/blitz/manifest";
+import blogManifest from "@/app/blog/manifest";
 
 // External links and coming-soon elements that don't have route folders
 const externalElements: ElementConfig[] = [
@@ -118,5 +119,6 @@ export const allElements: ElementConfig[] = [
   coursesManifest,
   documentationManifest,
   blitzManifest,
+  blogManifest,
   ...externalElements,
 ];

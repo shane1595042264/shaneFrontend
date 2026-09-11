@@ -1,6 +1,6 @@
 const body = `# Blog API
 
-The public blog. Mounted at \`/api/blog\`. Shipped 2026-09-11 (SHAN-478 Phase 1).
+The public blog. Mounted at \`/api/blog\`. Shipped 2026-09-11 (SHAN-478 Phase 1). The human-readable surface it powers is [/blog](/blog): a masonry index with a tag rail, and \`/blog/<slug>\` per post (SHAN-478 Phase 2).
 
 This is the journal's mechanics without the journal's door. The journal is invite-only (SHAN-472): every route under \`/api/journal\` runs a membership check and 403s strangers. The blog runs none of it. Every GET below answers an anonymous request with no \`Authorization\` header at all.
 

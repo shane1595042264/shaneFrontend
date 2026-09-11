@@ -197,6 +197,26 @@ const COURSES_NOT_FOUND_HTML = `<!DOCTYPE html>
 // pass-through set for this branch.
 const COURSES_RESERVED_SEGMENTS = new Set(["covers"]);
 
+const BLOG_NOT_FOUND_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Not Found — Blog — Shane</title>
+<meta name="robots" content="noindex,follow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body { background:#000; color:#9ca3af; font-family:ui-sans-serif,system-ui,sans-serif; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:6rem 1rem; }
+  p { font-size:0.875rem; font-style:italic; margin:0; }
+  a { color:#60a5fa; font-size:0.875rem; text-decoration:none; }
+  a:hover { color:#93c5fd; }
+</style>
+</head>
+<body>
+<p>Post not found.</p>
+<a href="/blog">&larr; Back to blog</a>
+</body>
+</html>`;
+
 function notFoundResponse(html: string): NextResponse {
   return new NextResponse(html, {
     status: 404,
@@ -309,9 +329,34 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Intercept /blog/:slug and its /opengraph-image sub-path, sharing one
+  // existence check — same shape as the trips and courses branches (SHAN-482).
+  // A blog slug carries no structural signal (it is generateUniqueSlug output,
+  // indistinguishable from crawler junk), so the backend answers. There are no
+  // sibling routes under /blog/, hence no pass-through allowlist: adding one
+  // for a path with no app/blog/<segment>/ folder is exactly the SHAN-460
+  // soft-404 trap. Reads are public, so the anonymous HEAD from the edge really
+  // does return 404 for a miss (unlike the journal, which is invite-only and
+  // could only ever answer 403).
+  //
+  // Known limit for Phase 3: the edge probe is anonymous (the JWT lives in
+  // localStorage, so there is no identity to forward), and the backend hides
+  // drafts from anonymous callers. An author opening their own draft URL
+  // therefore gets this 404 rather than the preview the page would render.
+  // The authoring UI will need an explicit preview path — don't just add
+  // "draft" to a pass-through set.
+  const blogMatch = pathname.match(/^\/blog\/([^\/]+)(?:\/opengraph-image)?\/?$/);
+  if (blogMatch) {
+    const exists = await backendExists(
+      `/api/blog/posts/${encodeURIComponent(blogMatch[1])}`
+    );
+    if (exists === false) return notFoundResponse(BLOG_NOT_FOUND_HTML);
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/journal/:path*", "/trips/:path*", "/courses/:path*"],
+  matcher: ["/journal/:path*", "/trips/:path*", "/courses/:path*", "/blog/:path*"],
 };
