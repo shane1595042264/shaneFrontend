@@ -3,15 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { EntryBody } from "@/components/journal/entry-body";
-import { RelativeTime } from "@/lib/format-time";
 import { EntryActions } from "@/components/journal/entry-actions";
+import { EntryActivity } from "@/components/journal/entry-activity";
+import { EntryAppends } from "@/components/journal/entry-appends";
 import { EntryKeyboardNav } from "@/components/journal/entry-keyboard-nav";
 import { ShareActions } from "@/components/journal/share-actions";
 import { CommentsThread } from "@/components/journal/comments-thread";
 import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
 import { MissingEntryCta } from "@/components/journal/missing-entry-cta";
 import { readingTimeMinutes } from "@/lib/journal-text";
-import { getEntry, getNeighbors, type EntryDetail } from "@/lib/api/journal";
+import {
+  getEntry,
+  getNeighbors,
+  type EntryDetail,
+  type JournalAppend,
+} from "@/lib/api/journal";
 import { getTodayInTimezone, relativeDayLabel, resolveViewerTimezone } from "@/lib/timezone";
 import { useAuth } from "@/lib/auth-context";
 
@@ -76,6 +82,35 @@ export function JournalEntryView({ date, sidebar }: Props) {
       cancelled = true;
     };
   }, [date]);
+
+  // Appends live in this component's `data` because the reading-time estimate
+  // below counts them, so an edit or a delete has to fold back in here rather
+  // than staying local to the list.
+  const applyAppendEdit = (updated: JournalAppend) => {
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            appends: prev.appends.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)),
+          }
+        : prev
+    );
+  };
+
+  const applyAppendDelete = (id: string) => {
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            appends: prev.appends.filter((a) => a.id !== id),
+            entry: {
+              ...prev.entry,
+              appendCount: Math.max(0, prev.entry.appendCount - 1),
+            },
+          }
+        : prev
+    );
+  };
 
   const today = getTodayInTimezone(resolveViewerTimezone(user));
   const isToday = date === today;
@@ -224,29 +259,12 @@ export function JournalEntryView({ date, sidebar }: Props) {
               <EntryBody content={data.content} />
             </div>
             {data.appends && data.appends.length > 0 && (
-              <ol className="mt-8 space-y-4 border-l border-white/10 pl-4">
-                {data.appends.map((a) => (
-                  <li key={a.id} id={`append-${a.id}`} className="relative scroll-mt-6">
-                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
-                      <span
-                        aria-hidden
-                        className="absolute -left-[1.125rem] top-1.5 h-2 w-2 rounded-full bg-white/20"
-                      />
-                      <a
-                        href={`#append-${a.id}`}
-                        aria-label="Permalink to this sub-entry"
-                        className="font-mono text-gray-400 transition-colors hover:text-gray-200 focus-visible:text-gray-200 focus-visible:outline-none"
-                      >
-                        <RelativeTime iso={a.createdAt} />
-                      </a>
-                      {a.author?.name?.trim() ? (
-                        <span className="text-gray-600">· {a.author.name}</span>
-                      ) : null}
-                    </div>
-                    <EntryBody content={a.content} />
-                  </li>
-                ))}
-              </ol>
+              <EntryAppends
+                date={data.entry.date}
+                appends={data.appends}
+                onEdited={applyAppendEdit}
+                onDeleted={applyAppendDelete}
+              />
             )}
           </article>
 
@@ -265,6 +283,8 @@ export function JournalEntryView({ date, sidebar }: Props) {
           <EntryKeyboardNav prevDate={neighbors.prev} nextDate={neighbors.next} />
 
           <CommentsThread date={data.entry.date} entryAuthorId={data.entry.authorId} />
+
+          <EntryActivity date={data.entry.date} />
         </div>
         {sidebar}
       </div>

@@ -106,6 +106,10 @@ const JOURNAL_NON_DATE_SEGMENTS = new Set([
   "access",
   "opengraph-image",
   "tea",
+  // SHAN-484: the journal-wide activity feed. Same reason as "access" above —
+  // without this entry the date fast-path reads "activity" as a malformed date
+  // and hard-404s a real page at the edge.
+  "activity",
 ]);
 
 // SHAN-405: single-segment routes under /journal/tea/ that are NOT a tea entry

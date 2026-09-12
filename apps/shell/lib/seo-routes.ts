@@ -45,6 +45,9 @@ export const CRAWLER_DISALLOW: string[] = [
   // "/journal" prefix; kept explicitly for the same reason as /journal/tea —
   // it must stay disallowed even if that prefix ever narrows.
   "/journal/access",
+  // SHAN-484: members-only audit trail. Covered by the "/journal" prefix as
+  // well; kept explicit for the same reason as the two entries above.
+  "/journal/activity",
   // SHAN-477: transport alias, not a page. /learn/:slug proxies the course deck
   // hosted on the supermassive-courses origin so corporate DNS filters never
   // see that hostname. Letting crawlers in would index a second copy of HTML we

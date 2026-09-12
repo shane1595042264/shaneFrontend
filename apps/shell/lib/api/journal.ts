@@ -34,6 +34,8 @@ export interface JournalAppend {
   authorTimezone?: string | null;
   author: JournalAuthor | null;
   content: string;
+  /** Set once the append has been edited (SHAN-483). Null on untouched rows. */
+  editedAt?: string | null;
   createdAt: string;
 }
 
@@ -152,6 +154,43 @@ export async function createAppend(date: string, content: string): Promise<Journ
   const json = (await res.json()) as { append: JournalAppend };
   await revalidateJournalEntry(date).catch(() => {});
   return json.append;
+}
+
+/**
+ * Both of these are author-only on the backend, which answers one 404 for
+ * "no such append", "not yours" and "already deleted" — so there is nothing
+ * more specific to map than NOT_FOUND.
+ *
+ * The PATCH response is the raw appends row: it carries `content` and
+ * `editedAt` but no nested `author` (that only gets joined in on the list
+ * endpoint). Callers should merge it over the row they already hold rather
+ * than replacing it, or the author line blanks out until the next load.
+ */
+export async function editAppend(
+  date: string,
+  id: string,
+  content: string
+): Promise<JournalAppend> {
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/appends/${id}`, {
+    method: "PATCH",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (res.status === 404) throw new Error("NOT_FOUND");
+  if (!res.ok) throw new Error("Failed to save append");
+  const json = (await res.json()) as { append: JournalAppend };
+  await revalidateJournalEntry(date).catch(() => {});
+  return json.append;
+}
+
+/** Soft delete: the row survives for recovery and audit, it just stops rendering. */
+export async function deleteAppend(date: string, id: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/journal/entries/${date}/appends/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok && res.status !== 404) throw new Error("Failed to delete append");
+  await revalidateJournalEntry(date).catch(() => {});
 }
 
 export async function deleteEntry(date: string): Promise<void> {
