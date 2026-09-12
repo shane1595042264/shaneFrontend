@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { listEntryActivity, type JournalActivityRow } from "@/lib/api/journal-activity";
 import { ActivityList } from "@/components/journal/journal-activity-feed";
@@ -19,6 +19,10 @@ export function EntryActivity({ date }: { date: string }) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<JournalActivityRow[] | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  // In-flight guard. It has to be a ref, not the `state` value: reading `state`
+  // here would put it in the dep list below, and then setState("loading") would
+  // re-run the effect and tear down the request it just started.
+  const inFlight = useRef(false);
 
   useEffect(() => {
     // Reset when navigating between entries so a stale trail never shows under
@@ -26,23 +30,33 @@ export function EntryActivity({ date }: { date: string }) {
     setOpen(false);
     setRows(null);
     setState("idle");
+    inFlight.current = false;
   }, [date]);
 
   useEffect(() => {
-    if (!open || rows !== null || state === "loading") return;
-    const controller = new AbortController();
+    if (!open || rows !== null || inFlight.current) return;
+    inFlight.current = true;
+    let cancelled = false;
     setState("loading");
-    listEntryActivity(date, { limit: PAGE_SIZE }, { signal: controller.signal })
+    listEntryActivity(date, { limit: PAGE_SIZE })
       .then((page) => {
+        inFlight.current = false;
+        if (cancelled) return;
         setRows(page.activity);
         setState("idle");
       })
-      .catch((err) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+      .catch(() => {
+        inFlight.current = false;
+        if (cancelled) return;
         setState("error");
       });
-    return () => controller.abort();
-  }, [open, rows, state, date]);
+    // Collapsing must not abort the request — the component stays mounted and
+    // the result is still wanted on reopen. `cancelled` only suppresses a
+    // response that arrives after the viewer has moved to another date.
+    return () => {
+      cancelled = true;
+    };
+  }, [open, rows, date]);
 
   return (
     <section className="mt-10 print:hidden">
