@@ -48,6 +48,17 @@ export const CRAWLER_DISALLOW: string[] = [
   // SHAN-484: members-only audit trail. Covered by the "/journal" prefix as
   // well; kept explicit for the same reason as the two entries above.
   "/journal/activity",
+  // SHAN-487: the blog's authoring surface. /blog and /blog/<slug> stay
+  // crawlable — this is only the author's tooling, which renders a sign-in
+  // prompt for anyone else (thin/soft-404) and is worth no crawl budget.
+  // /blog/preview covers the draft-reading tree, whose content is by definition
+  // invisible to a crawler. The two wildcard entries are the only way to reach
+  // a sub-path of a dynamic segment: a plain "/blog" prefix entry would
+  // disallow the entire element, including the posts.
+  "/blog/new",
+  "/blog/preview",
+  "/blog/*/edit",
+  "/blog/*/history",
   // SHAN-477: transport alias, not a page. /learn/:slug proxies the course deck
   // hosted on the supermassive-courses origin so corporate DNS filters never
   // see that hostname. Letting crawlers in would index a second copy of HTML we

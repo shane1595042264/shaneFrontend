@@ -2,15 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PostBody } from "@/components/blog/post-body";
-import type { BlogPostDetail } from "@/lib/api/blog";
+import { PostActions } from "@/components/blog/post-actions";
+import { coverSrc, type BlogPostDetail } from "@/lib/api/blog";
 import { readingTimeMinutes, toPlainExcerpt } from "@/lib/journal-text";
 import { API_URL } from "@/lib/api-url";
 
 const SITE_URL = "https://shanejli.com";
 
-// ISR like the index. Posts are append-only revisions, so a 5-minute window
-// between an edit landing and the cached page catching up is acceptable; the
-// authoring UI in Phase 3 will revalidate on write the way journal does.
+// ISR like the index. The 300s window only ever applies to idle and crawler
+// traffic now: every mutation in lib/api/blog.ts calls revalidateBlogPost
+// (SHAN-487), so an author sees their own write on the next navigation.
 export const revalidate = 300;
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -83,6 +84,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   const { post, author, title, content } = data;
   const minutes = readingTimeMinutes(content);
+  const cover = coverSrc(post.coverImageUrl);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -92,6 +94,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     datePublished: post.publishedAt,
     dateModified: post.updatedAt,
     author: { "@type": "Person", name: author?.name ?? "Shane Li", url: SITE_URL },
+    ...(cover ? { image: cover } : {}),
     ...(post.tags.length ? { keywords: post.tags.join(", ") } : {}),
     description: toPlainExcerpt(content, 200, "…"),
     mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}/blog/${slug}` },
@@ -107,6 +110,18 @@ export default async function BlogPostPage({ params }: PageProps) {
       <Link href="/blog" className="text-sm text-gray-400 hover:text-white">
         &larr; Back to blog
       </Link>
+
+      {cover && (
+        // Plain <img> for the same reason as the masonry tile: the bytes come
+        // from the backend host, which the image optimizer isn't configured
+        // for. Decorative — the h1 below carries the meaning.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={cover}
+          alt=""
+          className="mt-6 max-h-96 w-full rounded-lg border border-white/10 object-cover"
+        />
+      )}
 
       <header className="mt-6 border-b border-white/10 pb-6">
         <h1 className="text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
@@ -150,6 +165,9 @@ export default async function BlogPostPage({ params }: PageProps) {
             ))}
           </ul>
         )}
+        {/* Client island: renders nothing until the browser resolves who is
+            reading, so the cached HTML stays identical for every visitor. */}
+        <PostActions slug={slug} authorId={post.authorId} />
       </header>
 
       <article className="mt-8">

@@ -32,8 +32,8 @@ All writes require \`entries:write\` and share PAT bucket \`blog-write\` (30/min
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | /posts | \`{title, content, tags?, status?}\` | Slug generated from the title. \`content\` 1..100k markdown, \`tags\` max 10 at 40 chars each, \`status\` defaults to \`published\`. 201 with \`{post, currentVersionNum: 1}\` |
-| PATCH | /posts/:slug | any of \`{title, content, tags, status}\` | See the split below. Empty object is a 400 |
+| POST | /posts | \`{title, content, tags?, status?, cover_image_url?}\` | Slug generated from the title. \`content\` 1..100k markdown, \`tags\` max 10 at 40 chars each, \`status\` defaults to \`published\`. 201 with \`{post, currentVersionNum: 1}\` |
+| PATCH | /posts/:slug | any of \`{title, content, tags, status, cover_image_url}\` | See the split below. Empty object is a 400 |
 | POST | /posts/:slug/revert | \`{target_version_num}\` | Re-appends that version's title and body as a new version tagged \`revert\`. 404 if the target does not exist |
 | DELETE | /posts/:slug | none | 204, soft delete to \`trashed\` |
 
@@ -42,11 +42,24 @@ All writes require \`entries:write\` and share PAT bucket \`blog-write\` (30/min
 One route, two behaviours, and the difference decides whether you need an \`If-Match\` header:
 
 - \`title\` or \`content\` in the patch is a **content edit**. It mints a new version, bumps \`editCount\`, and **requires \`If-Match: <currentVersionNum>\`**. Omit it and you get a 428. A stale value gets a 409 carrying \`{currentVersionNum}\` so you can rebase and retry. Send only one of the two and the other is carried forward from the current version unchanged.
-- \`tags\` or \`status\` alone is **metadata**. No version, no \`If-Match\`, no \`editCount\` bump.
+- \`tags\`, \`status\` or \`cover_image_url\` alone is **metadata**. No version, no \`If-Match\`, no \`editCount\` bump.
 
 A patch may mix both; the content edit runs first, and the metadata update follows.
 
 Remember that \`If-Match\` has to be in the CORS allow-headers list to reach the handler from a browser. It already is, for the journal.
+
+### Cover images (SHAN-487)
+
+\`cover_image_url\` is the post's cover art: the image on its masonry tile and the hero above the body. It is **metadata, not content** — swapping a cover does not mint a version, and a revert to an older version leaves the current cover in place.
+
+Upload the bytes through the journal's uploader, \`POST /api/journal/images\` (multipart \`file\`, 5MB, \`image/*\`), and store the \`url\` it returns. There is deliberately no second upload path for the blog. That endpoint needs journal membership, but \`GET /api/journal/images/:id\` is public, so covers render for anonymous readers.
+
+Accepted values, capped at 500 chars:
+
+- a relative \`/api/journal/images/<uuid>\` path — what the uploader returns, stored relative so it keeps resolving if the backend origin moves
+- an absolute \`https://\` URL for art hosted elsewhere
+
+Anything else is a 400: \`http:\`, \`data:\`, \`javascript:\`, and any other same-origin path (a cover must not be able to point at an arbitrary backend route). Send \`null\` to remove a cover; omit the field to leave it untouched. A blank string is treated as \`null\`.
 
 ## Example
 

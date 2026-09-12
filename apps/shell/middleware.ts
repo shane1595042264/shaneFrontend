@@ -221,6 +221,20 @@ const BLOG_NOT_FOUND_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
+// SHAN-487: real routes under /blog/ that are NOT post slugs, so the slug
+// branch below must let them through instead of HEAD-probing the API for a post
+// that will never exist. Per SHAN-460, only put a segment here if
+// app/blog/<segment>/ genuinely exists — app/blog/new/ does.
+const BLOG_NON_SLUG_SEGMENTS = new Set(["new"]);
+
+// SHAN-487: segments that are neither a route nor a possible slug. "preview" is
+// the draft-reading tree, and only its two-segment form
+// (/blog/preview/<slug>) is a page — that shape never reaches the slug branch
+// at all. Bare /blog/preview would otherwise fall through to /blog/[slug] and
+// answer HTTP 200 with the "Post not found" body, which is the exact soft-404
+// this middleware exists to prevent.
+const BLOG_RESERVED_SEGMENTS = new Set(["preview"]);
+
 function notFoundResponse(html: string): NextResponse {
   return new NextResponse(html, {
     status: 404,
@@ -343,16 +357,26 @@ export async function middleware(req: NextRequest) {
   // does return 404 for a miss (unlike the journal, which is invite-only and
   // could only ever answer 403).
   //
-  // Known limit for Phase 3: the edge probe is anonymous (the JWT lives in
-  // localStorage, so there is no identity to forward), and the backend hides
-  // drafts from anonymous callers. An author opening their own draft URL
-  // therefore gets this 404 rather than the preview the page would render.
-  // The authoring UI will need an explicit preview path — don't just add
-  // "draft" to a pass-through set.
-  const blogMatch = pathname.match(/^\/blog\/([^\/]+)(?:\/opengraph-image)?\/?$/);
+  // The anonymous probe is also why drafts read at their own URL: the JWT lives
+  // in localStorage, so the edge has no identity to forward, and the backend
+  // hides a draft from an anonymous caller. An author opening /blog/<draft>
+  // would get this 404 before Next rendered anything. SHAN-487 answers that with
+  // /blog/preview/<slug> — two segments, so this branch never matches it — and
+  // NOT with a pass-through entry for a slug-shaped path, which is the SHAN-460
+  // soft-404 trap.
+  const blogMatch = pathname.match(/^\/blog\/([^\/]+)(\/opengraph-image)?\/?$/);
   if (blogMatch) {
+    const segment = blogMatch[1];
+    // Only the bare page is a route: app/blog/new/opengraph-image does not
+    // exist, so that path keeps falling through to the probe (and its 404).
+    if (blogMatch[2] === undefined && BLOG_NON_SLUG_SEGMENTS.has(segment)) {
+      return NextResponse.next();
+    }
+    if (BLOG_RESERVED_SEGMENTS.has(segment)) {
+      return notFoundResponse(BLOG_NOT_FOUND_HTML);
+    }
     const exists = await backendExists(
-      `/api/blog/posts/${encodeURIComponent(blogMatch[1])}`
+      `/api/blog/posts/${encodeURIComponent(segment)}`
     );
     if (exists === false) return notFoundResponse(BLOG_NOT_FOUND_HTML);
     return NextResponse.next();
