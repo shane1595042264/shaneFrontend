@@ -1,7 +1,10 @@
 "use client";
 
 import type { MouseEvent, ReactNode } from "react";
-import type { KnowledgeEntry } from "@/lib/knowledge-api";
+import { LONG_TERM_THRESHOLD, type KnowledgeEntry } from "@/lib/knowledge-api";
+
+/** Location chips shown on a card preview before collapsing the rest into "+N more". */
+const MAX_PREVIEW_LOCATIONS = 4;
 
 const CATEGORY_BADGE: Record<string, string> = {
   vocabulary: "border-blue-500/30 text-blue-400",
@@ -37,6 +40,8 @@ interface EntryCardProps {
   editMode: boolean;
   selected: boolean;
   onToggleSelect: (index: number, shiftKey: boolean) => void;
+  /** Filter the grid by a memorization location clicked on this card (SHAN-486). */
+  onSelectLocation?: (location: string) => void;
   actions?: ReactNode;
 }
 
@@ -50,8 +55,15 @@ export function EntryCard({
   editMode,
   selected,
   onToggleSelect,
+  onSelectLocation,
   actions,
 }: EntryCardProps) {
+  // SHAN-486: surface the memorization locations on the preview card, not just in
+  // the detail panel. Older rows can come back without the jsonb column populated.
+  const locations = entry.memorizationLocations ?? [];
+  const visibleLocations = locations.slice(0, MAX_PREVIEW_LOCATIONS);
+  const hiddenLocationCount = locations.length - visibleLocations.length;
+
   function handleCardClick(e: MouseEvent<HTMLDivElement>) {
     if (editMode) {
       // In edit mode the whole card acts as a checkbox row; shift-click selects ranges.
@@ -158,6 +170,48 @@ export function EntryCard({
           ))}
         </div>
       )}
+      {locations.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          <span
+            className="text-xs text-gray-400"
+            title={`Practiced at ${locations.length} location${locations.length !== 1 ? "s" : ""} — ${LONG_TERM_THRESHOLD} makes it long-term memorized`}
+          >
+            📍 {Math.min(locations.length, LONG_TERM_THRESHOLD)}/{LONG_TERM_THRESHOLD}
+          </span>
+          {visibleLocations.map((name) =>
+            onSelectLocation && !editMode ? (
+              <button
+                key={name}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectLocation(name);
+                }}
+                title={`Show only cards practiced at ${name}`}
+                className="text-xs px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+              >
+                {name}
+              </button>
+            ) : (
+              <span
+                key={name}
+                className="text-xs px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-300"
+              >
+                {name}
+              </span>
+            )
+          )}
+          {hiddenLocationCount > 0 && (
+            <span
+              className="text-xs text-gray-400"
+              title={locations.slice(MAX_PREVIEW_LOCATIONS).join(", ")}
+            >
+              +{hiddenLocationCount} more
+            </span>
+          )}
+        </div>
+      )}
+
       {actions && (
         <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           {actions}

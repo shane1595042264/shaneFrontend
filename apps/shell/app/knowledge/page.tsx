@@ -417,6 +417,7 @@ export default function KnowledgePage() {
               editMode={editMode}
               selected={selectedIds.has(entry.id)}
               onToggleSelect={toggleSelectAt}
+              onSelectLocation={setSelectedLocation}
               actions={
                 <>
                   <PracticeButton itemId={entry.id} itemName={entry.word} />
