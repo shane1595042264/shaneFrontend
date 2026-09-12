@@ -48,6 +48,12 @@ A patch may mix both; the content edit runs first, and the metadata update follo
 
 Remember that \`If-Match\` has to be in the CORS allow-headers list to reach the handler from a browser. It already is, for the journal.
 
+#### From a browser, send \`X-If-Match\` instead (SHAN-487)
+
+\`X-If-Match\` is accepted everywhere \`If-Match\` is, and browsers must use it. Requests from shanejli.com are same-origin and ride a rewrite through Vercel's edge, which evaluates a real \`If-Match\` against the response's ETag. Every 200 JSON response from this API carries a **weak** ETag, and a weak validator can never satisfy \`If-Match\`, which requires strong comparison. The edit committed at the origin and the browser still got \`412 PRECONDITION_FAILED\` back — a save that succeeded, reported as a failure, so a retry wrote it twice. Error responses carry no ETag, which is why 409 and 428 were unaffected.
+
+If you call this API directly (a PAT plus curl against the Railway origin), \`If-Match\` is fine and remains the documented header. \`If-Match\` wins if you somehow send both.
+
 ### Cover images (SHAN-487)
 
 \`cover_image_url\` is the post's cover art: the image on its masonry tile and the hero above the body. It is **metadata, not content** — swapping a cover does not mint a version, and a revert to an older version leaves the current cover in place.

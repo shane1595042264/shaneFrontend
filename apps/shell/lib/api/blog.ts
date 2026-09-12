@@ -193,6 +193,15 @@ export async function createPost(
  * `ifMatch` is required whenever the patch carries a title or body — the
  * backend answers 428 without it. Metadata-only patches (tags, status, cover)
  * take no header.
+ *
+ * It goes out as X-If-Match, never If-Match (SHAN-487). Browser writes are
+ * same-origin and ride the Vercel rewrite, and Vercel's edge evaluates a real
+ * If-Match against the response ETag — ours are weak (the backend's
+ * conditionalGet), and a weak validator can never satisfy If-Match's strong
+ * comparison. The edit committed at the origin and then came back to the
+ * browser as 412, so the editor said "failed to save" about a save that had
+ * happened, and retrying wrote it again. X-If-Match is not a conditional
+ * header, so no proxy touches it.
  */
 export async function updatePost(
   slug: string,
@@ -203,7 +212,7 @@ export async function updatePost(
     ...getAuthHeaders(),
     "Content-Type": "application/json",
   };
-  if (ifMatch !== undefined) headers["If-Match"] = String(ifMatch);
+  if (ifMatch !== undefined) headers["X-If-Match"] = String(ifMatch);
   const res = await fetch(`${API_URL}/api/blog/posts/${encodeURIComponent(slug)}`, {
     method: "PATCH",
     headers,
@@ -268,7 +277,8 @@ export async function revertPost(
     headers: {
       ...getAuthHeaders(),
       "Content-Type": "application/json",
-      "If-Match": String(ifMatch),
+      // X-If-Match, not If-Match — see updatePost above.
+      "X-If-Match": String(ifMatch),
     },
     body: JSON.stringify({ target_version_num: targetVersionNum }),
   });
