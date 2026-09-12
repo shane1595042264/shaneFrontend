@@ -21,13 +21,15 @@ Free-text note ingest with AI classification, plus structured entries, connectio
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| GET | /entries | public | \`?language=&label=&search=&category=&app=&limit=1..500&offset=\`; returns \`{entries, total, limit, offset}\` (offset pagination, unlike most modules) |
+| GET | /entries | public | \`?language=&label=&search=&category=&app=&location=&limit=1..500&offset=\`; returns \`{entries, total, limit, offset}\` (offset pagination, unlike most modules) |
 | GET | /entries/:id | public | \`{entry, connections, connectedEntries}\` |
 | POST | /entries | knowledge:write | word + language required; 409 \`{error, existingEntry}\` on (word, language, category) duplicate; auto-enriches vocabulary entries via LLM unless \`autoEnrich:false\` (enrich failure never blocks) |
 | PUT | /entries/:id | auth only | owner-only (legacy ownerless rows editable by anyone authed); \`memorizationLocations\` feeds the long-term-memorized derivation |
 | DELETE | /entries/:id | auth only | same ownership rule |
 | POST | /entries/bulk-delete | auth only | \`{ids: [1..100]}\`; always 200 with per-id \`{deleted, denied, notFound}\` |
 | POST | /entries/:id/enrich | knowledge:write | re-run AI enrichment; 502 on LLM exhaustion |
+
+\`?location=\` matches cards whose \`memorizationLocations\` array contains that place, case-insensitively (max 120 chars, same bound as a single location on PUT). \`GET /api/knowledge/locations\` (public) returns \`{locations: string[]}\`: every distinct location across all cards, deduped case-insensitively and sorted. That list is what the browse filter's dropdown is built from. Its siblings \`GET /labels\`, \`GET /languages\` and \`GET /categories\` return the same shape for their dimensions.
 
 Connections (synonym, antonym, related, translation, root): \`GET/POST /connections\`, \`DELETE /connections/:id\`. The knowledge-module versions do NOT check word ownership; the vocabulary-module twins DO (403 unless you own both words). Pick the path matching the permission behavior you want.
 

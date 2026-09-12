@@ -6,6 +6,7 @@ import {
   fetchLabels,
   fetchLanguages,
   fetchCategories,
+  fetchMemorizationLocations,
   submitNote,
   createEntry,
   deleteEntry,
@@ -29,7 +30,10 @@ export default function KnowledgePage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
+  // SHAN-485: browse by the memorization locations recorded under SHAN-339.
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [adding, setAdding] = useState(false);
@@ -74,6 +78,7 @@ export default function KnowledgePage() {
       const data = await fetchAllEntries({
         category: selectedCategory || undefined,
         search: debouncedSearch || undefined,
+        location: selectedLocation || undefined,
         signal: controller.signal,
       });
       setEntries(data);
@@ -87,7 +92,7 @@ export default function KnowledgePage() {
         setLoading(false);
       }
     }
-  }, [selectedCategory, debouncedSearch]);
+  }, [selectedCategory, debouncedSearch, selectedLocation]);
 
   useEffect(() => {
     loadEntries();
@@ -97,6 +102,7 @@ export default function KnowledgePage() {
     fetchCategories().then(setCategories).catch(() => {});
     fetchLanguages().then(setLanguages).catch(() => {});
     fetchLabels().then(setLabels).catch(() => {});
+    fetchMemorizationLocations().then(setLocations).catch(() => {});
   }, []);
 
   // Re-loading entries (filter change, deletions) invalidates the saved anchor
@@ -110,6 +116,7 @@ export default function KnowledgePage() {
     fetchCategories().then(setCategories).catch(() => {});
     fetchLanguages().then(setLanguages).catch(() => {});
     fetchLabels().then(setLabels).catch(() => {});
+    fetchMemorizationLocations().then(setLocations).catch(() => {});
   }
 
   function showNotification(message: string, type: "error" | "success") {
@@ -135,6 +142,17 @@ export default function KnowledgePage() {
     }
     return out;
   }, [entries, selectedIds, canDeleteEntry]);
+
+  // Keep the active location selectable even if the last card carrying it just
+  // lost that location — otherwise the <select> would silently blank out while
+  // the filter was still applied.
+  const locationOptions = useMemo(() => {
+    if (!selectedLocation) return locations;
+    if (locations.some((l) => l.toLowerCase() === selectedLocation.toLowerCase())) {
+      return locations;
+    }
+    return [...locations, selectedLocation];
+  }, [locations, selectedLocation]);
 
   const selectableEntries = useMemo(
     () => entries.filter(canDeleteEntry),
@@ -322,6 +340,25 @@ export default function KnowledgePage() {
           onChange={(e) => setSearch(e.target.value)}
           className="px-3 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 w-40"
         />
+        {locationOptions.length > 0 && (
+          <select
+            aria-label="Filter by memorization location"
+            value={selectedLocation}
+            onChange={(e) => setSelectedLocation(e.target.value)}
+            className={`px-3 py-1.5 bg-white/5 border rounded text-sm focus:outline-none focus:border-blue-500/50 max-w-[12rem] ${
+              selectedLocation
+                ? "border-emerald-500/40 text-emerald-300"
+                : "border-white/10 text-gray-400"
+            }`}
+          >
+            <option value="">All locations</option>
+            {locationOptions.map((loc) => (
+              <option key={loc} value={loc}>
+                {loc}
+              </option>
+            ))}
+          </select>
+        )}
         <div className="ml-auto">
           {editMode ? (
             <button
@@ -356,11 +393,14 @@ export default function KnowledgePage() {
         <EmptyState
           search={debouncedSearch}
           category={selectedCategory}
+          location={selectedLocation}
           onClearSearch={() => setSearch("")}
           onClearCategory={() => setSelectedCategory("")}
+          onClearLocation={() => setSelectedLocation("")}
           onClearAll={() => {
             setSearch("");
             setSelectedCategory("");
+            setSelectedLocation("");
           }}
         />
       ) : (
@@ -520,25 +560,53 @@ export default function KnowledgePage() {
   );
 }
 
+/** "a", "a and b", "a, b and c" — keeps the empty-state copy readable. */
+function joinWithAnd(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? "";
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
 interface EmptyStateProps {
   search: string;
   category: string;
+  location: string;
   onClearSearch: () => void;
   onClearCategory: () => void;
+  onClearLocation: () => void;
   onClearAll: () => void;
 }
 
 function EmptyState({
   search,
   category,
+  location,
   onClearSearch,
   onClearCategory,
+  onClearLocation,
   onClearAll,
 }: EmptyStateProps) {
-  const hasSearch = search.length > 0;
-  const hasCategory = category.length > 0;
+  // One entry per active filter keeps the copy and the clear buttons in sync as
+  // dimensions get added (search + category + location today).
+  const active: { label: string; onClear: () => void; clearLabel: string }[] = [];
+  if (search) {
+    active.push({ label: "your search", onClear: onClearSearch, clearLabel: "Clear search" });
+  }
+  if (category) {
+    active.push({
+      label: `the ${category} category`,
+      onClear: onClearCategory,
+      clearLabel: "See all categories",
+    });
+  }
+  if (location) {
+    active.push({
+      label: `location “${location}”`,
+      onClear: onClearLocation,
+      clearLabel: "Clear location",
+    });
+  }
 
-  if (!hasSearch && !hasCategory) {
+  if (active.length === 0) {
     return (
       <div className="text-center py-16 text-gray-600">
         <p className="text-lg mb-2">No knowledge entries yet</p>
@@ -550,20 +618,13 @@ function EmptyState({
     );
   }
 
-  let heading: string;
-  if (hasSearch && hasCategory) {
-    heading = `No entries in ${category} match your search`;
-  } else if (hasSearch) {
-    heading = "No entries match your search";
-  } else {
-    heading = `No entries in ${category} yet`;
-  }
-
   return (
     <div className="text-center py-16 text-gray-600">
-      <p className="text-lg mb-4 capitalize">{heading}</p>
+      <p className="text-lg mb-4">
+        No entries match {joinWithAnd(active.map((f) => f.label))}
+      </p>
       <div className="flex flex-wrap justify-center gap-2">
-        {hasSearch && hasCategory && (
+        {active.length > 1 && (
           <button
             onClick={onClearAll}
             className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-300 transition-colors"
@@ -571,22 +632,15 @@ function EmptyState({
             Clear all filters
           </button>
         )}
-        {hasSearch && !hasCategory && (
+        {active.map((f) => (
           <button
-            onClick={onClearSearch}
+            key={f.clearLabel}
+            onClick={f.onClear}
             className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-300 transition-colors"
           >
-            Clear search
+            {f.clearLabel}
           </button>
-        )}
-        {hasCategory && !hasSearch && (
-          <button
-            onClick={onClearCategory}
-            className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-300 transition-colors"
-          >
-            See all entries
-          </button>
-        )}
+        ))}
       </div>
     </div>
   );

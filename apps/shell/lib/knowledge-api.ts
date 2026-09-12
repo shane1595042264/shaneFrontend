@@ -72,11 +72,16 @@ export interface PaginatedKnowledgeEntries {
   offset: number;
 }
 
-export async function fetchEntries(params?: {
+export interface KnowledgeEntryFilters {
   language?: string;
   label?: string;
   search?: string;
   category?: string;
+  /** SHAN-485: match cards practiced at this memorization location (case-insensitive). */
+  location?: string;
+}
+
+export async function fetchEntries(params?: KnowledgeEntryFilters & {
   limit?: number;
   offset?: number;
   signal?: AbortSignal;
@@ -86,6 +91,7 @@ export async function fetchEntries(params?: {
   if (params?.label) query.set("label", params.label);
   if (params?.search) query.set("search", params.search);
   if (params?.category) query.set("category", params.category);
+  if (params?.location) query.set("location", params.location);
   if (params?.limit) query.set("limit", String(params.limit));
   if (params?.offset) query.set("offset", String(params.offset));
 
@@ -97,13 +103,9 @@ export async function fetchEntries(params?: {
 }
 
 /** Fetch all knowledge entries by paging through the API (100 per page). */
-export async function fetchAllEntries(params?: {
-  language?: string;
-  label?: string;
-  search?: string;
-  category?: string;
-  signal?: AbortSignal;
-}): Promise<KnowledgeEntry[]> {
+export async function fetchAllEntries(
+  params?: KnowledgeEntryFilters & { signal?: AbortSignal }
+): Promise<KnowledgeEntry[]> {
   const PAGE_SIZE = 100;
   const first = await fetchEntries({ ...params, limit: PAGE_SIZE, offset: 0 });
   const all = [...first.entries];
@@ -257,6 +259,17 @@ export async function fetchLanguages(): Promise<string[]> {
   if (!res.ok) throw new Error("Failed to fetch languages");
   const data = await res.json();
   return data.languages;
+}
+
+/**
+ * Distinct memorization locations across every card (SHAN-485) — the option list
+ * for the browse-by-location filter. Deduped case-insensitively server-side.
+ */
+export async function fetchMemorizationLocations(): Promise<string[]> {
+  const res = await fetch(`${API_URL}/api/knowledge/locations`);
+  if (!res.ok) throw new Error("Failed to fetch locations");
+  const data = await res.json();
+  return data.locations;
 }
 
 export async function fetchCategories(): Promise<string[]> {
