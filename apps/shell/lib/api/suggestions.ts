@@ -74,10 +74,15 @@ export async function getSuggestion(id: string): Promise<Suggestion> {
   return (await res.json()).suggestion;
 }
 
+/**
+ * `ifMatch` goes out as X-If-Match, not If-Match — see revertEntry in
+ * lib/api/journal.ts for why (SHAN-489). A real If-Match from the browser is
+ * turned into a 412 by Vercel's edge after the approve has already committed.
+ */
 export async function approveSuggestion(id: string, ifMatch: number, date: string) {
   const res = await fetch(`${API_URL}/api/journal/suggestions/${id}/approve`, {
     method: "PATCH",
-    headers: { ...getAuthHeaders(), "If-Match": String(ifMatch) },
+    headers: { ...getAuthHeaders(), "X-If-Match": String(ifMatch) },
   });
   if (res.status === 409) {
     const body = await res.json().catch(() => ({}));

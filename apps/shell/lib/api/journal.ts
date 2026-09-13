@@ -229,10 +229,20 @@ export async function getVersion(date: string, versionNum: number): Promise<Jour
   return (await res.json()).version;
 }
 
+/**
+ * `ifMatch` goes out as X-If-Match, never If-Match (SHAN-489, the same bug the
+ * blog hit in SHAN-487). Browser writes are same-origin and ride the Vercel
+ * rewrite, and the edge evaluates a real If-Match against the response ETag —
+ * ours are weak (the backend's conditionalGet), and a weak validator can never
+ * satisfy If-Match's strong comparison. The revert committed at the origin and
+ * still came back 412, so the UI reported a failure on a write that had landed
+ * and the retry appended a second revert. X-If-Match is not a conditional
+ * header, so no proxy touches it; the backend accepts either spelling.
+ */
 export async function revertEntry(date: string, targetVersionNum: number, ifMatch: number) {
   const res = await fetch(`${API_URL}/api/journal/entries/${date}/revert`, {
     method: "POST",
-    headers: { ...getAuthHeaders(), "Content-Type": "application/json", "If-Match": String(ifMatch) },
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json", "X-If-Match": String(ifMatch) },
     body: JSON.stringify({ target_version_num: targetVersionNum }),
   });
   if (res.status === 409) {

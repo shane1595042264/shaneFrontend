@@ -63,11 +63,17 @@ curl -s -o /dev/null -w '%{http_code} %{size_download}' -H "If-None-Match: $ETAG
 
 ## Optimistic concurrency (If-Match)
 
-Racy journal mutations (revert, suggestion approve) require an \`If-Match\` header carrying the entry's current version number as a plain integer (from \`GET /api/journal/entries/:date\`, field \`currentVersionNum\`).
+Racy journal mutations (revert, suggestion approve) and blog body edits require an \`If-Match\` header carrying the current version number as a plain integer (from \`GET /api/journal/entries/:date\` or \`GET /api/blog/posts/:slug\`, field \`currentVersionNum\`).
 
 - Missing header: 428
 - Non-numeric: 400
 - Stale: 409 with \`{"error":"Version conflict","currentVersionNum":<latest>}\` so you can rebase and retry.
+
+### From a browser, send \`X-If-Match\` instead
+
+\`X-If-Match\` is accepted everywhere \`If-Match\` is, and browser code must use it. Requests from shanejli.com are same-origin and ride a rewrite through Vercel's edge, which evaluates a real \`If-Match\` against the response's \`ETag\`. Every 200 JSON response here carries a **weak** validator, and a weak validator can never satisfy \`If-Match\`, which requires strong comparison, so the edge replaced the origin's 200 with \`412 PRECONDITION_FAILED\` *after* the write had committed. A save that succeeded was reported as a failure, and the retry wrote it a second time. Error responses carry no \`ETag\`, which is why the 409 and 428 paths were unaffected (SHAN-487 for the blog, SHAN-489 for the journal).
+
+If you call the API directly (a PAT plus curl against the Railway origin), \`If-Match\` is fine and remains the documented header. \`If-Match\` wins if you send both.
 
 ## Rate limits
 
@@ -75,6 +81,6 @@ Per-PAT rolling 60 second buckets (JWT browser sessions bypass); see the bucket 
 
 ## CORS
 
-Allowed request headers are \`Content-Type\`, \`Authorization\`, \`If-Match\`, \`If-None-Match\`, \`X-Tea-Pin\`. \`ETag\` is the one exposed response header. A new custom header needs a backend change; the symptom of forgetting is a browser-only "Failed to fetch".
+Allowed request headers are \`Content-Type\`, \`Authorization\`, \`If-Match\`, \`X-If-Match\`, \`If-None-Match\`, \`X-Tea-Pin\`. \`ETag\` is the one exposed response header. A new custom header needs a backend change; the symptom of forgetting is a browser-only "Failed to fetch".
 `;
 export default body;
