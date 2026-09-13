@@ -93,6 +93,23 @@ Two shape notes, both deliberate:
 
 Every post carries a \`commentCount\` on the list and detail payloads, maintained alongside the comments themselves so the index can show a count without a query per tile.
 
+## Feeds (SHAN-491)
+
+The blog is subscribable. Both feeds live on the frontend, not the API, because they are reader-facing documents rather than JSON endpoints:
+
+| URL | Format | Content type |
+|---|---|---|
+| https://shanejli.com/blog/feed.xml | RSS 2.0 | \`application/rss+xml\` |
+| https://shanejli.com/blog/feed.json | JSON Feed 1.1 | \`application/feed+json\` |
+
+They carry the 50 newest **published** posts, newest first, with the full body rendered to HTML (\`content:encoded\` in RSS, \`content_html\` in JSON Feed) plus a plain-text excerpt, tags, author, and the cover image where one exists. Both are cached for an hour, so a post shows up in a reader within about that long.
+
+The feeds are built from the same anonymous \`GET /posts\` and \`GET /posts/:slug\` documented above, with no \`Authorization\` header — which is precisely why drafts cannot leak into them. That is also why there is no journal equivalent: the journal is invite-only, a feed pull carries no viewer to check membership against, and \`/journal/feed.xml\` and \`/journal/feed.json\` return 404 on purpose (see [Journal API](/docs/journal-api)).
+
+Mermaid blocks in a post body arrive in the feed as fenced code, not diagrams — the mermaid upgrade is client-side and there is no client in a feed reader. Upload a rendered image instead when the diagram has to survive the trip; see [Images API](/docs/images-api).
+
+Both URLs are advertised from \`<head>\` on \`/blog\` and on every post page as \`<link rel="alternate">\`, so a reader that accepts a page URL will find them on its own.
+
 ## Example
 
 \`\`\`bash

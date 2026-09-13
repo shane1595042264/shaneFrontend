@@ -62,8 +62,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     // Re-declared rather than inherited: app/blog/layout.tsx sets a canonical
     // for the index, and a nested route that doesn't override it would claim
-    // /blog as its own canonical (SHAN-464).
-    alternates: { canonical: url },
+    // /blog as its own canonical (SHAN-464). `types` is restated for the same
+    // reason in reverse — overriding `alternates` here would otherwise drop
+    // the layout's feed autodiscovery from the page a reader is most likely to
+    // subscribe from (SHAN-491).
+    alternates: {
+      canonical: url,
+      types: {
+        "application/rss+xml": "/blog/feed.xml",
+        "application/feed+json": "/blog/feed.json",
+      },
+    },
     openGraph: {
       title,
       description,

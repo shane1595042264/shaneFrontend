@@ -225,7 +225,11 @@ const BLOG_NOT_FOUND_HTML = `<!DOCTYPE html>
 // branch below must let them through instead of HEAD-probing the API for a post
 // that will never exist. Per SHAN-460, only put a segment here if
 // app/blog/<segment>/ genuinely exists — app/blog/new/ does.
-const BLOG_NON_SLUG_SEGMENTS = new Set(["new"]);
+// SHAN-491 adds the two feed routes: app/blog/feed.xml/route.ts and
+// app/blog/feed.json/route.ts both exist, and without an entry here the probe
+// would ask the API for a post slugged "feed.xml", get a miss, and hard-404
+// the feed at the edge before its handler ever ran.
+const BLOG_NON_SLUG_SEGMENTS = new Set(["new", "feed.xml", "feed.json"]);
 
 // SHAN-487: segments that are neither a route nor a possible slug. "preview" is
 // the draft-reading tree, and only its two-segment form

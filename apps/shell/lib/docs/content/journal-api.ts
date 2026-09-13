@@ -132,6 +132,6 @@ Pagination is by \`createdAt\`: pass the last row's \`createdAt\` back as \`?cur
 
 ## Freshness
 
-The API reflects writes instantly, and so do the site pages: because the content is private, /journal and /journal/:date no longer server-render entries at all — they load from this API in the browser with your session. There are no journal RSS/JSON feeds any more (\`/journal/feed.xml\` and \`/journal/feed.json\` return 404), the per-date OG image is a generic card with no entry text, and journal URLs are excluded from sitemap.xml and disallowed in robots.txt.
+The API reflects writes instantly, and so do the site pages: because the content is private, /journal and /journal/:date no longer server-render entries at all — they load from this API in the browser with your session. There are no journal RSS/JSON feeds any more (\`/journal/feed.xml\` and \`/journal/feed.json\` return 404 — a feed pull carries no viewer to check membership against, so the only correct answer is that the URL no longer exists; the public [Blog](/docs/blog-api) has feeds instead), the per-date OG image is a generic card with no entry text, and journal URLs are excluded from sitemap.xml and disallowed in robots.txt.
 `;
 export default body;

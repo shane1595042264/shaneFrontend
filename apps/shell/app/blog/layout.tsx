@@ -8,7 +8,16 @@ export const metadata: Metadata = {
   title: "Blog — Shane",
   description:
     "Shane's public blog: long-form writing on software, travel, and whatever else stuck.",
-  alternates: { canonical: "https://shanejli.com/blog" },
+  alternates: {
+    canonical: "https://shanejli.com/blog",
+    // SHAN-491: feed autodiscovery. Repeated on app/blog/[slug]/page.tsx
+    // because `alternates` replaces rather than merges, so a nested route that
+    // re-declares a canonical drops these unless it restates them (SHAN-464).
+    types: {
+      "application/rss+xml": "/blog/feed.xml",
+      "application/feed+json": "/blog/feed.json",
+    },
+  },
   openGraph: {
     title: "Blog — Shane",
     description:

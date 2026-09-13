@@ -67,6 +67,23 @@ export default async function BlogIndexPage() {
           Long-form writing, in the open. The journal next door is invite-only; this
           is the part anyone can read.
         </p>
+        {/*
+          SHAN-491: the feeds are autodiscoverable from <head>, but that only
+          helps a reader whose browser already knows to look. A visible link is
+          how a person subscribes. Plain <a>, not <Link>: these are route
+          handlers, not pages, so there's nothing for the client router to
+          prefetch.
+        */}
+        <p className="mt-3 text-sm text-gray-400">
+          Subscribe:{" "}
+          <a href="/blog/feed.xml" className="text-blue-400 hover:text-blue-300">
+            RSS
+          </a>{" "}
+          &middot;{" "}
+          <a href="/blog/feed.json" className="text-blue-400 hover:text-blue-300">
+            JSON Feed
+          </a>
+        </p>
       </header>
 
       <BlogIndex initialPosts={page.posts} initialNextCursor={page.nextCursor} />
