@@ -43,7 +43,7 @@ interface Props {
  * 401s (SHAN-463).
  */
 export function BlogComments({ slug, postAuthorId }: Props) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [comments, setComments] = useState<BlogComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -291,7 +291,23 @@ export function BlogComments({ slug, postAuthorId }: Props) {
         <ul className="space-y-3">{comments.map(renderComment)}</ul>
       )}
 
-      {user ? (
+      {authLoading ? (
+        // Nothing auth-dependent may reach the server-rendered HTML. This page
+        // is ISR, so the composer block IS server-rendered, and the signed-out
+        // branch below mounts <LoginButton>, whose GoogleLogin child is a bare
+        // <div> that the Google Identity script fills with an iframe. GSI wins
+        // that race often enough that React finds unexpected children where it
+        // expected an empty div and throws hydration error #418, discarding and
+        // re-rendering the tree.
+        //
+        // `loading` is true during SSR and on the first client render alike
+        // (auth-context resolves /api/auth/me in an effect), so gating on it
+        // makes both passes emit this identical placeholder and defers every
+        // third-party node to after hydration. Every other LoginButton on the
+        // site sits behind a client-only auth gate, which is why this is the
+        // first place the problem could appear.
+        <div className="mt-4 h-24 rounded border border-white/10 bg-black/20" aria-hidden="true" />
+      ) : user ? (
         <div className="mt-4 rounded border border-white/10 bg-black/20 p-3">
           <MarkdownEditor
             value={text}
