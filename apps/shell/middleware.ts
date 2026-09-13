@@ -242,15 +242,33 @@ function notFoundResponse(html: string): NextResponse {
   });
 }
 
-// Returns true if backend says the resource exists, false on backend-404, null
-// on timeout/network error (caller should fail open).
+// Returns true if backend says the resource exists, false when it can't exist,
+// null on timeout/network error (caller should fail open).
+//
+// SHAN-490: 400 counts as "does not exist", not just 404. These probes are a
+// bare HEAD with no query, no body and no headers, so the only thing the
+// backend can reject with 400 is the path param itself, and a param it refuses
+// to parse names a resource that can never exist. The blog and trips slug
+// params are `z.string().regex(...)`, so /blog/wp-login.php and /trips/.env
+// answered 400, `backendExists` read that as "exists", and the request fell
+// through to /blog/[slug] and /trips/[slug], which render their not-found body
+// at HTTP 200: the soft-404 this whole file exists to prevent. /courses was
+// unaffected only because its param is the looser `min(1).max(80)` and a junk
+// slug reached the repo and missed with a real 404; an over-80-char course slug
+// had the same bug and is fixed here too.
+//
+// 401/403 deliberately still mean "exists, not yours" (the journal's
+// invite-only gate, SHAN-475), and timeout/network stays fail-open so a
+// Railway outage can never start hard-404ing real posts. Every live slug is
+// generateUniqueSlug output ([a-z0-9-], no leading dash, under 70 chars), so
+// no real trip, post or course can answer 400 here.
 async function backendExists(path: string): Promise<boolean | null> {
   try {
     const res = await fetch(`${BACKEND_URL}${path}`, {
       method: "HEAD",
       signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     });
-    if (res.status === 404) return false;
+    if (res.status === 404 || res.status === 400) return false;
     return true;
   } catch {
     return null;
