@@ -33,6 +33,12 @@ export interface BlogPost {
   coverImageUrl: string | null;
   tags: string[];
   editCount: number;
+  /**
+   * Denormalized comment count (SHAN-488) so a tile can show one without the
+   * index fanning out a query per post. Optional because a cached ISR payload
+   * rendered before that column existed will not carry it.
+   */
+  commentCount?: number;
   /** Ordering key and keyset cursor. */
   publishedAt: string;
   createdAt: string;

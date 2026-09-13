@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PostBody } from "@/components/blog/post-body";
 import { PostActions } from "@/components/blog/post-actions";
+import { PostReactionBar } from "@/components/blog/post-reaction-bar";
+import { BlogComments } from "@/components/blog/blog-comments";
 import { coverSrc, type BlogPostDetail } from "@/lib/api/blog";
 import { readingTimeMinutes, toPlainExcerpt } from "@/lib/journal-text";
 import { API_URL } from "@/lib/api-url";
@@ -173,6 +175,16 @@ export default async function BlogPostPage({ params }: PageProps) {
       <article className="mt-8">
         <PostBody content={content} />
       </article>
+
+      {/* Both are client islands for the same reason PostActions is: the page
+          stays a single cached document for every visitor, and who is reading
+          is resolved in the browser afterwards. Reactions and comments are
+          readable signed-out; only the write affordances differ. */}
+      <div className="mt-8 border-t border-white/10 pt-6">
+        <PostReactionBar slug={slug} />
+      </div>
+
+      <BlogComments slug={slug} postAuthorId={post.authorId} />
     </main>
   );
 }

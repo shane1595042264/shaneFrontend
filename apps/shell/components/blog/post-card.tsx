@@ -71,6 +71,17 @@ export function PostCard({ post }: { post: BlogPost }) {
                 <span>{minutes} min read</span>
               </>
             )}
+            {/* Only shown once there is something to show — a "0 comments" on
+                every tile is noise, and the count is denormalized precisely so
+                this costs the index nothing (SHAN-488). */}
+            {(post.commentCount ?? 0) > 0 && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>
+                  {post.commentCount} comment{post.commentCount === 1 ? "" : "s"}
+                </span>
+              </>
+            )}
             {isDraft && (
               <span className="rounded border border-amber-400/40 px-1.5 py-0.5 text-[10px] tracking-normal text-amber-300">
                 draft

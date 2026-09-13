@@ -67,6 +67,32 @@ Accepted values, capped at 500 chars:
 
 Anything else is a 400: \`http:\`, \`data:\`, \`javascript:\`, and any other same-origin path (a cover must not be able to point at an arbitrary backend route). Send \`null\` to remove a cover; omit the field to leave it untouched. A blank string is treated as \`null\`.
 
+## Comments and reactions (SHAN-488)
+
+The social layer. This is where the blog diverges hardest from the Journal API: **reads are anonymous and writes are open to any signed-in user**, not just the post's author. There is no membership gate on any of these routes.
+
+Both live under the post they belong to, and both resolve that post through the same visibility rules as every other read — so a draft or a trashed post 404s here too, and its thread stays private.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | /posts/:slug/comments | none | \`{comments}\`, oldest first, each with an \`author\` object |
+| POST | /posts/:slug/comments | \`comments:write\` | \`{content}\`, 1..10k markdown. 201 with \`{comment}\` |
+| PATCH | /comments/:id | \`comments:write\` | \`{content}\`. Comment author only; anyone else gets a 404 |
+| DELETE | /comments/:id | \`comments:write\` | 204. Comment author **or** the post's author, so the author can moderate their own page |
+| GET | /posts/:slug/reactions | none | \`{summary, mine}\`. \`summary\` is \`[{emoji, count}]\`; \`mine\` is empty for an anonymous caller |
+| POST | /posts/:slug/reactions | \`reactions:write\` | \`{emoji}\`, toggles. Returns \`{result: "added" \| "removed"}\` |
+
+Comments use PAT bucket \`blog-comments-write\` (30/min) and reactions \`blog-reactions-write\` (60/min) — separate from \`blog-write\`, so a chatty commenting token cannot exhaust the author's publishing budget. JWT browser sessions bypass both.
+
+Two shape notes, both deliberate:
+
+- **Comments are flat.** There is no \`parent_comment_id\`, unlike journal comments, which thread one level deep. A public post's thread is mostly the author answering readers, which reads better chronologically — and comments are hard-deleted, so threading would mean deciding what happens to a reply whose parent is gone.
+- **Reactions attach to posts, not comments.** The journal has per-comment reactions because a journal thread is a two-person conversation where a thumbs-up is a reply. On a public post the reaction that carries signal is the one on the post.
+
+\`emoji\` comes from the same site-wide vocabulary as journal reactions: \`+1\`, \`-1\`, \`laugh\`, \`heart\`, \`hooray\`, \`rocket\`, \`eyes\`, \`confused\`. Anything else is a 400. One row per (user, post, emoji): posting the same emoji twice removes it.
+
+Every post carries a \`commentCount\` on the list and detail payloads, maintained alongside the comments themselves so the index can show a count without a query per tile.
+
 ## Example
 
 \`\`\`bash
@@ -84,6 +110,20 @@ curl -X PATCH https://shanebackend-production.up.railway.app/api/blog/posts/on-s
 
 # Read it back with no credentials at all
 curl https://shanebackend-production.up.railway.app/api/blog/posts/on-slow-mornings
+
+# Comment on it as a different signed-in user
+curl -X POST https://shanebackend-production.up.railway.app/api/blog/posts/on-slow-mornings/comments \
+  -H "Authorization: Bearer $PAT" -H "Content-Type: application/json" \
+  -d '{"content":"This is the one that made me subscribe."}'
+# 201 {"comment":{"id":"...","content":"This is the one that made me subscribe."}}
+
+# React, then react again to take it back
+curl -X POST https://shanebackend-production.up.railway.app/api/blog/posts/on-slow-mornings/reactions \
+  -H "Authorization: Bearer $PAT" -H "Content-Type: application/json" -d '{"emoji":"heart"}'
+# 200 {"result":"added"}
+
+# Read the thread with no credentials at all
+curl https://shanebackend-production.up.railway.app/api/blog/posts/on-slow-mornings/comments
 \`\`\`
 `;
 export default body;
