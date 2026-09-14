@@ -164,14 +164,22 @@ export default async function BlogPostPage({ params }: PageProps) {
             </span>
           )}
         </div>
+        {/* SHAN-493: links, not the inert spans on the index tiles. A tile is
+            itself one big anchor, so a nested link there would be invalid HTML
+            and steal the click; here there is no enclosing anchor, and a tag on
+            the post you just read is the most natural "more like this". The
+            layout's canonical points every ?tag= variant back at /blog, so this
+            adds no indexable duplicate of the index. */}
         {post.tags.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-1.5">
             {post.tags.map((tag) => (
-              <li
-                key={tag}
-                className="rounded border border-white/10 px-2 py-0.5 text-xs text-gray-400"
-              >
-                {tag}
+              <li key={tag}>
+                <Link
+                  href={`/blog?tag=${encodeURIComponent(tag)}`}
+                  className="block rounded border border-white/10 px-2 py-0.5 text-xs text-gray-400 transition-colors hover:border-white/30 hover:text-white"
+                >
+                  {tag}
+                </Link>
               </li>
             ))}
           </ul>

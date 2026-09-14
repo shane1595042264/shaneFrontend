@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -10,6 +10,48 @@ import { PostCard } from "./post-card";
 
 const PAGE_SIZE = 24;
 const SEARCH_DEBOUNCE_MS = 300;
+// The backend's own cap on `q`. Applied when reading the URL for the same
+// reason the input carries maxLength: a too-long value becomes a truncated
+// search rather than a 400.
+const MAX_QUERY_LEN = 100;
+
+type Filter = { tag: string | null; q: string };
+
+/**
+ * SHAN-493: the filter state lives in the URL so a filtered view can be
+ * shared, bookmarked and backed out of.
+ *
+ * Read from `window.location` rather than `useSearchParams()` on purpose.
+ * /blog is a prerendered ISR route whose whole point is shipping the first
+ * page of prose in the HTML; `useSearchParams()` in a client component forces
+ * the nearest Suspense boundary to render its fallback during prerender, which
+ * would empty exactly the document crawlers read. The native history API is
+ * the supported Next 15 escape hatch and leaves the prerender untouched.
+ */
+function readFilter(): Filter {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    tag: params.get("tag")?.trim() || null,
+    q: (params.get("q") ?? "").trim().slice(0, MAX_QUERY_LEN),
+  };
+}
+
+/** Rewrites `tag`/`q` in place, leaving any other query param alone. */
+function writeFilter(tag: string | null, q: string, mode: "push" | "replace") {
+  const params = new URLSearchParams(window.location.search);
+  if (tag) params.set("tag", tag);
+  else params.delete("tag");
+  const trimmed = q.trim();
+  if (trimmed) params.set("q", trimmed);
+  else params.delete("q");
+  const qs = params.toString();
+  const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+  // Re-clicking the active tab (or "All posts" on an unfiltered index) would
+  // otherwise stack identical entries and make Back look broken.
+  if (url === `${window.location.pathname}${window.location.search}`) return;
+  if (mode === "push") window.history.pushState(null, "", url);
+  else window.history.replaceState(null, "", url);
+}
 
 // Heights are deliberately uneven so the skeleton reads as a masonry grid
 // rather than a card grid that later reflows.
@@ -37,7 +79,9 @@ interface Props {
  *
  * Tag and search filtering round-trip to the backend (`?tag=`, `?q=`) instead
  * of filtering the loaded page, so they search the whole archive rather than
- * just the first 24 posts. The tag rail is the union of every tag seen so far
+ * just the first 24 posts. Both are mirrored into the address bar as `?tag=`
+ * and `?q=` (SHAN-493), so a filtered view is shareable and Back undoes a tag
+ * rather than leaving /blog. The tag rail is the union of every tag seen so far
  * and never shrinks while you are on the page: filtering to one tag returns
  * posts carrying only that tag, and a rail rebuilt from that response would
  * collapse to a single tab with no way back.
@@ -71,6 +115,40 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
       for (const p of rows) for (const t of p.tags) merged.add(t);
       return [...merged].sort((a, b) => a.localeCompare(b));
     });
+
+  // Both entry points to a filter that came from the URL rather than a click:
+  // the mount seed and Back/Forward. `debouncedQuery` is set alongside `query`
+  // so a deep link fetches immediately instead of idling out the debounce, and
+  // the tag is pushed into the rail so the restored tab reads as selected
+  // before the filtered page lands (the rail is a union that never shrinks, so
+  // this only front-loads what mergeTags would add anyway).
+  const applyFilter = useCallback(({ tag, q }: Filter) => {
+    setActiveTag(tag);
+    setQuery(q);
+    setDebouncedQuery(q);
+    if (tag) {
+      setKnownTags((prev) =>
+        prev.includes(tag) ? prev : [...prev, tag].sort((a, b) => a.localeCompare(b)),
+      );
+    }
+  }, []);
+
+  // Seed from the URL on mount. Deliberately does NOT clear skipInitialFetch:
+  // the filter effect below still skips its own mount pass, and the re-render
+  // these setters cause re-runs it with the seeded deps. One fetch, rather than
+  // an unfiltered request racing the filtered one it was supposed to replace.
+  useEffect(() => {
+    const filter = readFilter();
+    if (filter.tag === null && filter.q === "") return;
+    applyFilter(filter);
+  }, [applyFilter]);
+
+  // Back/Forward across the entries pushed below.
+  useEffect(() => {
+    const onPopState = () => applyFilter(readFilter());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [applyFilter]);
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQuery(query.trim()), SEARCH_DEBOUNCE_MS);
@@ -160,7 +238,13 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
           <input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              // replaceState, not push: a debounced search box would otherwise
+              // bury the page the reader arrived from under one history entry
+              // per burst of typing.
+              writeFilter(activeTag, e.target.value, "replace");
+            }}
             placeholder="Search posts…"
             aria-label="Search posts"
             // 100 is the backend's own cap on `q`; enforcing it here turns a
@@ -176,7 +260,12 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
                   <li key={tab.value ?? "__all"} className="shrink-0 lg:shrink">
                     <button
                       type="button"
-                      onClick={() => setActiveTag(tab.value)}
+                      onClick={() => {
+                        setActiveTag(tab.value);
+                        // pushState: picking a tag is a destination worth a
+                        // Back entry, unlike a keystroke in the search box.
+                        writeFilter(tab.value, query, "push");
+                      }}
                       aria-current={active ? "true" : undefined}
                       className={`min-h-11 w-full whitespace-nowrap rounded-md border px-3 text-left text-sm transition-colors lg:rounded-none lg:border-0 lg:border-l-2 lg:px-3 ${
                         active
