@@ -202,6 +202,50 @@ export default async function BlogPostPage({ params }: PageProps) {
       </div>
 
       <BlogComments slug={slug} postAuthorId={post.authorId} />
+
+      {/* SHAN-495. Server-rendered rather than a client island, unlike the two
+          blocks above: this is identical for every visitor, and its whole point
+          is to be a crawlable internal link, which an effect-mounted one would
+          not be. Older on the left, newer on the right, matching the reading
+          direction of the index above it. Either side is dropped when the post
+          sits at that end of the archive; when both are, so is the nav. */}
+      {(data.prev || data.next) && (
+        <nav
+          aria-label="More posts"
+          className="mt-10 grid gap-3 border-t border-white/10 pt-6 sm:grid-cols-2"
+        >
+          {data.prev ? (
+            <Link
+              href={`/blog/${data.prev.slug}`}
+              rel="prev"
+              className="group rounded-lg border border-white/10 px-4 py-3 transition-colors hover:border-white/30"
+            >
+              <span className="block text-xs uppercase tracking-wide text-gray-400">
+                &larr; Older
+              </span>
+              <span className="mt-1 block text-sm font-medium text-gray-300 group-hover:text-white">
+                {data.prev.title}
+              </span>
+            </Link>
+          ) : (
+            <span aria-hidden="true" className="hidden sm:block" />
+          )}
+          {data.next && (
+            <Link
+              href={`/blog/${data.next.slug}`}
+              rel="next"
+              className="group rounded-lg border border-white/10 px-4 py-3 transition-colors hover:border-white/30 sm:text-right"
+            >
+              <span className="block text-xs uppercase tracking-wide text-gray-400">
+                Newer &rarr;
+              </span>
+              <span className="mt-1 block text-sm font-medium text-gray-300 group-hover:text-white">
+                {data.next.title}
+              </span>
+            </Link>
+          )}
+        </nav>
+      )}
     </main>
   );
 }

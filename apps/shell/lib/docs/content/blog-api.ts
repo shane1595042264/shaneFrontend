@@ -18,13 +18,21 @@ A post is a slug plus an append-only chain of versions, exactly like a journal e
 | Method | Path | Notes |
 |---|---|---|
 | GET | /posts | \`{posts, nextCursor}\`, newest \`publishedAt\` first, each with \`contentExcerpt\` and an \`author\` object. \`limit\` 1..100 (default 20), \`tag\` filters on the tags array, \`q\` searches title and body case-insensitively |
-| GET | /posts/:slug | \`{post, author, title, content, currentVersionNum}\` |
+| GET | /posts/:slug | \`{post, author, title, content, currentVersionNum, prev, next}\` |
 | GET | /posts/:slug/versions | \`{versions, nextCursor}\` newest first. Bodies are NOT included (versions are never pruned, so listing them would grow without bound); read one at a time below |
 | GET | /posts/:slug/versions/:num | \`{version}\` including the full body |
 
 Pagination on \`/posts\` is a keyset cursor: \`cursor\` is the previous page's last \`publishedAt\` as an ISO 8601 **datetime**. Note the contrast with the Journal API, whose cursor is an ISO **date** (\`YYYY-MM-DD\`) because entries are keyed by day. Passing a bare date here is a 400, not a silent empty page. \`nextCursor\` is null on the last page. \`/posts/:slug/versions\` pages on \`versionNum\` instead, like the journal's.
 
 Sending a valid \`Authorization\` header on any read only ever widens what you see, never narrows it: it adds your own drafts.
+
+### \`prev\` and \`next\` (SHAN-495)
+
+The single-post read carries the post's chronological neighbours so a reader can walk the archive without going back to the index. Each is \`{slug, title}\`, or \`null\` at that end of the archive; both are always present as keys, never omitted.
+
+Neighbours are ordered by \`(published_at, id)\`, and the id breaks ties, so two posts sharing a timestamp are still reachable from one another instead of both claiming the same neighbour. \`prev\` is the older post and \`next\` the newer one, which is the opposite of the list endpoint's newest-first order, so do not assume \`next\` means "the next row you would page to".
+
+Unlike the rest of this endpoint, these two fields do **not** widen for an authenticated caller: neighbours are published posts only, even when the post you asked for is your own draft. Drafts have no place in a chain a stranger can follow.
 
 ## Writes (author only)
 

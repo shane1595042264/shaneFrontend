@@ -47,12 +47,25 @@ export interface BlogPost {
   contentExcerpt: string | null;
 }
 
+/** SHAN-495: just enough to label a prev/next link, never a whole post. */
+export interface BlogPostNeighbor {
+  slug: string;
+  title: string;
+}
+
 export interface BlogPostDetail {
   post: BlogPost;
   author: BlogAuthor | null;
   title: string;
   content: string;
   currentVersionNum: number;
+  /**
+   * SHAN-495. The chronologically older and newer published posts, or null at
+   * either end of the archive. Published only, even when the post itself is a
+   * draft its author is previewing.
+   */
+  prev: BlogPostNeighbor | null;
+  next: BlogPostNeighbor | null;
 }
 
 export interface BlogPostPage {
