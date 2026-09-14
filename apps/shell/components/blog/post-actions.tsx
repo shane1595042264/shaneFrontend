@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useHydrated } from "@/lib/use-hydrated";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { deletePost } from "@/lib/api/blog";
 
@@ -20,6 +21,7 @@ import { deletePost } from "@/lib/api/blog";
 export function PostActions({ slug, authorId }: { slug: string; authorId: string }) {
   const router = useRouter();
   const { user } = useAuth();
+  const hydrated = useHydrated();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,10 @@ export function PostActions({ slug, authorId }: { slug: string; authorId: string
     return () => document.removeEventListener("keydown", onKey);
   }, [confirmOpen, deleting]);
 
-  if (!user || user.id !== authorId) return null;
+  // SHAN-492: `hydrated` keeps this island empty during its own hydration
+  // render. The post page is ISR, so the prerendered HTML never has these
+  // controls, and the auth context can resolve before this subtree hydrates.
+  if (!hydrated || !user || user.id !== authorId) return null;
 
   const confirmDelete = async () => {
     setDeleting(true);

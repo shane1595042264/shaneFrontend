@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { useHydrated } from "@/lib/use-hydrated";
 import { listPosts, type BlogPost } from "@/lib/api/blog";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { PostCard } from "./post-card";
@@ -45,7 +46,10 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
   // SHAN-487: the only entry point to the compose form. Gated on the resolved
   // user rather than on a token sitting in localStorage — a revoked token still
   // sits there and /api/auth/me answers 200 with {user: null} (SHAN-463).
+  // SHAN-492: also gated on `hydrated`, because /blog is prerendered without
+  // the link and the auth context can resolve before this subtree hydrates.
   const { user } = useAuth();
+  const hydrated = useHydrated();
   const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [knownTags, setKnownTags] = useState<string[]>(() => collectTags(initialPosts));
@@ -145,7 +149,7 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
     <div className="flex flex-col gap-8 lg:flex-row lg:gap-10">
       <aside className="lg:w-52 lg:shrink-0">
         <div className="space-y-4 lg:sticky lg:top-8">
-          {user && (
+          {hydrated && user && (
             <Link
               href="/blog/new"
               className="flex min-h-11 w-full items-center justify-center rounded-md bg-white px-3 text-sm font-medium text-black hover:bg-gray-200"
