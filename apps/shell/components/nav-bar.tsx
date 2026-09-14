@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
+import { useHydrated } from "@/lib/use-hydrated";
 import { UserMenu } from "@/components/user-menu";
 import { LoginButton } from "@/components/login-button";
 
@@ -13,6 +14,7 @@ const MOBILE_MENU_ID = "mobile-nav-menu";
 
 export function NavBar() {
   const { user, loading } = useAuth();
+  const hydrated = useHydrated();
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -68,7 +70,15 @@ export function NavBar() {
             {link.label}
           </Link>
         ))}
-        {!loading && (user ? <UserMenu user={user} /> : <LoginButton />)}
+        {/*
+          SHAN-492: `hydrated` as well as `!loading`. Every page ships this nav
+          in its prerendered HTML with this slot empty, and `loading` lives in a
+          context above the nav — it can flip to false before this tree hydrates,
+          which puts a UserMenu here that the server HTML never had and makes
+          React throw away the whole document (intermittent #418, signed in
+          only). The local flag is always false during our own hydration render.
+        */}
+        {hydrated && !loading && (user ? <UserMenu user={user} /> : <LoginButton />)}
       </div>
 
       {/* Mobile hamburger button */}
