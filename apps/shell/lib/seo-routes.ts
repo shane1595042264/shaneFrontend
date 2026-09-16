@@ -68,6 +68,22 @@ export const CRAWLER_DISALLOW: string[] = [
 ];
 
 /**
+ * Escape hatch for the build-time guard in lib/seo-routes-guard.ts, which fails
+ * the build when a page that renders a sign-in gate is still crawlable.
+ *
+ * A page belongs here only when it is genuinely public content that happens to
+ * show an inline sign-in prompt (a comment box on a public post, say) rather
+ * than an auth wall. Nothing qualifies today: `components/blog/blog-comments`
+ * is the one real instance of that pattern and it is a component, which the
+ * guard already ignores. The list exists so that the next such page has an
+ * honest way to declare itself instead of someone weakening the guard.
+ *
+ * Route paths are written the way the guard derives them: dynamic segments
+ * collapse to `*`, so /blog/[slug] would be listed as "/blog/*".
+ */
+export const PUBLIC_WITH_SIGNIN_PROMPT: string[] = [];
+
+/**
  * True when `path` is blocked for crawlers by one of the CRAWLER_DISALLOW
  * patterns. Supports the `*` wildcard used in robots patterns (matches any
  * sequence, mirroring robots.txt semantics). Non-wildcard patterns match the

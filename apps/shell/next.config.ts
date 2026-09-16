@@ -1,5 +1,13 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import { COURSE_HOST } from "./lib/course-launch-url";
+import { assertCrawlerDisallowCoverage } from "./lib/seo-routes-guard";
+
+// SHAN-497: fail the build if an auth-gated page is missing from
+// CRAWLER_DISALLOW, which would leak it into robots.txt and sitemap.xml as a
+// soft-404. This file is evaluated only by the Node build/dev process, never by
+// the serverless runtime, so the check cannot affect production requests.
+assertCrawlerDisallowCoverage(path.join(process.cwd(), "app"));
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@shane/ui", "@shane/types"],
