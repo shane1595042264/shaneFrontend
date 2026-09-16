@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -10,13 +10,60 @@ import { CourseCard } from "./course-card";
 import { AddCourseDialog } from "./add-course-dialog";
 import { CATEGORY_STYLES, categoryStyle } from "./category-styles";
 
+// Matches the blog's cap on `q` (SHAN-493). Nothing here round-trips to the
+// backend so an over-long value cannot 400, but an unbounded query string in
+// the address bar is not worth carrying either.
+const MAX_QUERY_LEN = 100;
+
+type Filter = { category: string | null; q: string };
+
+const EMPTY_FILTER: Filter = { category: null, q: "" };
+
+/**
+ * SHAN-498: the filter state lives in the URL so a filtered catalog can be
+ * shared, bookmarked and backed out of.
+ *
+ * Read from `window.location` rather than `useSearchParams()`, for the same
+ * reason blog-index.tsx does: `useSearchParams()` in a client component forces
+ * the nearest Suspense boundary to render its fallback during prerender, and
+ * /courses is prerendered. The native history API leaves the prerender alone.
+ */
+function readFilter(): Filter {
+  if (typeof window === "undefined") return EMPTY_FILTER;
+  const params = new URLSearchParams(window.location.search);
+  return {
+    category: params.get("category")?.trim() || null,
+    q: (params.get("q") ?? "").trim().slice(0, MAX_QUERY_LEN),
+  };
+}
+
+/** Rewrites `category`/`q` in place, leaving any other query param alone. */
+function writeFilter(category: string | null, q: string, mode: "push" | "replace") {
+  const params = new URLSearchParams(window.location.search);
+  if (category) params.set("category", category);
+  else params.delete("category");
+  const trimmed = q.trim();
+  if (trimmed) params.set("q", trimmed);
+  else params.delete("q");
+  const qs = params.toString();
+  const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+  // Re-clicking the active chip would otherwise stack identical entries and
+  // make Back look broken.
+  if (url === `${window.location.pathname}${window.location.search}`) return;
+  if (mode === "push") window.history.pushState(null, "", url);
+  else window.history.replaceState(null, "", url);
+}
+
 export function CoursesCatalog() {
   const { user } = useAuth();
   const router = useRouter();
   const [courses, setCourses] = useState<Course[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<string | null>(null);
+  // Seeded from the URL so a deep link arrives filtered, with no flash of the
+  // unfiltered grid. readFilter() is SSR-safe and yields the empty filter
+  // during prerender, which is what the server would have rendered anyway.
+  const [query, setQuery] = useState(() => readFilter().q);
+  const [category, setCategory] = useState<string | null>(() => readFilter().category);
   const [showAdd, setShowAdd] = useState(false);
   const deferredQuery = useDeferredValue(query);
 
@@ -30,6 +77,23 @@ export function CoursesCatalog() {
   };
 
   useEffect(load, []);
+
+  const applyFilter = useCallback(({ category: cat, q }: Filter) => {
+    setCategory(cat);
+    setQuery(q);
+  }, []);
+
+  // Back/Forward across the entries pushed by writeFilter.
+  useEffect(() => {
+    const onPopState = () => applyFilter(readFilter());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [applyFilter]);
+
+  const clearFilters = () => {
+    applyFilter(EMPTY_FILTER);
+    writeFilter(null, "", "push");
+  };
 
   const activeCategories = useMemo(() => {
     const present = new Set((courses ?? []).map((c) => c.category));
@@ -80,9 +144,15 @@ export function CoursesCatalog() {
           <input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              // replaceState, not push: one history entry per keystroke would
+              // bury the page the reader arrived from.
+              writeFilter(category, e.target.value, "replace");
+            }}
             placeholder="Search title, tags, category..."
-            className="min-h-11 w-full max-w-sm rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
+            maxLength={MAX_QUERY_LEN}
+            className="min-h-11 w-full max-w-sm rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white placeholder:text-gray-400 focus:border-white/40 focus:outline-none"
             aria-label="Search courses"
           />
           {activeCategories.length > 1 && (
@@ -93,7 +163,13 @@ export function CoursesCatalog() {
                 return (
                   <button
                     key={cat}
-                    onClick={() => setCategory(active ? null : cat)}
+                    onClick={() => {
+                      const next = active ? null : cat;
+                      setCategory(next);
+                      // pushState: picking a category is a destination worth a
+                      // Back entry, unlike a keystroke in the search box.
+                      writeFilter(next, query, "push");
+                    }}
                     className={`rounded border px-2 py-1 text-xs ${s.border} ${active ? `${s.bg} ${s.text}` : "bg-transparent text-gray-400 hover:text-gray-200"}`}
                     aria-pressed={active}
                   >
@@ -123,6 +199,22 @@ export function CoursesCatalog() {
           The catalog is empty.{" "}
           {user ? "Register the first course above." : "Courses appear here once registered."}
         </p>
+      ) : filtered.length === 0 ? (
+        // SHAN-498: a filtered-to-nothing catalog used to fall through to the
+        // grid below and render zero cards, leaving the page blank with no hint
+        // that a filter was responsible. The clear button matters more here
+        // than on the blog: the category chips only render when the catalog has
+        // more than one category, so a ?category= that matches nothing would
+        // otherwise be unclearable from the UI.
+        <div className="rounded-lg border border-white/10 bg-black/20 p-8 text-center">
+          <p className="text-sm italic text-gray-400">No courses match that filter.</p>
+          <button
+            onClick={clearFilters}
+            className="mt-4 min-h-11 rounded-md border border-white/15 px-4 text-sm text-gray-200 transition-colors hover:bg-white/5"
+          >
+            Clear filters
+          </button>
+        </div>
       ) : (
         <motion.ul
           initial="hidden"
