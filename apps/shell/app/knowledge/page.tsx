@@ -22,6 +22,60 @@ import { PracticeButton } from "@/components/practice/practice-button";
 import { ProgressChip } from "@/components/practice/progress-chip";
 import { listPracticeableItems, type PracticeableItem } from "@/lib/api/practice";
 
+// The backend's own caps on these query params (src/modules/knowledge/routes.ts).
+// Applied when reading the URL so a hand-edited or truncated link degrades into
+// a shorter filter rather than a 400.
+const MAX_SEARCH_LEN = 255;
+const MAX_CATEGORY_LEN = 100;
+const MAX_LOCATION_LEN = 120;
+
+// "" means "no filter", matching the state this page already kept.
+type Filter = { category: string; location: string; q: string };
+
+const EMPTY_FILTER: Filter = { category: "", location: "", q: "" };
+
+/**
+ * SHAN-499: the filter state lives in the URL so a filtered view can be
+ * shared, bookmarked and backed out of.
+ *
+ * Read from `window.location` rather than `useSearchParams()`, for the same
+ * reason blog-index.tsx (SHAN-493) and courses/catalog.tsx (SHAN-498) do:
+ * `useSearchParams()` in a client component forces the nearest Suspense
+ * boundary to render its fallback during prerender. The native history API
+ * leaves the prerender alone.
+ */
+function readFilter(): Filter {
+  if (typeof window === "undefined") return EMPTY_FILTER;
+  const params = new URLSearchParams(window.location.search);
+  const read = (key: string, max: number) =>
+    (params.get(key) ?? "").trim().slice(0, max);
+  return {
+    category: read("category", MAX_CATEGORY_LEN),
+    location: read("location", MAX_LOCATION_LEN),
+    q: read("q", MAX_SEARCH_LEN),
+  };
+}
+
+/** Rewrites the three filter params in place, leaving any others alone. */
+function writeFilter(filter: Filter, mode: "push" | "replace") {
+  const params = new URLSearchParams(window.location.search);
+  for (const [key, value] of [
+    ["category", filter.category],
+    ["location", filter.location],
+    ["q", filter.q.trim()],
+  ] as const) {
+    if (value) params.set(key, value);
+    else params.delete(key);
+  }
+  const qs = params.toString();
+  const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+  // Re-picking the active tab (or clearing an already-clear filter) would
+  // otherwise stack identical entries and make Back look broken.
+  if (url === `${window.location.pathname}${window.location.search}`) return;
+  if (mode === "push") window.history.pushState(null, "", url);
+  else window.history.replaceState(null, "", url);
+}
+
 export default function KnowledgePage() {
   const { user } = useAuth();
   const currentUserId = user?.id ?? null;
@@ -31,11 +85,19 @@ export default function KnowledgePage() {
   const [languages, setLanguages] = useState<string[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
+  // Read once per mount; the filters below all seed from it so a deep link
+  // arrives already filtered and fires a single, correctly-filtered request.
+  // Safe to seed into state despite the prerender: the first paint is the
+  // skeleton on both sides of hydration, so no markup depends on this.
+  const [initialFilter] = useState(readFilter);
+
+  const [selectedCategory, setSelectedCategory] = useState(initialFilter.category);
   // SHAN-485: browse by the memorization locations recorded under SHAN-339.
-  const [selectedLocation, setSelectedLocation] = useState("");
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState(initialFilter.location);
+  const [search, setSearch] = useState(initialFilter.q);
+  // Seeded alongside `search` so a deep link loads immediately instead of
+  // idling out the debounce below.
+  const [debouncedSearch, setDebouncedSearch] = useState(initialFilter.q);
   const [adding, setAdding] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
@@ -68,6 +130,33 @@ export default function KnowledgePage() {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Applies a filter that did not come from typing — a click, a clear button or
+  // Back. `debouncedSearch` is set directly rather than left to the effect
+  // above so the grid reloads at once instead of after another 300ms.
+  const applyFilter = useCallback((next: Filter) => {
+    setSelectedCategory(next.category);
+    setSelectedLocation(next.location);
+    setSearch(next.q);
+    setDebouncedSearch(next.q);
+  }, []);
+
+  // Same, plus a history entry. Every filter control except the search input
+  // goes through this: each one is a destination worth a Back entry.
+  const commitFilter = useCallback(
+    (next: Filter) => {
+      applyFilter(next);
+      writeFilter(next, "push");
+    },
+    [applyFilter]
+  );
+
+  // Back/Forward across the entries pushed by commitFilter.
+  useEffect(() => {
+    const onPopState = () => applyFilter(readFilter());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [applyFilter]);
 
   const loadEntries = useCallback(async () => {
     abortRef.current?.abort();
@@ -287,6 +376,16 @@ export default function KnowledgePage() {
   const selectedCount = selectedIds.size;
   const deletableSelectedCount = deletableSelectedIds.length;
 
+  // Base for every filter control below: each spreads this and overrides its
+  // own dimension, so changing one filter carries the other two into the URL
+  // instead of dropping them. Carries the raw `search`, not the debounced copy,
+  // so clicking a tab mid-type keeps what is already in the box.
+  const currentFilter: Filter = {
+    category: selectedCategory,
+    location: selectedLocation,
+    q: search,
+  };
+
   return (
     <div className="space-y-6 pb-24">
       {notification && (
@@ -331,20 +430,30 @@ export default function KnowledgePage() {
         <CategoryTabs
           categories={categories}
           selected={selectedCategory}
-          onSelect={setSelectedCategory}
+          onSelect={(category) => commitFilter({ ...currentFilter, category })}
         />
         <input
           type="text"
           placeholder="Search..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="px-3 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 w-40"
+          maxLength={MAX_SEARCH_LEN}
+          onChange={(e) => {
+            const q = e.target.value;
+            setSearch(q);
+            // replaceState, not push: one history entry per keystroke would
+            // bury the page the reader arrived from. debouncedSearch is left
+            // to the debounce effect so typing still coalesces into one fetch.
+            writeFilter({ ...currentFilter, q }, "replace");
+          }}
+          className="px-3 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white placeholder:text-gray-400 focus:outline-none focus:border-blue-500/50 w-40"
         />
         {locationOptions.length > 0 && (
           <select
             aria-label="Filter by memorization location"
             value={selectedLocation}
-            onChange={(e) => setSelectedLocation(e.target.value)}
+            onChange={(e) =>
+              commitFilter({ ...currentFilter, location: e.target.value })
+            }
             className={`px-3 py-1.5 bg-white/5 border rounded text-sm focus:outline-none focus:border-blue-500/50 max-w-[12rem] ${
               selectedLocation
                 ? "border-emerald-500/40 text-emerald-300"
@@ -394,14 +503,10 @@ export default function KnowledgePage() {
           search={debouncedSearch}
           category={selectedCategory}
           location={selectedLocation}
-          onClearSearch={() => setSearch("")}
-          onClearCategory={() => setSelectedCategory("")}
-          onClearLocation={() => setSelectedLocation("")}
-          onClearAll={() => {
-            setSearch("");
-            setSelectedCategory("");
-            setSelectedLocation("");
-          }}
+          onClearSearch={() => commitFilter({ ...currentFilter, q: "" })}
+          onClearCategory={() => commitFilter({ ...currentFilter, category: "" })}
+          onClearLocation={() => commitFilter({ ...currentFilter, location: "" })}
+          onClearAll={() => commitFilter(EMPTY_FILTER)}
         />
       ) : (
         <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
@@ -417,7 +522,9 @@ export default function KnowledgePage() {
               editMode={editMode}
               selected={selectedIds.has(entry.id)}
               onToggleSelect={toggleSelectAt}
-              onSelectLocation={setSelectedLocation}
+              onSelectLocation={(location) =>
+                commitFilter({ ...currentFilter, location })
+              }
               actions={
                 <>
                   <PracticeButton itemId={entry.id} itemName={entry.word} />
