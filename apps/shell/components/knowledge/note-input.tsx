@@ -90,12 +90,14 @@ export function NoteInput({
             onSubmit={submitAi}
           />
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-gray-400">
               Ctrl+Enter to submit. Paste or drop images to embed them.
             </p>
             <button
               type="submit"
               disabled={loading || !text.trim()}
+              // contrast-exempt: the shade sits on disabled:bg-gray-700, not on the page
+              // background, and WCAG 1.4.3 exempts inactive user interface components.
               className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm rounded transition-colors whitespace-nowrap"
             >
               {loading ? "Thinking..." : "Add Note"}
@@ -145,12 +147,14 @@ export function NoteInput({
             />
           </div>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-gray-400">
               Ctrl+Enter in the note to submit. Category defaults to “general”.
             </p>
             <button
               type="submit"
               disabled={loading || !word.trim()}
+              // contrast-exempt: the shade sits on disabled:bg-gray-700, not on the page
+              // background, and WCAG 1.4.3 exempts inactive user interface components.
               className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm rounded transition-colors whitespace-nowrap"
             >
               {loading ? "Adding..." : "Add Card"}

@@ -156,14 +156,14 @@ export default async function TripPage({ params }: PageProps) {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-sm">
             <Link href="/trips" className="text-gray-400 hover:text-gray-300">← Trips</Link>
-            <span className="text-gray-600">/</span>
+            <span className="text-gray-400">/</span>
             <span className="font-medium text-white">{trip.title || trip.slug}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-400">
               <RelativeTime iso={trip.createdAt} />
               {" · "}
-              {trip.ownerName ?? <span className="italic text-gray-600">Anonymous</span>}
+              {trip.ownerName ?? <span className="italic text-gray-400">Anonymous</span>}
               {wasMateriallyEdited(trip.createdAt, trip.updatedAt) && (
                 <>
                   {" · edited "}

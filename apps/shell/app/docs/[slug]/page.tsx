@@ -75,7 +75,7 @@ function headingComponents(headings: DocHeading[]): Components {
           <a
             href={`#${id}`}
             aria-label="Link to this section"
-            className="ml-2 text-gray-600 no-underline opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 hover:text-gray-300"
+            className="ml-2 text-gray-400 no-underline opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 hover:text-gray-300"
           >
             #
           </a>

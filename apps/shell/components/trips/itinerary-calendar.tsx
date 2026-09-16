@@ -130,7 +130,7 @@ export function ItineraryCalendar({
           ))}
 
           {/* all-day band (untimed activities) */}
-          <div className="border-b border-white/10 px-1 py-1 text-right text-[9px] uppercase tracking-wide text-gray-600">
+          <div className="border-b border-white/10 px-1 py-1 text-right text-[9px] uppercase tracking-wide text-gray-400">
             all day
           </div>
           {days.map((d) => {
@@ -159,7 +159,7 @@ export function ItineraryCalendar({
               <div
                 key={h}
                 style={{ height: HOUR_PX }}
-                className="pr-1 text-right text-[9px] leading-3 text-gray-600"
+                className="pr-1 text-right text-[9px] leading-3 text-gray-400"
               >
                 {String(h).padStart(2, "0")}:00
               </div>

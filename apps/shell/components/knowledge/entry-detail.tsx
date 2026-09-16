@@ -458,7 +458,7 @@ export function EntryDetail({
           )}
 
           {connections.length === 0 ? (
-            <p className="text-xs text-gray-600">No connections yet.</p>
+            <p className="text-xs text-gray-400">No connections yet.</p>
           ) : (
             <div className="space-y-2">
               {connections.map((conn) => {
@@ -480,14 +480,14 @@ export function EntryDetail({
                         {isFrom ? "\u2192" : "\u2190"}{" "}
                         {otherEntry?.word || "Unknown"}
                       </span>
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-gray-400">
                         ({otherEntry?.language})
                       </span>
                     </div>
                     <button
                       onClick={() => handleDeleteConnection(conn.id)}
                       aria-label="Delete connection"
-                      className="text-xs text-gray-600 hover:text-red-400"
+                      className="text-xs text-gray-400 hover:text-red-400"
                     >
                       &times;
                     </button>

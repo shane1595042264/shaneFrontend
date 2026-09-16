@@ -135,7 +135,7 @@ export function VocabRunner({ session, cards }: { session: Session; cards: Vocab
         )}
       </main>
 
-      <footer className="border-t border-white/10 px-4 py-2 text-center text-[11px] text-gray-600">
+      <footer className="border-t border-white/10 px-4 py-2 text-center text-[11px] text-gray-400">
         Space reveal · ← / J don&apos;t remember · → / K remember · Esc end
       </footer>
     </div>

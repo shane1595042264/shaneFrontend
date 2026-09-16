@@ -76,7 +76,7 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
     <div className="mb-4">
       <div className="flex items-center gap-2 mb-1">
         <h3 className="text-xs text-gray-400 uppercase">Memorization Locations</h3>
-        <span className="text-xs text-gray-600">
+        <span className="text-xs text-gray-400">
           {Math.min(current.length, LONG_TERM_THRESHOLD)}/{LONG_TERM_THRESHOLD}
         </span>
         {entry.longTermMemorized && (
@@ -109,7 +109,7 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
           ))}
         </div>
       ) : (
-        <p className="text-xs text-gray-600 mb-2">
+        <p className="text-xs text-gray-400 mb-2">
           {canEdit
             ? "Practice this card somewhere, then mark the location here."
             : "No locations marked yet."}

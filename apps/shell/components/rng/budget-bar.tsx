@@ -87,7 +87,7 @@ export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProp
   const [manualBalance, setManualBalance] = useState("");
   const [manualSpend, setManualSpend] = useState("");
 
-  if (!budget) return <div className="text-gray-600 text-sm">Loading budget...</div>;
+  if (!budget) return <div className="text-gray-400 text-sm">Loading budget...</div>;
 
   if (!budget.connected && !editing) {
     return (
@@ -180,7 +180,7 @@ export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProp
       </div>
       <button
         onClick={() => setEditing(true)}
-        className="mt-2 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+        className="mt-2 text-xs text-gray-400 hover:text-gray-200 transition-colors"
       >
         Override manually
       </button>

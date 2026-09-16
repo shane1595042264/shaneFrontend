@@ -36,7 +36,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
               placeholder="Product name (e.g., Nintendo Switch)"
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500"
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-400 focus:outline-none focus:border-orange-500"
               disabled={loading}
             />
             <div className="flex gap-2">
@@ -46,7 +46,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="Price"
-                className="flex-1 sm:flex-none sm:w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500"
+                className="flex-1 sm:flex-none sm:w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-400 focus:outline-none focus:border-orange-500"
                 disabled={loading}
               />
               <button
@@ -84,7 +84,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="Paste a product link..."
-          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500"
+          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-400 focus:outline-none focus:border-orange-500"
           disabled={loading}
         />
         <button

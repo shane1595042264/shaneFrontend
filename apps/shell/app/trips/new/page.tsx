@@ -127,7 +127,7 @@ export default function NewTripPage() {
 
       <div className="mt-6">
         <label htmlFor="title-override" className="mb-1 block text-sm text-gray-400">
-          Title <span className="text-gray-600">(optional — overrides what we extract)</span>
+          Title <span className="text-gray-400">(optional — overrides what we extract)</span>
         </label>
         <input
           id="title-override"

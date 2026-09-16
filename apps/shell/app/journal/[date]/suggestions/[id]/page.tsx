@@ -291,7 +291,7 @@ export default function SuggestionDetailPage() {
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Reason (optional)"
               disabled={busy}
-              className="h-24 w-full resize-y rounded border border-white/10 bg-black/40 p-2 text-sm text-white/90 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 disabled:opacity-50"
+              className="h-24 w-full resize-y rounded border border-white/10 bg-black/40 p-2 text-sm text-white/90 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/50 disabled:opacity-50"
             />
             {rejectError && (
               <p role="alert" className="mt-3 text-sm text-red-400">{rejectError}</p>

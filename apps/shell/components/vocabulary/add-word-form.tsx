@@ -62,6 +62,8 @@ export function AddWordForm({ onSubmit, loading }: AddWordFormProps) {
       <button
         type="submit"
         disabled={loading || !word.trim()}
+        // contrast-exempt: the shade sits on disabled:bg-gray-700, not on the page
+        // background, and WCAG 1.4.3 exempts inactive user interface components.
         className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm rounded transition-colors"
       >
         {loading ? "Adding..." : "Add"}

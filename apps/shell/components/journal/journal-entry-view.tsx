@@ -274,7 +274,9 @@ export function JournalEntryView({ date, sidebar }: Props) {
 
           <ShareActions date={data.entry.date} formattedDate={formatDate(data.entry.date)} />
 
-          {/* Print-only canonical URL footer (so a printed/PDF page is self-attributing) */}
+          {/* Print-only canonical URL footer (so a printed/PDF page is self-attributing).
+              contrast-exempt: print:block means this shade lands on white paper,
+              where gray-600 is 7.6:1, not on the site's near-black background. */}
           <p className="hidden print:block mt-8 pt-4 border-t border-gray-300 text-xs text-gray-600">
             {entryUrl}
           </p>

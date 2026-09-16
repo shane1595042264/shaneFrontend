@@ -140,7 +140,7 @@ export default function EditTeaEntryPage() {
           onChange={(e) => setTitle(e.target.value)}
           maxLength={200}
           placeholder="A short label only you see in your list"
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-white/30 focus:outline-none"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-white/30 focus:outline-none"
         />
       </label>
 
@@ -155,7 +155,7 @@ export default function EditTeaEntryPage() {
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             placeholder="••••"
-            className="w-28 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-center font-mono text-base tracking-[0.4em] text-white placeholder:text-gray-600 focus:border-white/30 focus:outline-none"
+            className="w-28 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-center font-mono text-base tracking-[0.4em] text-white placeholder:text-gray-400 focus:border-white/30 focus:outline-none"
             aria-label="4-digit PIN"
             required
           />

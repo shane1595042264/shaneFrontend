@@ -20,7 +20,7 @@ export function PageToc({ entries }: { entries: TocEntry[] }) {
       aria-label="Table of contents"
       className="hidden lg:sticky lg:top-6 lg:block lg:self-start"
     >
-      <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-gray-600">
+      <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-gray-400">
         Contents
       </p>
       <ul className="space-y-1 border-l border-white/10">

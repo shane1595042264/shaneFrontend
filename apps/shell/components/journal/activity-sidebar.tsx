@@ -232,7 +232,7 @@ export async function ActivitySidebar({ date }: Props) {
                 <span className="mr-1">{SOURCE_ICONS[source] ?? "•"}</span>
                 {SOURCE_LABELS[source] ?? source}
               </span>
-              <span className="text-gray-600">{countLabel}</span>
+              <span className="text-gray-400">{countLabel}</span>
             </div>
             <ul className="space-y-1">
               {rows.slice(0, 8).map((r) => (
@@ -254,7 +254,7 @@ export async function ActivitySidebar({ date }: Props) {
               {rows.length > 8 && (
                 <li>
                   <details className="group">
-                    <summary className="cursor-pointer list-none text-xs italic text-gray-600 hover:text-gray-400 [&::-webkit-details-marker]:hidden">
+                    <summary className="cursor-pointer list-none text-xs italic text-gray-400 hover:text-gray-200 [&::-webkit-details-marker]:hidden">
                       <span className="group-open:hidden">…and {rows.length - 8} more</span>
                       <span className="hidden group-open:inline">show less</span>
                     </summary>
@@ -280,7 +280,7 @@ export async function ActivitySidebar({ date }: Props) {
                 </li>
               )}
               {footer && (
-                <li className="text-xs italic leading-snug text-gray-600">{footer}</li>
+                <li className="text-xs italic leading-snug text-gray-400">{footer}</li>
               )}
             </ul>
           </div>

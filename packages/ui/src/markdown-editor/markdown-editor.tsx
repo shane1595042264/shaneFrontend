@@ -419,7 +419,7 @@ export function MarkdownEditor({
             placeholder={placeholder}
             autoFocus={autoFocus}
             spellCheck={true}
-            className="block w-full resize-y rounded-b border border-white/10 bg-black/20 p-3 font-mono text-base text-white/90 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 md:text-sm"
+            className="block w-full resize-y rounded-b border border-white/10 bg-black/20 p-3 font-mono text-base text-white/90 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/50 md:text-sm"
             style={{ minHeight }}
           />
           {(uploadsInFlight > 0 || uploadError) && (

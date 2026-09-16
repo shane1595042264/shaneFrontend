@@ -305,7 +305,7 @@ export function WordDetail({
           )}
 
           {connections.length === 0 ? (
-            <p className="text-xs text-gray-600">No connections yet.</p>
+            <p className="text-xs text-gray-400">No connections yet.</p>
           ) : (
             <div className="space-y-2">
               {connections.map((conn) => {
@@ -327,14 +327,14 @@ export function WordDetail({
                         {isFrom ? "\u2192" : "\u2190"}{" "}
                         {otherWord?.word || "Unknown"}
                       </span>
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-gray-400">
                         ({otherWord?.language})
                       </span>
                     </div>
                     <button
                       onClick={() => handleDeleteConnection(conn.id)}
                       aria-label="Delete connection"
-                      className="text-xs text-gray-600 hover:text-red-400"
+                      className="text-xs text-gray-400 hover:text-red-400"
                     >
                       &times;
                     </button>

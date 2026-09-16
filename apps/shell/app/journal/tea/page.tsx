@@ -119,7 +119,7 @@ function TeaEntriesIndexContent() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tea entries"
             aria-label="Search tea entries"
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-white/30 focus:outline-none"
+            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-white/30 focus:outline-none"
           />
           {isFiltering && filtered !== null && (
             <p className="mt-2 text-xs text-gray-400" aria-live="polite">
@@ -179,7 +179,7 @@ function TeaEntriesIndexContent() {
                       )}
                     </p>
                   </div>
-                  <span className="mt-1 shrink-0 text-xs text-gray-600">→</span>
+                  <span className="mt-1 shrink-0 text-xs text-gray-400">→</span>
                 </Link>
               </li>
             );

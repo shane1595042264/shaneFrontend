@@ -321,7 +321,7 @@ export default function JournalAccessPage() {
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
             placeholder="someone@gmail.com"
-            className="min-h-9 flex-1 rounded-md border border-white/15 bg-transparent px-3 text-sm placeholder:text-gray-500 focus:border-white/40 focus:outline-none"
+            className="min-h-9 flex-1 rounded-md border border-white/15 bg-transparent px-3 text-sm placeholder:text-gray-400 focus:border-white/40 focus:outline-none"
           />
           <button
             type="submit"

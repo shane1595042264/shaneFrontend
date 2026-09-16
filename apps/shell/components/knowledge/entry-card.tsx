@@ -111,8 +111,8 @@ export function EntryCard({
           aria-label={deleting ? "Deleting entry" : "Delete entry"}
           className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-xs ${
             deleting
-              ? "text-gray-600 cursor-not-allowed"
-              : "text-gray-600 hover:text-red-400"
+              ? "text-gray-400 cursor-not-allowed"
+              : "text-gray-400 hover:text-red-400"
           }`}
         >
           {deleting ? "..." : "\u00d7"}

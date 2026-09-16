@@ -138,13 +138,13 @@ function ScoreboardContent() {
         />
       )}
 
-      <footer className="mt-16 border-t border-white/10 pt-4 text-xs text-gray-600">
+      <footer className="mt-16 border-t border-white/10 pt-4 text-xs text-gray-400">
         Game art by{" "}
         <a
           href="https://game-icons.net"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline hover:text-gray-400"
+          className="underline hover:text-gray-200"
         >
           game-icons.net
         </a>{" "}

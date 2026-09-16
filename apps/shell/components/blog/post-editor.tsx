@@ -219,7 +219,7 @@ export function PostEditor({ existing }: Props) {
         onChange={(e) => setTitle(e.target.value)}
         maxLength={MAX_TITLE}
         placeholder="What is this one called?"
-        className="mt-1 mb-5 min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 text-lg text-white placeholder:text-gray-500 focus:border-white/40 focus:outline-none"
+        className="mt-1 mb-5 min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 text-lg text-white placeholder:text-gray-400 focus:border-white/40 focus:outline-none"
       />
 
       <MarkdownEditor
@@ -245,7 +245,7 @@ export function PostEditor({ existing }: Props) {
             onChange={(e) => setTagInput(e.target.value)}
             placeholder="essays, rust, travel"
             aria-describedby="post-tags-hint"
-            className="mt-1 min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white placeholder:text-gray-500 focus:border-white/40 focus:outline-none"
+            className="mt-1 min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white placeholder:text-gray-400 focus:border-white/40 focus:outline-none"
           />
           <p id="post-tags-hint" className="mt-1 text-xs text-gray-400">
             Comma separated, up to {MAX_TAGS}. They become the tabs on the blog index.

@@ -145,7 +145,7 @@ function GroupsIndex() {
                   {g.ideaCount} {g.ideaCount === 1 ? "idea" : "ideas"}
                   {g.isOwner && <span className="ml-2 rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] text-blue-300">owner</span>}
                 </p>
-                <p className="mt-2 font-mono text-[11px] text-gray-600">/trips/groups/{g.slug}</p>
+                <p className="mt-2 font-mono text-[11px] text-gray-400">/trips/groups/{g.slug}</p>
               </Link>
             </li>
           ))}

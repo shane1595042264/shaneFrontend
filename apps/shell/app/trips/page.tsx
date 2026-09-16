@@ -87,7 +87,7 @@ export default async function TripsIndexPage() {
                 <p className="mt-1 text-xs text-gray-400">
                   <RelativeTime iso={t.createdAt} />
                   {" · "}
-                  {t.ownerName ?? <span className="italic text-gray-600">Anonymous</span>}
+                  {t.ownerName ?? <span className="italic text-gray-400">Anonymous</span>}
                   {wasMateriallyEdited(t.createdAt, t.updatedAt) && (
                     <>
                       {" · edited "}
@@ -95,7 +95,7 @@ export default async function TripsIndexPage() {
                     </>
                   )}
                 </p>
-                <p className="mt-2 font-mono text-[11px] text-gray-600">/trips/{t.slug}</p>
+                <p className="mt-2 font-mono text-[11px] text-gray-400">/trips/{t.slug}</p>
               </Link>
             </li>
           ))}

@@ -62,9 +62,9 @@ function HistoryItem({ decision }: { decision: Decision }) {
         </span>
         <RelativeTime
           iso={decision.createdAt}
-          className="hidden sm:inline text-xs text-gray-600 flex-shrink-0"
+          className="hidden sm:inline text-xs text-gray-400 flex-shrink-0"
         />
-        <span className="text-gray-600 text-xs flex-shrink-0">{expanded ? "▴" : "▾"}</span>
+        <span className="text-gray-400 text-xs flex-shrink-0">{expanded ? "▴" : "▾"}</span>
       </button>
 
       {/* Expanded details */}
@@ -167,7 +167,7 @@ export function HistoryList({ decisions }: { decisions: Decision[] }) {
     return (
       <div>
         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">History</h3>
-        <p className="text-gray-600 text-sm">No decisions yet.</p>
+        <p className="text-gray-400 text-sm">No decisions yet.</p>
       </div>
     );
   }

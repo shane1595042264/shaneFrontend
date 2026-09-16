@@ -5,7 +5,7 @@ export default function TripDetailLoading() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-3.5 w-16 rounded bg-white/8 animate-pulse" />
-            <span className="text-gray-600">/</span>
+            <span className="text-gray-400">/</span>
             <div className="h-3.5 w-48 rounded bg-white/8 animate-pulse" />
           </div>
           <div className="flex items-center gap-3">

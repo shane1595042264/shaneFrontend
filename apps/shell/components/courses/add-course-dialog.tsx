@@ -55,7 +55,7 @@ export function AddCourseDialog({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://supermassive-courses-production.up.railway.app/courses/..."
-            className="min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
+            className="min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white placeholder:text-gray-400 focus:border-white/40 focus:outline-none"
             autoFocus
           />
         </label>

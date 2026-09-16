@@ -221,7 +221,7 @@ function TodoSection({
                 {item.text}
               </span>
               {item.addedBy && (
-                <span className="text-[10px] text-gray-600">— {item.addedBy}</span>
+                <span className="text-[10px] text-gray-400">— {item.addedBy}</span>
               )}
             </label>
             <button
@@ -229,7 +229,7 @@ function TodoSection({
               onClick={() => onSaveItems(section.items.filter((i) => i.id !== item.id))}
               disabled={saving}
               aria-label={`Remove ${item.text}`}
-              className="shrink-0 text-xs text-gray-600 hover:text-red-300 disabled:opacity-50"
+              className="shrink-0 text-xs text-gray-400 hover:text-red-300 disabled:opacity-50"
             >
               ×
             </button>

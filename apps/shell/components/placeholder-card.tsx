@@ -41,7 +41,7 @@ export function PlaceholderCard({ element, dimmed }: PlaceholderCardProps) {
         <span aria-hidden="true" className="text-xs md:text-sm font-semibold text-gray-400 leading-none">
           {element.symbol}
         </span>
-        <span aria-hidden="true" className="text-[6px] md:text-[8px] text-gray-600 truncate w-full text-center leading-none">
+        <span aria-hidden="true" className="text-[6px] md:text-[8px] text-gray-400 truncate w-full text-center leading-none">
           {element.name}
         </span>
       </motion.div>

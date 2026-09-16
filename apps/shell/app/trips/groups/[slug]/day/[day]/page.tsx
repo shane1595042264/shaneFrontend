@@ -336,7 +336,7 @@ function DayDetail() {
                       : `Arm swap for ${row.activity.title}`
                 }
                 title={swapArm === null ? "Tap to swap with another activity (or drag)" : "Tap to swap here"}
-                className={`shrink-0 cursor-grab rounded px-1 pt-1 text-sm leading-none ${swapArm === row.actIdx ? "text-blue-300" : "text-gray-600 hover:text-gray-300"}`}
+                className={`shrink-0 cursor-grab rounded px-1 pt-1 text-sm leading-none ${swapArm === row.actIdx ? "text-blue-300" : "text-gray-400 hover:text-gray-300"}`}
               >
                 ⇅
               </button>

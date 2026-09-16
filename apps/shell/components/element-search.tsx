@@ -171,7 +171,7 @@ export function ElementSearch({
             showList && activeId ? `${listId}-${activeId}` : undefined
           }
           autoComplete="off"
-          className="min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 pr-9 text-sm text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
+          className="min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 pr-9 text-sm text-white placeholder:text-gray-400 focus:border-white/40 focus:outline-none"
         />
         {hasQuery ? (
           <button

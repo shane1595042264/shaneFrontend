@@ -163,12 +163,12 @@ export default function VocabularyPage() {
         onSearchChange={setSearch}
       />
 
-      <div className="text-xs text-gray-600">
+      <div className="text-xs text-gray-400">
         {words.length} word{words.length !== 1 ? "s" : ""}
       </div>
 
       {words.length === 0 && !initError ? (
-        <div className="text-center py-16 text-gray-600">
+        <div className="text-center py-16 text-gray-400">
           <p className="text-lg mb-2">No words yet</p>
           <p className="text-sm">
             Add your first vocabulary word above. AI will auto-generate

@@ -489,7 +489,7 @@ export default function KnowledgePage() {
         </div>
       </div>
 
-      <div className="text-xs text-gray-600">
+      <div className="text-xs text-gray-400">
         {entries.length} entr{entries.length !== 1 ? "ies" : "y"}
         {editMode && (
           <span className="ml-3 text-gray-400">
@@ -716,7 +716,7 @@ function EmptyState({
 
   if (active.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-600">
+      <div className="text-center py-16 text-gray-400">
         <p className="text-lg mb-2">No knowledge entries yet</p>
         <p className="text-sm">
           Type anything you learned above. AI will classify it into the right
@@ -727,7 +727,7 @@ function EmptyState({
   }
 
   return (
-    <div className="text-center py-16 text-gray-600">
+    <div className="text-center py-16 text-gray-400">
       <p className="text-lg mb-4">
         No entries match {joinWithAnd(active.map((f) => f.label))}
       </p>
