@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { updateCourse, type Course, type CourseDifficulty } from "@/lib/api/courses";
 import { CATEGORY_STYLES } from "./category-styles";
+import { useEscapeKey } from "@/lib/use-escape-key";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 export function EditCourseDialog({
@@ -31,6 +32,7 @@ export function EditCourseDialog({
 
   // Before the early return: hooks must run on every render.
   useScrollLock(open);
+  useEscapeKey(onClose, open && !submitting);
 
   if (!open) return null;
 
@@ -68,14 +70,16 @@ export function EditCourseDialog({
     "min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white focus:border-white/40 focus:outline-none";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <FocusTrappedDiv
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && !submitting) onClose();
-        }}
-        className="max-h-[90vh] w-full max-w-lg space-y-3 overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-gray-950 p-5"
-      >
-        <h2 className="text-lg font-semibold text-white">Edit course</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-course-heading"
+    >
+      <FocusTrappedDiv className="max-h-[90vh] w-full max-w-lg space-y-3 overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-gray-950 p-5">
+        <h2 id="edit-course-heading" className="text-lg font-semibold text-white">
+          Edit course
+        </h2>
         <label className="block space-y-1">
           <span className="text-xs text-gray-400">Title</span>
           <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} className={inputCls} />

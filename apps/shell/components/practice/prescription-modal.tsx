@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { upsertPrescription } from "@/lib/api/practice";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { useEscapeKey } from "@/lib/use-escape-key";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface Props {
@@ -20,6 +21,7 @@ export function PrescriptionModal({ itemId, itemName, onSaved, onCancel }: Props
   const [error, setError] = useState<string | null>(null);
 
   useScrollLock();
+  useEscapeKey(onCancel, !saving);
 
   const save = async () => {
     setSaving(true);

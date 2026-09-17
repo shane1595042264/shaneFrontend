@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { createCourse, type Course } from "@/lib/api/courses";
+import { useEscapeKey } from "@/lib/use-escape-key";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 export function AddCourseDialog({
@@ -21,6 +22,7 @@ export function AddCourseDialog({
 
   // Before the early return: hooks must run on every render.
   useScrollLock(open);
+  useEscapeKey(onClose, open && !submitting);
 
   if (!open) return null;
 
@@ -44,14 +46,16 @@ export function AddCourseDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <FocusTrappedDiv
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && !submitting) onClose();
-        }}
-        className="w-full max-w-md space-y-4 rounded-lg border border-white/15 bg-gray-950 p-5"
-      >
-        <h2 className="text-lg font-semibold text-white">Add a course</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-course-heading"
+    >
+      <FocusTrappedDiv className="w-full max-w-md space-y-4 rounded-lg border border-white/15 bg-gray-950 p-5">
+        <h2 id="add-course-heading" className="text-lg font-semibold text-white">
+          Add a course
+        </h2>
         <label className="block space-y-1">
           <span className="text-xs text-gray-400">Course URL</span>
           <input

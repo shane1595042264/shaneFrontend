@@ -2,6 +2,8 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import type { TripItinerary, ItineraryActivity, ItineraryDay } from "@/lib/api/trip-groups";
+import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { useEscapeKey } from "@/lib/use-escape-key";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 /**
@@ -241,6 +243,7 @@ function EventEditor({
 
   // Before the early return: hooks must run on every render.
   useScrollLock();
+  useEscapeKey(onClose, !saving);
 
   if (!day || !activity) return null;
 
@@ -281,7 +284,7 @@ function EventEditor({
       aria-label="Edit activity"
       onClick={onClose}
     >
-      <div
+      <FocusTrappedDiv
         className="w-full max-w-sm rounded-lg border border-white/15 bg-neutral-900 p-4"
         onClick={(e) => e.stopPropagation()}
       >
@@ -356,7 +359,7 @@ function EventEditor({
             </button>
           </div>
         )}
-      </div>
+      </FocusTrappedDiv>
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { StarRating } from "./star-rating";
 import { EditCourseDialog } from "./edit-course-dialog";
 import { CourseCommentsThread } from "./comments-thread";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { useEscapeKey } from "@/lib/use-escape-key";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 export function CourseInteractive({ initialCourse }: { initialCourse: Course }) {
@@ -31,8 +32,9 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
   const [toast, setToast] = useState<string | null>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  useScrollLock(showDelete);
   const [adminBusy, setAdminBusy] = useState<string | null>(null);
+  useScrollLock(showDelete);
+  useEscapeKey(() => setShowDelete(false), showDelete && adminBusy !== "delete");
 
   const isOwner = !!user && user.id === course.ownerId;
   const style = categoryStyle(course.category);
@@ -297,9 +299,14 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
       )}
 
       {showDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="course-delete-prompt"
+        >
           <FocusTrappedDiv className="w-full max-w-sm space-y-4 rounded-lg border border-white/15 bg-gray-950 p-5">
-            <p className="text-sm text-gray-200">
+            <p id="course-delete-prompt" className="text-sm text-gray-200">
               Delete &quot;{course.title}&quot;? Ratings and comments go with it.
             </p>
             <div className="flex justify-end gap-3">
