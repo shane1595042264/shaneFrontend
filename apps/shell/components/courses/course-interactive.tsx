@@ -22,10 +22,19 @@ import { EditCourseDialog } from "./edit-course-dialog";
 import { CourseCommentsThread } from "./comments-thread";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useEscapeKey } from "@/lib/use-escape-key";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 export function CourseInteractive({ initialCourse }: { initialCourse: Course }) {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const hydrated = useHydrated();
+  // SHAN-504: the page is server-rendered signed out, so every auth-dependent
+  // node below has to be absent from this component's own hydration render.
+  // `canRate` alone swaps each star from a <span> to a <button>, and the auth
+  // context can resolve between the provider committing and this subtree
+  // hydrating, which client-rendered the whole subtree (React #418). See
+  // lib/use-hydrated.ts.
+  const user = hydrated ? authUser : null;
   const router = useRouter();
   const [course, setCourse] = useState(initialCourse);
   const [ratingBusy, setRatingBusy] = useState(false);

@@ -16,6 +16,7 @@ import {
 import { uploadImage } from "@/lib/api/images";
 import { RelativeTime } from "@/lib/format-time";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface Props {
@@ -27,7 +28,11 @@ interface Props {
 // same UX, pointed at the courses comments API. canDelete extends to the
 // course owner instead of the knowledge entry author.
 export function CourseCommentsThread({ courseId, courseOwnerId }: Props) {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const hydrated = useHydrated();
+  // SHAN-504: the composer branch below is server-rendered signed out, so it
+  // must stay signed out through this component's own hydration render.
+  const user = hydrated ? authUser : null;
   const [comments, setComments] = useState<CourseComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");

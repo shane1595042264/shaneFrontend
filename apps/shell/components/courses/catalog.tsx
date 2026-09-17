@@ -4,6 +4,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "rea
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useHydrated } from "@/lib/use-hydrated";
 import { listCourses, type Course } from "@/lib/api/courses";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { CourseCard } from "./course-card";
@@ -55,7 +56,11 @@ function writeFilter(category: string | null, q: string, mode: "push" | "replace
 }
 
 export function CoursesCatalog() {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const hydrated = useHydrated();
+  // SHAN-504: same gate as the detail page. "+ Add course" is server-rendered
+  // absent, so it cannot appear during this component's hydration render.
+  const user = hydrated ? authUser : null;
   const router = useRouter();
   const [courses, setCourses] = useState<Course[] | null>(null);
   const [error, setError] = useState<string | null>(null);
