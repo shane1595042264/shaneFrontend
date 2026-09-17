@@ -8,6 +8,7 @@ import { RelativeTime } from "@/lib/format-time";
 import { useAuth } from "@/lib/auth-context";
 import { uploadImage } from "@/lib/api/images";
 import { deleteAppend, editAppend, type JournalAppend } from "@/lib/api/journal";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface Props {
   date: string;
@@ -34,6 +35,7 @@ export function EntryAppends({ date, appends, onEdited, onDeleted }: Props) {
   const [editUploading, setEditUploading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  useScrollLock(!!deleteConfirmId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 

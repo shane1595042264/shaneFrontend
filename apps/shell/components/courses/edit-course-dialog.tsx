@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { updateCourse, type Course, type CourseDifficulty } from "@/lib/api/courses";
 import { CATEGORY_STYLES } from "./category-styles";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 export function EditCourseDialog({
   open,
@@ -27,6 +28,9 @@ export function EditCourseDialog({
   const [url, setUrl] = useState(course.url);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Before the early return: hooks must run on every render.
+  useScrollLock(open);
 
   if (!open) return null;
 
@@ -69,7 +73,7 @@ export function EditCourseDialog({
         onKeyDown={(e) => {
           if (e.key === "Escape" && !submitting) onClose();
         }}
-        className="max-h-[90vh] w-full max-w-lg space-y-3 overflow-y-auto rounded-lg border border-white/15 bg-gray-950 p-5"
+        className="max-h-[90vh] w-full max-w-lg space-y-3 overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-gray-950 p-5"
       >
         <h2 className="text-lg font-semibold text-white">Edit course</h2>
         <label className="block space-y-1">

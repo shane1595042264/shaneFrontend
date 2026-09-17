@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { deletePost } from "@/lib/api/blog";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 /**
  * SHAN-487. Author-only controls on the post page.
@@ -23,6 +24,7 @@ export function PostActions({ slug, authorId }: { slug: string; authorId: string
   const { user } = useAuth();
   const hydrated = useHydrated();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  useScrollLock(confirmOpen);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { deleteEntry } from "@/lib/api/journal";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface Props {
   date: string;
@@ -14,6 +15,7 @@ interface Props {
 export function EntryActions({ date, authorId }: Props) {
   const { user, loading } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  useScrollLock(confirmOpen);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isAuthor = !loading && user && user.id === authorId;

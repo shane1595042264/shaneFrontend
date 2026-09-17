@@ -15,6 +15,7 @@ import {
   type PostWrite,
   type VersionConflict,
 } from "@/lib/api/blog";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 // Backend caps: tags max 10 at 40 chars each, title 200.
 const MAX_TAGS = 10;
@@ -73,6 +74,7 @@ export function PostEditor({ existing }: Props) {
   // instead of a bare "save failed".
   const [conflictAt, setConflictAt] = useState<number | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
+  useScrollLock(discardOpen);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   // Flipped right before an in-app navigation so the unload guard below does
   // not fire on our own router.push.

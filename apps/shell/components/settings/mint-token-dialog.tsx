@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { mintToken } from "@/lib/api/tokens";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 const SCOPE_OPTIONS = [
   { value: "entries:write", label: "entries:write — create/edit journal entries" },
@@ -24,6 +25,7 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
 
   const dismissable = raw === null && !saving;
   const containerRef = useFocusTrap<HTMLDivElement>();
+  useScrollLock();
 
   useEffect(() => {
     if (!dismissable) return;

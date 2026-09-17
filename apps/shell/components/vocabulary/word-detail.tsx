@@ -9,6 +9,7 @@ import {
   createConnection,
 } from "@/lib/vocabulary-api";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface WordDetailProps {
   wordId: string;
@@ -40,6 +41,7 @@ export function WordDetail({
   const [connectType, setConnectType] = useState<string>("related");
   const [error, setError] = useState<string | null>(null);
   const containerRef = useFocusTrap<HTMLDivElement>();
+  useScrollLock();
 
   useEffect(() => {
     loadWord();
@@ -113,7 +115,7 @@ export function WordDetail({
         onClick={onClose}
       >
         <div
-          className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+          className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto overscroll-contain"
           onClick={(e) => e.stopPropagation()}
         >
           {error ? (
@@ -178,7 +180,7 @@ export function WordDetail({
       onClick={onClose}
     >
       <div
-        className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+        className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">

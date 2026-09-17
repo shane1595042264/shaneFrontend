@@ -14,6 +14,7 @@ import {
   type PlanStatus,
   type PlanTree,
 } from "@/lib/api/plans";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 /**
  * Manual plan authoring (SHAN-469).
@@ -49,6 +50,8 @@ export function PlanModal({
   const [days, setDays] = useState<DayDraft[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useScrollLock();
 
   // Escape closes, matching the other dialogs on the site. Guarded on `saving`
   // so a mid-flight create can't be dismissed and orphan its response.
@@ -120,7 +123,7 @@ export function PlanModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="plan-modal-title"
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/60 p-4"
       onClick={() => !saving && onCancel()}
     >
       <FocusTrappedDiv

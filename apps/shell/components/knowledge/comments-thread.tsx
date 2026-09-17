@@ -16,6 +16,7 @@ import {
 import { uploadImage } from "@/lib/api/images";
 import { RelativeTime } from "@/lib/format-time";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface Props {
   entryId: string;
@@ -31,6 +32,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  useScrollLock(!!deleteConfirmId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);

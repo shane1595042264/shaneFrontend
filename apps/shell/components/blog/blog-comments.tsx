@@ -18,6 +18,7 @@ import {
   postBlogComment,
   type BlogComment,
 } from "@/lib/api/blog-social";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface Props {
   slug: string;
@@ -60,6 +61,7 @@ export function BlogComments({ slug, postAuthorId }: Props) {
   const [editError, setEditError] = useState<string | null>(null);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  useScrollLock(!!deleteId);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 

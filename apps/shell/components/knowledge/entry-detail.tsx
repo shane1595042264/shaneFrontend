@@ -18,6 +18,7 @@ import { uploadImage } from "@/lib/api/images";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { KnowledgeCommentsThread } from "./comments-thread";
 import { MemorizationLocations } from "./memorization-locations";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface EntryDetailProps {
   entryId: string;
@@ -67,6 +68,7 @@ export function EntryDetail({
   const [editExample, setEditExample] = useState("");
   const [saving, setSaving] = useState(false);
   const containerRef = useFocusTrap<HTMLDivElement>();
+  useScrollLock();
 
   useEffect(() => {
     loadEntry();
@@ -200,7 +202,7 @@ export function EntryDetail({
         onClick={onClose}
       >
         <div
-          className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+          className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto overscroll-contain"
           onClick={(e) => e.stopPropagation()}
         >
           {notFound ? (
@@ -281,7 +283,7 @@ export function EntryDetail({
       onClick={onClose}
     >
       <div
-        className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+        className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">

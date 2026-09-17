@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import type { TripItinerary, ItineraryActivity, ItineraryDay } from "@/lib/api/trip-groups";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 /**
  * Google-Calendar-style week grid over the trip itinerary (SHAN-277).
@@ -237,6 +238,9 @@ function EventEditor({
   const [time, setTime] = useState(activity?.time ?? "");
   const [title, setTitle] = useState(activity?.title ?? "");
   const [notes, setNotes] = useState(activity?.notes ?? "");
+
+  // Before the early return: hooks must run on every render.
+  useScrollLock();
 
   if (!day || !activity) return null;
 

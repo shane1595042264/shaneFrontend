@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { createCourse, type Course } from "@/lib/api/courses";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 export function AddCourseDialog({
   open,
@@ -17,6 +18,9 @@ export function AddCourseDialog({
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Before the early return: hooks must run on every render.
+  useScrollLock(open);
 
   if (!open) return null;
 
