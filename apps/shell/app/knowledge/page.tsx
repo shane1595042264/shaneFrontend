@@ -29,10 +29,16 @@ const MAX_SEARCH_LEN = 255;
 const MAX_CATEGORY_LEN = 100;
 const MAX_LOCATION_LEN = 120;
 
-// "" means "no filter", matching the state this page already kept.
-type Filter = { category: string; location: string; q: string };
+// "" means "no filter" / "no open entry", matching the state this page
+// already kept. `entry` is the id of the entry whose detail panel is open.
+type Filter = { category: string; location: string; q: string; entry: string };
 
-const EMPTY_FILTER: Filter = { category: "", location: "", q: "" };
+const EMPTY_FILTER: Filter = { category: "", location: "", q: "", entry: "" };
+
+// Entry ids are database uuids. Anything else in ?entry= came from a hand-edit
+// or a truncated link, and is dropped rather than turned into a doomed fetch.
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * SHAN-499: the filter state lives in the URL so a filtered view can be
@@ -49,20 +55,23 @@ function readFilter(): Filter {
   const params = new URLSearchParams(window.location.search);
   const read = (key: string, max: number) =>
     (params.get(key) ?? "").trim().slice(0, max);
+  const entry = (params.get("entry") ?? "").trim();
   return {
     category: read("category", MAX_CATEGORY_LEN),
     location: read("location", MAX_LOCATION_LEN),
     q: read("q", MAX_SEARCH_LEN),
+    entry: UUID_RE.test(entry) ? entry.toLowerCase() : "",
   };
 }
 
-/** Rewrites the three filter params in place, leaving any others alone. */
+/** Rewrites the view params in place, leaving any others alone. */
 function writeFilter(filter: Filter, mode: "push" | "replace") {
   const params = new URLSearchParams(window.location.search);
   for (const [key, value] of [
     ["category", filter.category],
     ["location", filter.location],
     ["q", filter.q.trim()],
+    ["entry", filter.entry],
   ] as const) {
     if (value) params.set(key, value);
     else params.delete(key);
@@ -99,7 +108,9 @@ export default function KnowledgePage() {
   // idling out the debounce below.
   const [debouncedSearch, setDebouncedSearch] = useState(initialFilter.q);
   const [adding, setAdding] = useState(false);
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(
+    initialFilter.entry || null
+  );
   const [initError, setInitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{
@@ -125,6 +136,9 @@ export default function KnowledgePage() {
 
   const abortRef = useRef<AbortController | null>(null);
   const hasLoaded = useRef(false);
+  // True while the open entry owns a history entry this session pushed. A cold
+  // load of a shared ?entry= link does not, which is what closeEntry keys off.
+  const pushedEntryRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -139,6 +153,10 @@ export default function KnowledgePage() {
     setSelectedLocation(next.location);
     setSearch(next.q);
     setDebouncedSearch(next.q);
+    setSelectedEntryId(next.entry || null);
+    // Once the entry is gone from the URL, the history entry we pushed for it
+    // has been popped too, so closing must not try to pop it a second time.
+    if (!next.entry) pushedEntryRef.current = false;
   }, []);
 
   // Same, plus a history entry. Every filter control except the search input
@@ -150,6 +168,51 @@ export default function KnowledgePage() {
     },
     [applyFilter]
   );
+
+  // Opening an entry is a destination: it gets its own history entry, so the
+  // panel can be linked to and Back closes it.
+  const openEntry = useCallback(
+    (id: string) => {
+      commitFilter({
+        category: selectedCategory,
+        location: selectedLocation,
+        q: search,
+        entry: id,
+      });
+      pushedEntryRef.current = true;
+    },
+    [commitFilter, selectedCategory, selectedLocation, search]
+  );
+
+  // Closing pops the entry we pushed so the close button and Back agree and no
+  // dead history entries stack up. A cold ?entry= load has nothing of ours to
+  // pop - going back there would bounce the visitor off the site - so the param
+  // is stripped in place instead, keeping the filters.
+  const closeEntry = useCallback(() => {
+    if (pushedEntryRef.current) {
+      pushedEntryRef.current = false;
+      window.history.back();
+      return;
+    }
+    const next: Filter = {
+      category: selectedCategory,
+      location: selectedLocation,
+      q: search,
+      entry: "",
+    };
+    applyFilter(next);
+    writeFilter(next, "replace");
+  }, [applyFilter, selectedCategory, selectedLocation, search]);
+
+  // The open entry turned out to be gone (deleted, or a stale shared link).
+  // The panel keeps showing its not-found message, but the param is dropped so
+  // a reload or a re-share does not resurrect the dead id.
+  const dropEntryParam = useCallback(() => {
+    writeFilter(
+      { category: selectedCategory, location: selectedLocation, q: search, entry: "" },
+      "replace"
+    );
+  }, [selectedCategory, selectedLocation, search]);
 
   // Back/Forward across the entries pushed by commitFilter.
   useEffect(() => {
@@ -340,7 +403,7 @@ export default function KnowledgePage() {
       await deleteEntry(id);
       await loadEntries();
       refreshMeta();
-      if (selectedEntryId === id) setSelectedEntryId(null);
+      if (selectedEntryId === id) closeEntry();
     } catch (err: any) {
       showNotification(err.message || "Failed to delete entry", "error");
     } finally {
@@ -384,6 +447,7 @@ export default function KnowledgePage() {
     category: selectedCategory,
     location: selectedLocation,
     q: search,
+    entry: selectedEntryId ?? "",
   };
 
   return (
@@ -515,7 +579,7 @@ export default function KnowledgePage() {
               key={entry.id}
               entry={entry}
               index={idx}
-              onClick={(e) => setSelectedEntryId(e.id)}
+              onClick={(e) => openEntry(e.id)}
               onDelete={(id) => setDeleteConfirmId(id)}
               deleting={deletingId === entry.id}
               canDelete={canDeleteEntry(entry)}
@@ -548,7 +612,8 @@ export default function KnowledgePage() {
           entryId={selectedEntryId}
           allEntries={entries}
           currentUserId={currentUserId}
-          onClose={() => setSelectedEntryId(null)}
+          onClose={closeEntry}
+          onNotFound={dropEntryParam}
           onEntryUpdated={() => {
             loadEntries();
             refreshMeta();

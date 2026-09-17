@@ -7,6 +7,7 @@ import { responsiveTableComponents } from "@/lib/markdown-table";
 import { MarkdownEditor } from "@shane/ui";
 import type { KnowledgeEntry, KnowledgeConnection } from "@/lib/knowledge-api";
 import {
+  KnowledgeEntryNotFoundError,
   fetchEntry,
   enrichEntryApi,
   deleteConnection,
@@ -24,6 +25,12 @@ interface EntryDetailProps {
   currentUserId: string | null;
   onClose: () => void;
   onEntryUpdated: () => void;
+  /**
+   * The entry id no longer resolves. The panel stays open on its not-found
+   * message; the page uses this to drop ?entry= so a reload does not retry a
+   * dead id (SHAN-501).
+   */
+  onNotFound?: () => void;
 }
 
 const CONNECTION_TYPES = [
@@ -40,6 +47,7 @@ export function EntryDetail({
   currentUserId,
   onClose,
   onEntryUpdated,
+  onNotFound,
 }: EntryDetailProps) {
   const [entry, setEntry] = useState<KnowledgeEntry | null>(null);
   const [connections, setConnections] = useState<KnowledgeConnection[]>([]);
@@ -49,6 +57,10 @@ export function EntryDetail({
   const [connectTarget, setConnectTarget] = useState("");
   const [connectType, setConnectType] = useState<string>("related");
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<"copied" | "error" | null>(
+    null
+  );
   const [editing, setEditing] = useState(false);
   const [editWord, setEditWord] = useState("");
   const [editDefinition, setEditDefinition] = useState("");
@@ -70,14 +82,35 @@ export function EntryDetail({
 
   async function loadEntry() {
     setError(null);
+    setNotFound(false);
     try {
       const data = await fetchEntry(entryId);
       setEntry(data.entry);
       setConnections(data.connections);
       setConnectedEntries(data.connectedEntries);
-    } catch {
+    } catch (err) {
+      // A 404 is terminal - the row is gone, so there is nothing to retry and
+      // the URL should stop pointing at it.
+      if (err instanceof KnowledgeEntryNotFoundError) {
+        setNotFound(true);
+        onNotFound?.();
+        return;
+      }
       setError("Failed to load entry details.");
     }
+  }
+
+  async function copyLink() {
+    // Deliberately filter-free: the shared link should open this entry, not
+    // reproduce whatever the sender happened to have filtered to.
+    const url = `${window.location.origin}/knowledge?entry=${entryId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyFeedback("copied");
+    } catch {
+      setCopyFeedback("error");
+    }
+    setTimeout(() => setCopyFeedback(null), 2000);
   }
 
   async function handleEnrich() {
@@ -161,8 +194,8 @@ export function EntryDetail({
         ref={containerRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Loading entry"
-        aria-busy={!error}
+        aria-label={notFound ? "Entry not found" : "Loading entry"}
+        aria-busy={!error && !notFound}
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
         onClick={onClose}
       >
@@ -170,7 +203,22 @@ export function EntryDetail({
           className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          {error ? (
+          {notFound ? (
+            <div className="text-center space-y-3">
+              <p className="text-sm text-gray-300">
+                This entry no longer exists.
+              </p>
+              <p className="text-xs text-gray-400">
+                It was probably deleted after the link was shared.
+              </p>
+              <button
+                onClick={onClose}
+                className="px-3 py-1.5 text-xs bg-white/10 hover:bg-white/15 text-white rounded transition-colors"
+              >
+                Back to entries
+              </button>
+            </div>
+          ) : error ? (
             <div className="text-center space-y-3">
               <p className="text-sm text-red-400">{error}</p>
               <div className="flex gap-2 justify-center">
@@ -258,13 +306,49 @@ export function EntryDetail({
               )}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-gray-400 hover:text-white text-xl"
-          >
-            &times;
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={copyLink}
+              aria-label="Copy link to this entry"
+              title="Copy link to this entry"
+              className="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              {copyFeedback === "copied"
+                ? "Copied"
+                : copyFeedback === "error"
+                  ? "Failed"
+                  : "Link"}
+            </button>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="text-gray-400 hover:text-white text-xl px-1"
+            >
+              &times;
+            </button>
+          </div>
+          <span aria-live="polite" className="sr-only">
+            {copyFeedback === "copied"
+              ? "Link copied to clipboard"
+              : copyFeedback === "error"
+                ? "Failed to copy link"
+                : ""}
+          </span>
         </div>
 
         {error && (

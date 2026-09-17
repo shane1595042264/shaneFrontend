@@ -121,10 +121,24 @@ export async function fetchAllEntries(
   return all;
 }
 
+/**
+ * Thrown when the entry id is well-formed but no longer resolves - a deleted
+ * entry, or a shared ?entry= link that outlived its row (SHAN-501). Callers
+ * need this apart from a generic failure: a 404 is terminal, so there is
+ * nothing to retry.
+ */
+export class KnowledgeEntryNotFoundError extends Error {
+  constructor() {
+    super("KNOWLEDGE_ENTRY_NOT_FOUND");
+    this.name = "KnowledgeEntryNotFoundError";
+  }
+}
+
 export async function fetchEntry(
   id: string
 ): Promise<{ entry: KnowledgeEntry; connections: KnowledgeConnection[]; connectedEntries: KnowledgeEntry[] }> {
   const res = await fetch(`${API_URL}/api/knowledge/entries/${id}`);
+  if (res.status === 404) throw new KnowledgeEntryNotFoundError();
   if (!res.ok) throw new Error("Failed to fetch entry");
   return res.json();
 }
