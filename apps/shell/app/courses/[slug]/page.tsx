@@ -20,20 +20,26 @@ function jsonLdSafe(value: unknown): string {
 // dehydrated and then left that way for a live backend round trip, while the
 // page's JS was already running.
 //
-// Be precise about what this does and does not change, because it is easy to
-// over-claim. Verified locally against a production build: the boundary
-// MARKERS survive ISR. A prerendered /courses/pi2-heist still ships
-// `<!--$?-->`, `<template id="B:0">` and the real content in
-// `<div hidden id="S:0">`, exactly like the dynamic render did. What goes away
-// is the gap - the document is served from cache in one burst instead of being
-// generated around a fetch. That matches the evidence: /knowledge is
-// prerendered, ships the same markers, and has never fired. So the hypothesis
-// under test is "the live dehydrated window is the trigger", not "the markup
-// is wrong". If the post-deploy resample does not move the rate, the boundary
-// markers are exonerated and the next suspect is elsewhere.
+// That hypothesis was TESTED ON PROD AND REFUTED - do not retry it. ISR does
+// not remove the boundary markers, it only removes the live gap: a prerendered
+// page still shipped `<!--$?-->`, `<template id="B:0">` and the content in
+// `<div hidden id="S:0">`. Measured in Shane's Chrome with cold-chunk hard
+// reloads, confirming `x-vercel-cache: HIT` on the document from that same
+// browser, the rate was 3 hits in 21 loads - indistinguishable from the 3 in
+// 19 the route had while dynamic, and from the untouched /trips control's
+// 1 in 6 in the same session. Serving a complete buffered document does not
+// stop the discard.
 //
-// 300s matches blog/[slug]; every mutation calls revalidateCourse() so an
-// author's edit is visible immediately rather than after the window.
+// This route is kept on ISR anyway, on its own merits: it is the pattern
+// CLAUDE.md mandates over cache:"no-store", and it replaces a per-request
+// backend round trip with an edge cache hit. 300s matches blog/[slug]; every
+// mutation calls revalidateCourse() so an author's edit is visible immediately
+// rather than after the window.
+//
+// What removing the gap did buy is a clean elimination: with the timing
+// variable dead, the only structural difference left between this route and
+// the never-firing ones was the Suspense boundary itself, which is why
+// app/courses/loading.tsx was removed alongside this.
 export const revalidate = 300;
 
 // `export const revalidate` alone is not enough: a dynamic segment with no
