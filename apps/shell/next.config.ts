@@ -24,30 +24,31 @@ assertContrastFloor([
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@shane/ui", "@shane/types"],
-  // SHAN-504: turn OFF Next's streaming metadata. When it is on, every
+  // SHAN-504: turn OFF Next's streaming metadata. With it on, every
   // dynamically rendered route emits its metadata as
   // `<div hidden><Suspense fallback={null}>...</Suspense></div>` injected as the
   // FIRST child of <body> (next/dist/lib/metadata/metadata.js,
-  // createMetadataComponents). On our three `cache: "no-store"` routes
-  // (/courses/[slug], /trips, /trips/[slug]) that boundary is still dehydrated
-  // (`<!--$?-->` plus `<template id="B:0">`) until the very last byte of the
-  // document, and on a cold-chunk load React intermittently fails to line the
-  // root up with it, discards the whole server HTML and client-renders the
-  // document (minified React #418, ~1 in 3 hard reloads). Prerendered routes
-  // never hit it because their metadata boundary is already resolved into
-  // <head> at build time, which is exactly the split we measured: only the
-  // no-store routes fire.
+  // createMetadataComponents), and Fizz only fills it from the last script in
+  // the document. Our three `cache: "no-store"` routes (/courses/[slug],
+  // /trips, /trips/[slug]) were the only ones shipping that, so they served a
+  // <head> with no <title> at all and eleven <meta> tags stranded in <body>,
+  // which any head-only consumer outside Next's bot list reads as an untitled
+  // page. This is the fix for that. `htmlLimitedBots` is the one switch Next
+  // 15.5 exposes: base-server.js tests it against the request User-Agent and a
+  // match means "this client cannot run JS, send blocking metadata", so a regex
+  // matching every UA renders metadata into <head> for everyone. Next converts
+  // the RegExp to its `.source` at config load (server/config.js) and re-tests
+  // it per request (server/lib/streaming-metadata.ts).
   //
-  // `htmlLimitedBots` is the one switch Next 15.5 exposes. It is matched
-  // against the request User-Agent and a hit means "this client cannot run JS,
-  // send blocking metadata", so a regex that matches every UA renders metadata
-  // into <head> for everyone. Next converts the RegExp to its `.source` at
-  // config load and re-tests it per request (server/lib/streaming-metadata.ts).
-  //
-  // This is also a straight correctness win: today /courses/[slug] and /trips/*
-  // serve a <head> with no <title> at all and eleven <meta> tags stranded in
-  // <body>, which any head-only consumer outside Next's bot list reads as an
-  // untitled page.
+  // It is NOT the fix for the intermittent hydration discard (React #418) that
+  // SHAN-504 was opened for, even though that bug is confined to the same three
+  // routes. Measured on prod with cold-chunk hard reloads of
+  // /courses/pi2-heist: 7 hits in 27 loads before this change, 3 in 19 after.
+  // Removing the metadata boundary took the route from three pending Suspense
+  // boundaries to one, and the survivor (the page-content boundary that
+  // app/courses/loading.tsx creates, dehydrated until the end of the stream) is
+  // the remaining suspect. Do not re-litigate auth: the error reproduces with
+  // auth_token removed from localStorage and zero /api/auth/me requests.
   htmlLimitedBots: /.*/,
   async rewrites() {
     return [
