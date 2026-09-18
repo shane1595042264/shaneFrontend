@@ -36,10 +36,19 @@ function jsonLdSafe(value: unknown): string {
 // mutation calls revalidateCourse() so an author's edit is visible immediately
 // rather than after the window.
 //
-// What removing the gap did buy is a clean elimination: with the timing
-// variable dead, the only structural difference left between this route and
-// the never-firing ones was the Suspense boundary itself, which is why
-// app/courses/loading.tsx was removed alongside this.
+// The boundary itself was then tested too, and is ALSO refuted. Deleting
+// app/courses/loading.tsx made this route serve a completely flat document -
+// 0 pending boundaries, 0 staging divs, 0 templates, verified on prod from
+// the browser - and the rate went to 3 hits in 7 cold loads, if anything
+// worse. loading.tsx was restored, since its removal only ever had value as
+// an experiment. Structure is not the discriminator: a flat, edge-cached,
+// title-in-head document still fires.
+//
+// Where SHAN-504 actually stands: /docs/[slug] is prerendered AND
+// server-renders a real 7KB tree, and it is 0 in 6. What still separates this
+// route is the large hydrating CLIENT subtree (CourseInteractive plus
+// CourseCommentsThread, which fires a fetch and setState on mount). That, not
+// the document shape, is the next thing to look at.
 export const revalidate = 300;
 
 // `export const revalidate` alone is not enough: a dynamic segment with no
