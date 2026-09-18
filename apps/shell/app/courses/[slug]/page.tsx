@@ -12,49 +12,23 @@ function jsonLdSafe(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
-// SHAN-504: ISR, not cache:"no-store". The intermittent whole-root hydration
-// discard (Minified React error #418) only ever reproduced on the three
-// no-store routes and only when the JS chunks arrived cold, and the one thing
-// those routes did that every clean route did not was render per request: the
-// page-content Suspense boundary that courses/loading.tsx creates was flushed
-// dehydrated and then left that way for a live backend round trip, while the
-// page's JS was already running.
+// SHAN-504: ISR, not cache:"no-store". 300s matches blog/[slug], and every
+// mutation calls revalidateCourse() so an author's edit shows up immediately
+// rather than after the window. This is the pattern CLAUDE.md mandates over
+// no-store and it swaps a per-request backend round trip for an edge cache
+// hit, which is why it stays.
 //
-// That hypothesis was TESTED ON PROD AND REFUTED - do not retry it. ISR does
-// not remove the boundary markers, it only removes the live gap: a prerendered
-// page still shipped `<!--$?-->`, `<template id="B:0">` and the content in
-// `<div hidden id="S:0">`. Measured in Shane's Chrome with cold-chunk hard
-// reloads, confirming `x-vercel-cache: HIT` on the document from that same
-// browser, the rate was 3 hits in 21 loads - indistinguishable from the 3 in
-// 19 the route had while dynamic, and from the untouched /trips control's
-// 1 in 6 in the same session. Serving a complete buffered document does not
-// stop the discard.
-//
-// This route is kept on ISR anyway, on its own merits: it is the pattern
-// CLAUDE.md mandates over cache:"no-store", and it replaces a per-request
-// backend round trip with an edge cache hit. 300s matches blog/[slug]; every
-// mutation calls revalidateCourse() so an author's edit is visible immediately
-// rather than after the window.
-//
-// The boundary itself was then tested too, and is ALSO refuted. Deleting
-// app/courses/loading.tsx made this route serve a completely flat document -
-// 0 pending boundaries, 0 staging divs, 0 templates, verified on prod from
-// the browser - and the rate went to 3 hits in 7 cold loads, if anything
-// worse. loading.tsx was restored, since its removal only ever had value as
-// an experiment. Structure is not the discriminator: a flat, edge-cached,
-// title-in-head document still fires.
-//
-// Where SHAN-504 actually stands: /docs/[slug] is prerendered AND
-// server-renders a real 7KB tree, and it is 0 in 6. What still separates this
-// route is the large hydrating CLIENT subtree (CourseInteractive plus
-// CourseCommentsThread, which fires a fetch and setState on mount). That, not
-// the document shape, is the next thing to look at.
+// It was originally shipped to chase the intermittent hydration discard
+// (Minified React error #418) and it did not fix that. Do not re-litigate
+// the #418 from this file: pass 5 measured 9 hits in 26 cold hard reloads
+// spread across /, /docs/elements-directory and this page, so it fires
+// site-wide on cold-chunk loads and is not a property of this route at all.
+// See the known-issue note in CLAUDE.md and SHAN-504 for the mechanism.
 export const revalidate = 300;
 
 // `export const revalidate` alone is not enough: a dynamic segment with no
 // generateStaticParams is never ISR-eligible, so Next keeps marking it ƒ and
-// serving Cache-Control: no-store, which is exactly the dynamic render that
-// leaves the boundary dehydrated. Listing the slugs prerenders the known
+// serving Cache-Control: no-store. Listing the slugs prerenders the known
 // courses at build time; dynamicParams stays on (the default) so a course
 // added afterwards still renders on demand and is cached from then on.
 // Failing soft to [] keeps a backend blip mid-deploy from failing the build —
