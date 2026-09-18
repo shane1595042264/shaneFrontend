@@ -12,11 +12,54 @@ function jsonLdSafe(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
-// no-store: ratings/comments counts move constantly and the admin edits
-// in place; the page is cheap (one JSON fetch).
+// SHAN-504: ISR, not cache:"no-store". The intermittent whole-root hydration
+// discard (Minified React error #418) only ever reproduced on the three
+// no-store routes and only when the JS chunks arrived cold, and the one thing
+// those routes did that every clean route did not was render per request: the
+// page-content Suspense boundary that courses/loading.tsx creates was flushed
+// dehydrated and then left that way for a live backend round trip, while the
+// page's JS was already running.
+//
+// Be precise about what this does and does not change, because it is easy to
+// over-claim. Verified locally against a production build: the boundary
+// MARKERS survive ISR. A prerendered /courses/pi2-heist still ships
+// `<!--$?-->`, `<template id="B:0">` and the real content in
+// `<div hidden id="S:0">`, exactly like the dynamic render did. What goes away
+// is the gap - the document is served from cache in one burst instead of being
+// generated around a fetch. That matches the evidence: /knowledge is
+// prerendered, ships the same markers, and has never fired. So the hypothesis
+// under test is "the live dehydrated window is the trigger", not "the markup
+// is wrong". If the post-deploy resample does not move the rate, the boundary
+// markers are exonerated and the next suspect is elsewhere.
+//
+// 300s matches blog/[slug]; every mutation calls revalidateCourse() so an
+// author's edit is visible immediately rather than after the window.
+export const revalidate = 300;
+
+// `export const revalidate` alone is not enough: a dynamic segment with no
+// generateStaticParams is never ISR-eligible, so Next keeps marking it ƒ and
+// serving Cache-Control: no-store, which is exactly the dynamic render that
+// leaves the boundary dehydrated. Listing the slugs prerenders the known
+// courses at build time; dynamicParams stays on (the default) so a course
+// added afterwards still renders on demand and is cached from then on.
+// Failing soft to [] keeps a backend blip mid-deploy from failing the build —
+// the same hazard /trips/page.tsx documents.
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/courses?limit=100`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { courses: { slug: string }[] };
+    return data.courses.map((c) => ({ slug: c.slug }));
+  } catch {
+    return [];
+  }
+}
+
 async function fetchCourse(slug: string): Promise<Course | null> {
   const res = await fetch(`${API_URL}/api/courses/${encodeURIComponent(slug)}`, {
-    cache: "no-store",
+    next: { revalidate },
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to load course: ${res.status}`);

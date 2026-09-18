@@ -15,6 +15,7 @@ import {
   type Course,
 } from "@/lib/api/courses";
 import { courseLaunchUrl } from "@/lib/course-launch-url";
+import { revalidateCourse } from "@/lib/courses-revalidate";
 import { categoryStyle, DIFFICULTY_STYLES } from "./category-styles";
 import { GeneratedCover } from "./generated-cover";
 import { StarRating } from "./star-rating";
@@ -61,6 +62,13 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
     }
   };
 
+  // SHAN-504: this page is ISR now, so a mutation has to drop the cached
+  // render or the next visitor (and any router.refresh() below) keeps seeing
+  // the pre-edit HTML for up to the revalidate window. Fire-and-forget: the
+  // write already committed and `course` above is already correct locally, so
+  // a revalidation failure must not surface to the author as a failed edit.
+  const bustServerCache = () => revalidateCourse(course.slug).catch(() => {});
+
   const handleRate = async (stars: number) => {
     if (!user || ratingBusy) return;
     const prev = course;
@@ -73,6 +81,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
         myStars: rating.mine,
         rating: { average: rating.average, count: rating.count },
       }));
+      bustServerCache();
     } catch (e: unknown) {
       setCourse(prev);
       flash(e instanceof Error ? e.message : "Rating failed");
@@ -93,6 +102,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
         myStars: null,
         rating: { average: rating.average, count: rating.count },
       }));
+      bustServerCache();
     } catch (e: unknown) {
       setCourse(prev);
       flash(e instanceof Error ? e.message : "Rating failed");
@@ -113,6 +123,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
     try {
       await uploadCourseCover(course.id, file);
       await refresh();
+      await bustServerCache();
       router.refresh();
     } catch (err: unknown) {
       flash(err instanceof Error ? err.message : "Upload failed");
@@ -126,6 +137,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
     try {
       await removeCourseCover(course.id);
       await refresh();
+      await bustServerCache();
       router.refresh();
     } catch (err: unknown) {
       flash(err instanceof Error ? err.message : "Failed to remove cover");
@@ -138,6 +150,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
     setAdminBusy("reclassify");
     try {
       setCourse(await reclassifyCourse(course.id));
+      bustServerCache();
       flash("Reclassified.");
     } catch (err: unknown) {
       flash(err instanceof Error ? err.message : "Reclassify failed");
@@ -150,6 +163,9 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
     setAdminBusy("delete");
     try {
       await deleteCourse(course.id);
+      // Drop the cached page too, otherwise the deleted course keeps serving
+      // its prerendered HTML until the revalidate window expires.
+      await bustServerCache();
       router.push("/courses");
     } catch (err: unknown) {
       flash(err instanceof Error ? err.message : "Delete failed");
@@ -299,9 +315,10 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
           open={showEdit}
           course={course}
           onClose={() => setShowEdit(false)}
-          onSaved={(updated) => {
+          onSaved={async (updated) => {
             setCourse(updated);
             setShowEdit(false);
+            await bustServerCache();
             router.refresh();
           }}
         />
