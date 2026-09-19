@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { motion } from "framer-motion";
 import type { ElementConfig } from "@shane/types";
 import { CATEGORY_STYLES } from "@/lib/elements";
@@ -48,6 +48,7 @@ export function ElementCard({
   const isExternal = element.type === "external";
   const tooltipText = isComingSoon ? "Coming soon" : element.description || null;
   const tooltipRef = useRef<HTMLSpanElement | null>(null);
+  const tooltipId = useId();
 
   // Clamp tooltip horizontally so it never clips off the viewport — happens on
   // narrow screens with long descriptions or when the card is near a viewport
@@ -97,6 +98,13 @@ export function ElementCard({
     searchState === "dimmed" ? "opacity-20" : ""
   }`;
 
+  // SHAN-506: only the link branches use this. `group/card` has to sit on the
+  // node that actually takes focus (see the note on the card below), the UA
+  // outline is suppressed because it computes to a ~black 1px ring that is
+  // invisible on this permanently-dark theme, and focus-visible:opacity-100
+  // keeps a tab stop legible when a running element search has dimmed it.
+  const linkWrapperClass = `${wrapperClass} group/card focus-visible:outline-none focus-visible:opacity-100`;
+
   const cardContent = (
     <motion.div
       variants={itemVariants}
@@ -104,20 +112,27 @@ export function ElementCard({
       whileTap={isComingSoon ? {} : { scale: 0.95 }}
       tabIndex={isComingSoon ? 0 : undefined}
       className={[
-        "group/card relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded border select-none w-full aspect-square transition-shadow",
+        "relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded border select-none w-full aspect-square transition-shadow",
         styles.bg,
         styles.border,
         searchState ? SEARCH_RING_CLASSES[searchState] : "",
+        // SHAN-506: `group/card` marks the focused node, not the card, because
+        // Tailwind compiles `group-focus-visible/card:` to
+        // `.group\/card:focus-visible &` — a marker on a descendant of the
+        // focused element can never match it. For a coming-soon tile the only
+        // focusable node IS this div (tabIndex=0), so the marker and the ring
+        // both belong here; for a real tile they live on the wrapping link and
+        // the ring reaches this card through the group.
         isComingSoon
-          ? "opacity-50 cursor-not-allowed outline-none focus-visible:opacity-80 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:z-10"
-          : "cursor-grab active:cursor-grabbing hover:shadow-lg hover:shadow-black/40",
+          ? "group/card opacity-50 cursor-not-allowed outline-none focus-visible:opacity-80 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:z-10"
+          : "cursor-grab active:cursor-grabbing hover:shadow-lg hover:shadow-black/40 group-focus-visible/card:ring-2 group-focus-visible/card:ring-white/70 group-focus-visible/card:z-10",
       ].join(" ")}
     >
       {tooltipText && (
         <span
           ref={tooltipRef}
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/card:opacity-100 group-focus/card:opacity-100 group-active/card:opacity-100 transition-opacity duration-150 z-50 whitespace-normal text-center break-words max-w-[12rem] rounded bg-gray-900 border border-white/10 px-2 py-1 text-[10px] leading-snug text-gray-200 shadow-lg"
+          id={tooltipId}
+          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/card:opacity-100 group-focus-visible/card:opacity-100 group-active/card:opacity-100 transition-opacity duration-150 z-50 whitespace-normal text-center break-words max-w-[12rem] rounded bg-gray-900 border border-white/10 px-2 py-1 text-[10px] leading-snug text-gray-200 shadow-lg"
         >
           {tooltipText}
         </span>
@@ -177,6 +192,11 @@ export function ElementCard({
     );
   }
 
+  // SHAN-506: aria-describedby surfaces element.description to assistive tech.
+  // The visual tooltip is the description, and it used to be aria-hidden with
+  // nothing else carrying the text, so a screen reader heard only the name.
+  const describedBy = tooltipText ? tooltipId : undefined;
+
   if (isExternal && element.url) {
     return (
       <a
@@ -184,7 +204,8 @@ export function ElementCard({
         target="_blank"
         rel="noopener noreferrer"
         aria-label={ariaLabel}
-        className={wrapperClass}
+        aria-describedby={describedBy}
+        className={linkWrapperClass}
         onClick={(e) => {
           if (e.defaultPrevented) return;
         }}
@@ -199,7 +220,8 @@ export function ElementCard({
     <Link
       href={element.route || "/"}
       aria-label={ariaLabel}
-      className={wrapperClass}
+      aria-describedby={describedBy}
+      className={linkWrapperClass}
       draggable={false}
     >
       {cardContent}
