@@ -1,294 +1,42 @@
-"use client";
+import { VocabularyBrowser } from "@/components/vocabulary/vocabulary-browser";
+import { API_URL } from "@/lib/api-url";
+import type { VocabWord } from "@/lib/vocabulary-api";
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import {
-  fetchWords,
-  fetchLabels,
-  fetchLanguages,
-  createWord,
-  deleteWord,
-  type VocabWord,
-} from "@/lib/vocabulary-api";
-import { FilterBar } from "@/components/vocabulary/filter-bar";
-import { AddWordForm } from "@/components/vocabulary/add-word-form";
-import { WordCard } from "@/components/vocabulary/word-card";
-import { WordDetail } from "@/components/vocabulary/word-detail";
-import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+// SHAN-507: this page used to be one big "use client" component, so the
+// document it served contained 98 characters of navigation chrome and not a
+// single word. The sitemap advertises /vocabulary at priority 0.7 and
+// robots.txt allows it, and the data is public (GET /api/vocabulary/words
+// needs no auth — only the add/delete controls do), so there was nothing to
+// withhold: the content simply was not in the HTML. Anything that does not run
+// JavaScript — crawlers, and the AI agents this site courts with /llms.txt —
+// got a blank page. Rendering the first page of words here fixes that and
+// removes the skeleton-then-content flash for real visitors too.
+//
+// 300s matches /blog and /courses. The window only affects a cold visitor's
+// first paint: an author's own add or delete refreshes through the client's
+// loadWords() call, so no server action is needed to bust this cache.
+export const revalidate = 300;
 
-export default function VocabularyPage() {
-  const [words, setWords] = useState<VocabWord[]>([]);
-  const [languages, setLanguages] = useState<string[]>([]);
-  const [labels, setLabels] = useState<string[]>([]);
-  const [selectedLanguage, setSelectedLanguage] = useState("");
-  const [selectedLabel, setSelectedLabel] = useState("");
-  const [search, setSearch] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: "error" | "success";
-  } | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const hasLoaded = useRef(false);
-
-  useEffect(() => {
-    if (!deleteConfirmId) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setDeleteConfirmId(null);
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [deleteConfirmId]);
-
-  const loadWords = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchWords({
-        language: selectedLanguage || undefined,
-        label: selectedLabel || undefined,
-        search: search || undefined,
-      });
-      setWords(data);
-      setInitError(null);
-      hasLoaded.current = true;
-    } catch {
-      setInitError("Failed to load words. Backend may be down.");
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedLanguage, selectedLabel, search]);
-
-  useEffect(() => {
-    loadWords();
-  }, [loadWords]);
-
-  useEffect(() => {
-    fetchLanguages().then(setLanguages).catch(() => {});
-    fetchLabels().then(setLabels).catch(() => {});
-  }, []);
-
-  function refreshMeta() {
-    fetchLanguages().then(setLanguages).catch(() => {});
-    fetchLabels().then(setLabels).catch(() => {});
+// No query params, exactly like the client's own mount fetch — the backend's
+// default limit of 100 applies to both, so the seeded list is what the browser
+// would have fetched anyway and the first client render matches the server's.
+//
+// Fails soft to null rather than throwing: a backend blip mid-deploy then
+// degrades to the original fetch-on-mount path (skeleton, then content, or the
+// existing "Backend may be down" message) instead of taking the page down.
+async function fetchInitialWords(): Promise<VocabWord[] | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/vocabulary/words`, {
+      next: { revalidate },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { words: VocabWord[] };
+    return data.words ?? null;
+  } catch {
+    return null;
   }
-
-  function showNotification(message: string, type: "error" | "success") {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  }
-
-  async function handleAddWord(data: {
-    word: string;
-    language: string;
-    autoEnrich: boolean;
-  }) {
-    setAdding(true);
-    try {
-      await createWord(data);
-      await loadWords();
-      refreshMeta();
-      showNotification(`Added "${data.word}"`, "success");
-    } catch (err: any) {
-      showNotification(err.message || "Failed to add word", "error");
-    } finally {
-      setAdding(false);
-    }
-  }
-
-  async function handleDeleteWord(id: string) {
-    setDeletingId(id);
-    try {
-      await deleteWord(id);
-      await loadWords();
-      refreshMeta();
-      if (selectedWordId === id) setSelectedWordId(null);
-    } catch (err: any) {
-      showNotification(err.message || "Failed to delete word", "error");
-    } finally {
-      setDeletingId(null);
-      setDeleteConfirmId(null);
-    }
-  }
-
-  if (loading && !hasLoaded.current) {
-    return <VocabularySkeleton />;
-  }
-
-  return (
-    <div className="space-y-6">
-      {notification && (
-        <div
-          role={notification.type === "error" ? "alert" : "status"}
-          aria-live={notification.type === "error" ? "assertive" : "polite"}
-          className={`flex items-center justify-between px-4 py-3 rounded text-sm transition-opacity ${
-            notification.type === "error"
-              ? "bg-red-500/10 border border-red-500/20 text-red-300"
-              : "bg-green-500/10 border border-green-500/20 text-green-300"
-          }`}
-        >
-          {notification.message}
-          <button
-            onClick={() => setNotification(null)}
-            aria-label="Dismiss notification"
-            className="ml-3 text-xs opacity-60 hover:opacity-100"
-          >
-            &times;
-          </button>
-        </div>
-      )}
-
-      {initError && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="flex items-center gap-3 px-4 py-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300"
-        >
-          {initError}
-        </div>
-      )}
-
-      <AddWordForm onSubmit={handleAddWord} loading={adding} />
-
-      <FilterBar
-        languages={languages}
-        labels={labels}
-        selectedLanguage={selectedLanguage}
-        selectedLabel={selectedLabel}
-        search={search}
-        onLanguageChange={setSelectedLanguage}
-        onLabelChange={setSelectedLabel}
-        onSearchChange={setSearch}
-      />
-
-      <div className="text-xs text-gray-400">
-        {words.length} word{words.length !== 1 ? "s" : ""}
-      </div>
-
-      {words.length === 0 && !initError ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-lg mb-2">No words yet</p>
-          <p className="text-sm">
-            Add your first vocabulary word above. AI will auto-generate
-            definitions, pronunciation, and labels.
-          </p>
-        </div>
-      ) : (
-        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
-          {words.map((word) => (
-            <WordCard
-              key={word.id}
-              word={word}
-              onClick={(w) => setSelectedWordId(w.id)}
-              onDelete={(id) => setDeleteConfirmId(id)}
-              deleting={deletingId === word.id}
-            />
-          ))}
-        </div>
-      )}
-
-      {selectedWordId && (
-        <WordDetail
-          wordId={selectedWordId}
-          allWords={words}
-          onClose={() => setSelectedWordId(null)}
-          onWordUpdated={() => {
-            loadWords();
-            refreshMeta();
-          }}
-        />
-      )}
-
-      {deleteConfirmId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={() => setDeleteConfirmId(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="vocab-delete-heading"
-        >
-          <FocusTrappedDiv
-            className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="vocab-delete-heading" className="text-lg font-semibold text-white mb-2">
-              Delete word?
-            </h3>
-            <p className="text-sm text-gray-400 mb-6">
-              This will permanently remove the word and its definition.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                disabled={!!deletingId}
-                className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 disabled:opacity-50 text-gray-400 rounded transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeleteWord(deleteConfirmId)}
-                disabled={!!deletingId}
-                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
-              >
-                {deletingId ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </FocusTrappedDiv>
-        </div>
-      )}
-    </div>
-  );
 }
 
-function VocabularySkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-[200px] space-y-1">
-          <div className="rounded bg-white/8 animate-pulse h-3 w-24" />
-          <div className="rounded bg-white/8 animate-pulse h-9 w-full" />
-        </div>
-        <div className="space-y-1">
-          <div className="rounded bg-white/8 animate-pulse h-3 w-16" />
-          <div className="rounded bg-white/8 animate-pulse h-9 w-32" />
-        </div>
-        <div className="rounded bg-white/8 animate-pulse h-5 w-20" />
-        <div className="rounded bg-white/8 animate-pulse h-9 w-16" />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="rounded bg-white/8 animate-pulse h-9 w-48" />
-        <div className="rounded bg-white/8 animate-pulse h-9 w-36" />
-        <div className="rounded bg-white/8 animate-pulse h-9 w-32" />
-      </div>
-
-      <div className="rounded bg-white/8 animate-pulse h-4 w-16" />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="p-4 bg-white/5 border border-white/8 rounded-lg space-y-2"
-          >
-            <div className="flex items-baseline gap-2">
-              <div className="rounded bg-white/8 animate-pulse h-6 w-24" />
-              <div className="rounded bg-white/8 animate-pulse h-3 w-12" />
-            </div>
-            <div className="flex gap-2">
-              <div className="rounded bg-white/8 animate-pulse h-5 w-16" />
-              <div className="rounded bg-white/8 animate-pulse h-3 w-12" />
-            </div>
-            <div className="rounded bg-white/8 animate-pulse h-4 w-full" />
-            <div className="rounded bg-white/8 animate-pulse h-4 w-3/4" />
-            <div className="flex gap-1">
-              <div className="rounded bg-white/8 animate-pulse h-4 w-12" />
-              <div className="rounded bg-white/8 animate-pulse h-4 w-10" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+export default async function VocabularyPage() {
+  return <VocabularyBrowser initialWords={await fetchInitialWords()} />;
 }
