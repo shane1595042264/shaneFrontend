@@ -8,22 +8,6 @@ interface PageProps {
   params: Promise<{ date: string }>;
 }
 
-// SHAN-512: this document really is edge-cached now. Nothing below touches the
-// backend — the frame is derived entirely from the date in the URL and the
-// entry arrives client-side, with the viewer's JWT, inside JournalAccessGate —
-// yet the route was still ƒ, re-rendering identical markup on every single
-// journal navigation. `revalidate` alone would not have changed that: a
-// dynamic segment needs generateStaticParams before Next will treat it as ISR.
-// There is no finite set of dates to enumerate, so it returns nothing and
-// dynamicParams (on by default) renders each date once on demand and serves it
-// from the cache afterwards. The 5 minute window matches /journal, and exists
-// for the same reason: a copy change should land without a redeploy.
-export const revalidate = 300;
-
-export function generateStaticParams(): { date: string }[] {
-  return [];
-}
-
 /** Validate YYYY-MM-DD format */
 function isValidDate(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(Date.parse(date));
