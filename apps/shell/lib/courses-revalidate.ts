@@ -12,9 +12,20 @@ import { revalidatePath } from "next/cache";
  * slug only exists at the call sites. Blog's API functions already take a
  * slug, which is why its wiring sits one layer lower.
  *
- * The /courses index is not revalidated: it is a "use client" page that
- * fetches the catalog in the browser, so it has no server cache to bust.
+ * SHAN-510: the /courses index is now server-rendered and cached too, so it is
+ * busted alongside the detail page. A retitle, a rating and a delete all change
+ * what the index card says, and a deleted course would otherwise keep its card
+ * in the cached grid until the window expired.
  */
 export async function revalidateCourse(slug: string): Promise<void> {
   revalidatePath(`/courses/${slug}`, "page");
+  revalidatePath("/courses", "page");
+}
+
+/**
+ * The index on its own, for a create: the new course has no cached detail page
+ * to drop yet, only a grid that does not know about it (SHAN-510).
+ */
+export async function revalidateCoursesIndex(): Promise<void> {
+  revalidatePath("/courses", "page");
 }

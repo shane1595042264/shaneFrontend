@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
 import { listCourses, type Course } from "@/lib/api/courses";
+import { revalidateCoursesIndex } from "@/lib/courses-revalidate";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { CourseCard } from "./course-card";
 import { AddCourseDialog } from "./add-course-dialog";
@@ -28,6 +29,12 @@ const EMPTY_FILTER: Filter = { category: null, q: "" };
  * reason blog-index.tsx does: `useSearchParams()` in a client component forces
  * the nearest Suspense boundary to render its fallback during prerender, and
  * /courses is prerendered. The native history API leaves the prerender alone.
+ *
+ * SSR-safe, but the result is only ever applied from a post-mount effect
+ * (SHAN-510). It used to seed useState directly, which was harmless while the
+ * server rendered nothing; now that the server renders the catalog, seeding
+ * from the URL would make the hydration render disagree with server HTML that
+ * was necessarily built with no query string.
  */
 function readFilter(): Filter {
   if (typeof window === "undefined") return EMPTY_FILTER;
@@ -55,20 +62,28 @@ function writeFilter(category: string | null, q: string, mode: "push" | "replace
   else window.history.replaceState(null, "", url);
 }
 
-export function CoursesCatalog() {
+interface CoursesCatalogProps {
+  /**
+   * The full catalog, rendered on the server so the document carries real
+   * content (SHAN-510). `null` means the server fetch failed; the browser then
+   * falls back to the original skeleton-then-fetch path.
+   */
+  initialCourses: Course[] | null;
+}
+
+export function CoursesCatalog({ initialCourses }: CoursesCatalogProps) {
   const { user: authUser } = useAuth();
   const hydrated = useHydrated();
   // SHAN-504: same gate as the detail page. "+ Add course" is server-rendered
   // absent, so it cannot appear during this component's hydration render.
   const user = hydrated ? authUser : null;
   const router = useRouter();
-  const [courses, setCourses] = useState<Course[] | null>(null);
+  const [courses, setCourses] = useState<Course[] | null>(initialCourses);
   const [error, setError] = useState<string | null>(null);
-  // Seeded from the URL so a deep link arrives filtered, with no flash of the
-  // unfiltered grid. readFilter() is SSR-safe and yields the empty filter
-  // during prerender, which is what the server would have rendered anyway.
-  const [query, setQuery] = useState(() => readFilter().q);
-  const [category, setCategory] = useState<string | null>(() => readFilter().category);
+  // Starts empty on both sides of hydration; the URL is applied in the mount
+  // effect below.
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const deferredQuery = useDeferredValue(query);
 
@@ -81,12 +96,26 @@ export function CoursesCatalog() {
       );
   };
 
+  // SHAN-510: unlike /vocabulary and /blog, this mount fetch is NOT skipped
+  // when the server seeded the list. Course.myStars is per-user and the server
+  // fetch is unauthenticated, so skipping it would leave a signed-in reader's
+  // own ratings permanently missing from the index. The seeded list is already
+  // on screen, so this is a silent refresh rather than a skeleton.
   useEffect(load, []);
 
   const applyFilter = useCallback(({ category: cat, q }: Filter) => {
     setCategory(cat);
     setQuery(q);
   }, []);
+
+  // Seed from the URL after mount so a deep link still arrives filtered. Done
+  // here rather than in useState so the hydration render matches the server's,
+  // which has no query string to read (SHAN-510).
+  useEffect(() => {
+    const filter = readFilter();
+    if (filter.category === null && filter.q === "") return;
+    applyFilter(filter);
+  }, [applyFilter]);
 
   // Back/Forward across the entries pushed by writeFilter.
   useEffect(() => {
@@ -117,7 +146,10 @@ export function CoursesCatalog() {
     });
   }, [courses, deferredQuery, category]);
 
-  if (error) {
+  // Only takes over the page while there is nothing to show. Once the server
+  // has delivered a catalog, a failed refresh must not throw that content away
+  // (SHAN-510). The refresh only adds the reader's own ratings.
+  if (error && courses === null) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-10">
         <InlineErrorState message={error} onRetry={load} backHref="/" />
@@ -238,6 +270,12 @@ export function CoursesCatalog() {
         onClose={() => setShowAdd(false)}
         onCreated={(course) => {
           setShowAdd(false);
+          // SHAN-510: the index is server-rendered and cached now, so without
+          // this a course the author just added is invisible to the next
+          // visitor for up to the revalidate window. Fire-and-forget for the
+          // same reason course-interactive.tsx does it: the write already
+          // committed, so a revalidation failure must not read as a failed add.
+          revalidateCoursesIndex().catch(() => {});
           router.push(`/courses/${course.slug}`);
         }}
       />
