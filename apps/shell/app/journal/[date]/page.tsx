@@ -8,6 +8,22 @@ interface PageProps {
   params: Promise<{ date: string }>;
 }
 
+// SHAN-512: DO NOT make this route ISR. It looks like the ideal candidate —
+// the page body below is pure, the entry arrives client-side inside
+// JournalAccessGate, and the metadata comment further down says the document
+// is edge-cached — but ActivitySidebar is a *server* component and
+// getActivities() in lib/api/activities.ts fetches with cache: "no-store".
+// Adding revalidate + generateStaticParams was tried and shipped on c1ebd23;
+// every /journal/<date> then 500'd in production with
+//   Page changed from static to dynamic at runtime, reason: revalidate: 0
+//   fetch .../api/activities/<date>
+// and it was reverted in b4960dd. A single uncacheable fetch anywhere in the
+// tree makes a static route throw at request time rather than fall back to
+// dynamic. The route is correctly ƒ: it renders per-request backend data.
+// Making it ISR would mean giving the activity sidebar a revalidate window,
+// which is a deliberate staleness decision about a shared helper, not a
+// caching tidy-up — scope it as its own ticket if it is ever wanted.
+
 /** Validate YYYY-MM-DD format */
 function isValidDate(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(Date.parse(date));

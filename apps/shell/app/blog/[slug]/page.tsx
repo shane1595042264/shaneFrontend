@@ -16,6 +16,37 @@ const SITE_URL = "https://shanejli.com";
 // (SHAN-487), so an author sees their own write on the next navigation.
 export const revalidate = 300;
 
+// SHAN-512: the export above was inert on its own. A dynamic segment with no
+// generateStaticParams is never ISR-eligible, so Next kept marking this route
+// ƒ and serving Cache-Control: no-store — the build table showed no Revalidate
+// column for it while /courses/[slug] showed "5m". Listing the slugs
+// prerenders the published posts; dynamicParams stays on (the default) so a
+// post published afterwards still renders on demand and is cached from then
+// on. Unauthenticated callers of this endpoint only ever get published rows,
+// so a draft can never be baked into a shared cache. Failing soft to [] keeps
+// a backend blip mid-deploy from failing the build — the same hazard
+// /trips/page.tsx and /courses/[slug] document.
+//
+// The precondition this route satisfies and /journal/[date] does not: every
+// fetch in the rendered tree is cacheable. fetchPost below passes
+// next: { revalidate }, and the three interactive pieces (PostActions,
+// PostReactionBar, BlogComments) are client islands, so nothing here reads
+// request state. A single `cache: "no-store"` anywhere in a static route's
+// tree throws "Page changed from static to dynamic at runtime" and 500s the
+// page — which is exactly what it did to /journal/[date]; see the note there.
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/blog/posts?limit=100`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { posts: { slug: string }[] };
+    return data.posts.map((p) => ({ slug: p.slug }));
+  } catch {
+    return [];
+  }
+}
+
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Chicago",
   year: "numeric",
