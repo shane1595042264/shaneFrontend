@@ -29,10 +29,37 @@ export async function getTripBySlug(slug: string): Promise<TripFull | null> {
   return (await res.json()).trip;
 }
 
-export async function uploadTripFile(file: File, title?: string): Promise<{ slug: string; title: string | null }> {
+export interface ExistingTripRef {
+  slug: string;
+  title: string | null;
+  createdAt: string;
+}
+
+/**
+ * Thrown when the backend recognizes an upload as a trip that already exists
+ * (SHAN-514). Carries the existing trip so the caller can offer "open the one
+ * you already have" instead of rendering a dead-end error string. Re-calling
+ * uploadTripFile with `{ force: true }` creates the copy anyway.
+ */
+export class DuplicateTripError extends Error {
+  readonly existing: ExistingTripRef;
+
+  constructor(message: string, existing: ExistingTripRef) {
+    super(message);
+    this.name = "DuplicateTripError";
+    this.existing = existing;
+  }
+}
+
+export async function uploadTripFile(
+  file: File,
+  title?: string,
+  opts: { force?: boolean } = {},
+): Promise<{ slug: string; title: string | null }> {
   const form = new FormData();
   form.append("file", file);
   if (title) form.append("title", title);
+  if (opts.force) form.append("force", "true");
   const res = await fetch(`${API_URL}/api/trips`, {
     method: "POST",
     headers: getAuthHeaders(),
@@ -40,6 +67,12 @@ export async function uploadTripFile(file: File, title?: string): Promise<{ slug
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    if (res.status === 409 && err.code === "duplicate_trip" && err.existing) {
+      throw new DuplicateTripError(
+        err.error || "This trip has already been uploaded",
+        err.existing,
+      );
+    }
     throw new Error(err.error || `Upload failed (${res.status})`);
   }
   const body = await res.json();

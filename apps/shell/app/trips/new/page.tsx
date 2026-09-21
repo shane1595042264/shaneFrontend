@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { uploadTripFile } from "@/lib/api/trips";
+import { DuplicateTripError, uploadTripFile, type ExistingTripRef } from "@/lib/api/trips";
 import { LoginButton } from "@/components/login-button";
 
 export default function NewTripPage() {
@@ -15,6 +15,10 @@ export default function NewTripPage() {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // SHAN-514: set when the backend recognized this upload as a trip that
+  // already exists. It is a decision, not an error, so it renders as a choice
+  // between opening the original and uploading a second copy on purpose.
+  const [duplicate, setDuplicate] = useState<ExistingTripRef | null>(null);
 
   const acceptFile = useCallback((f: File) => {
     if (!/\.html?$/i.test(f.name) && f.type !== "text/html") {
@@ -26,18 +30,24 @@ export default function NewTripPage() {
       return;
     }
     setError(null);
+    setDuplicate(null);
     setFile(f);
   }, []);
 
-  const submit = async () => {
+  const submit = async (force = false) => {
     if (!file) return;
     setUploading(true);
     setError(null);
+    setDuplicate(null);
     try {
-      const res = await uploadTripFile(file, titleOverride.trim() || undefined);
+      const res = await uploadTripFile(file, titleOverride.trim() || undefined, { force });
       router.push(`/trips/${res.slug}`);
     } catch (err: any) {
-      setError(err?.message ?? "Upload failed");
+      if (err instanceof DuplicateTripError) {
+        setDuplicate(err.existing);
+      } else {
+        setError(err?.message ?? "Upload failed");
+      }
       setUploading(false);
     }
   };
@@ -142,10 +152,45 @@ export default function NewTripPage() {
 
       {error && <p role="alert" className="mt-4 text-sm text-red-400">{error}</p>}
 
+      {duplicate && (
+        <div
+          role="alert"
+          className="mt-4 rounded-md border border-amber-400/30 bg-amber-400/5 p-4 text-sm"
+        >
+          <p className="text-white">You have already uploaded this trip.</p>
+          <p className="mt-1 text-gray-400">
+            It is on the site as{" "}
+            <Link
+              href={`/trips/${duplicate.slug}`}
+              className="text-amber-300 underline underline-offset-2 hover:text-amber-200"
+            >
+              {duplicate.title || duplicate.slug}
+            </Link>
+            . Uploading it again makes a second page with the same content at a different URL.
+          </p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={`/trips/${duplicate.slug}`}
+              className="inline-flex min-h-11 items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200"
+            >
+              Open the existing trip
+            </Link>
+            <button
+              type="button"
+              onClick={() => submit(true)}
+              disabled={uploading}
+              className="inline-flex min-h-11 items-center justify-center rounded border border-white/20 px-4 text-sm hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {uploading ? "Uploading…" : "Upload anyway"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
-          onClick={submit}
+          onClick={() => submit()}
           disabled={!file || uploading}
           className="inline-flex min-h-11 items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
