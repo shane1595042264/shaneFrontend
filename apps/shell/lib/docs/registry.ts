@@ -22,6 +22,20 @@ export interface DocPage {
   title: string;
   description: string;
   body: string;
+  /**
+   * When this page's content last changed, as an ISO-8601 date (SHAN-516).
+   *
+   * Doc bodies are static TS modules in this repo, so the commit that last
+   * touched `content/<slug>.ts` is the content's real modification date —
+   * there is no row to read it from. Seeded from `git log -1 --format=%cI`
+   * per module; bump it in the same commit when you edit a body, the same way
+   * the root CLAUDE.md already requires touching the module when its API
+   * changes. sitemap.ts is the only consumer: it used to stamp every doc URL
+   * with sitemap-generation time, which is the kind of always-now lastmod
+   * Google discards (and, worse, discards sitemap-wide, taking the accurate
+   * trip and course dates down with it).
+   */
+  lastModified: string;
 }
 
 export const DOC_PAGES: DocPage[] = [
@@ -31,6 +45,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "What shanejli.com is, the architecture, base URLs, and how to discover the rest of these docs.",
     body: overview,
+    lastModified: "2026-09-08T03:09:10-05:00",
   },
   {
     slug: "auth",
@@ -38,6 +53,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "JWTs vs personal access tokens, minting, scopes, rate limits, and identifying yourself.",
     body: auth,
+    lastModified: "2026-09-02T15:51:12-05:00",
   },
   {
     slug: "conventions",
@@ -45,6 +61,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Error shape, validation, pagination cursors, ETag conditional GET, If-Match concurrency, and wire-format rules shared by every module.",
     body: conventions,
+    lastModified: "2026-09-21T09:09:24-05:00",
   },
   {
     slug: "journal-api",
@@ -52,6 +69,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The full collaborative journal write surface: entries, appends, versions, suggestions, comments, reactions.",
     body: journalApi,
+    lastModified: "2026-09-13T15:10:19-05:00",
   },
   {
     slug: "blog-api",
@@ -59,6 +77,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The public blog: slug-keyed posts, versioned titles and bodies, drafts, tags, and revert.",
     body: blogApi,
+    lastModified: "2026-09-14T15:08:46-05:00",
   },
   {
     slug: "images-api",
@@ -66,6 +85,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Uploading and serving journal images: caps, sniffing, quotas, and embedding rules.",
     body: imagesApi,
+    lastModified: "2026-09-10T09:16:47-05:00",
   },
   {
     slug: "courses-api",
@@ -73,6 +93,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The course catalog: AI classification on create, covers, star ratings, and comments.",
     body: coursesApi,
+    lastModified: "2026-09-10T21:05:34-05:00",
   },
   {
     slug: "scoreboard-api",
@@ -80,6 +101,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The IRL game scoreboard: games, players, live matches, scoring, and the game-icons search.",
     body: scoreboardApi,
+    lastModified: "2026-09-05T09:05:20-05:00",
   },
   {
     slug: "trips-api",
@@ -87,6 +109,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Public trip HTML upload, update, and delete, plus the trip-groups planning surface.",
     body: tripsApi,
+    lastModified: "2026-09-21T03:08:35-05:00",
   },
   {
     slug: "knowledge-api",
@@ -94,6 +117,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Free-text note ingest with AI classification, plus knowledge entries, vocabulary, and comments.",
     body: knowledgeApi,
+    lastModified: "2026-09-12T03:07:14-05:00",
   },
   {
     slug: "vocabulary-api",
@@ -101,6 +125,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The word list and its typed connection graph: filters, enrichment, ownership rules, and how it differs from the Knowledge API.",
     body: vocabularyApi,
+    lastModified: "2026-09-04T09:08:15-05:00",
   },
   {
     slug: "training-plans-api",
@@ -108,6 +133,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Goal-driven training plans for the Practice element: days, blocks, steps, the one-call nested create, and the completion tally.",
     body: trainingPlansApi,
+    lastModified: "2026-09-10T03:15:16-05:00",
   },
   {
     slug: "elements-directory",
@@ -115,6 +141,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Every element on the periodic table with its route, backend mount, and auth model.",
     body: elementsDirectory,
+    lastModified: "2026-09-14T09:12:01-05:00",
   },
 ];
 

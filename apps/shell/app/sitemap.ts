@@ -20,6 +20,21 @@ function liveInternalRoutes(): InternalElement[] {
     .map((e) => ({ route: e.route as string }));
 }
 
+/**
+ * Newest parseable timestamp in `values`, or null when none of them parse.
+ *
+ * Null is a real answer here, not a failure to paper over: see the note on
+ * `lastModifiedOf` for why an unknown date is omitted rather than guessed.
+ */
+function latest(values: (string | Date | null | undefined)[]): Date | null {
+  return values.reduce<Date | null>((max, raw) => {
+    if (!raw) return max;
+    const candidate = raw instanceof Date ? raw : new Date(raw);
+    if (Number.isNaN(candidate.getTime())) return max;
+    return !max || candidate > max ? candidate : max;
+  }, null);
+}
+
 async function fetchAllTrips(): Promise<TripRow[]> {
   try {
     const res = await fetch(`${API_URL}/api/trips`, { next: { revalidate: 3600 } });
@@ -91,42 +106,113 @@ async function fetchAllBlogPosts(): Promise<BlogRowLite[]> {
   }
 }
 
+/**
+ * Freshness signal for /knowledge and /vocabulary, which are two views of one
+ * table: `GET /api/knowledge/entries` and `GET /api/vocabulary/words` both
+ * select from `vocab_words` with the same `desc(createdAt), desc(id)` order
+ * (SHAN-515), so one fetch dates both index pages.
+ *
+ * Deliberately a lower bound. The rows come back newest-created first, so an
+ * edit to a word created long ago can sit past this page and not move the
+ * date. Erring old is the safe direction: a lastmod that lags real content is
+ * a missed recrawl, while one that runs ahead is the false claim this ticket
+ * exists to remove.
+ */
+async function fetchLatestVocabUpdate(): Promise<Date | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/vocabulary/words?limit=100`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      words: { createdAt: string | null; updatedAt: string | null }[];
+    };
+    return latest(data.words.flatMap((w) => [w.createdAt, w.updatedAt]));
+  } catch {
+    return null;
+  }
+}
+
+/** Freshness signal for /scoreboard. The games list is unpaginated, so unlike
+ * the vocabulary one above this sees every row and is exact. */
+async function fetchLatestScoreboardUpdate(): Promise<Date | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/scoreboard/games`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      games: { createdAt: string | null; updatedAt: string | null }[];
+    };
+    return latest(data.games.flatMap((g) => [g.createdAt, g.updatedAt]));
+  } catch {
+    return null;
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // No journal here on purpose: the journal went invite-only in SHAN-475, so
   // /journal and every /journal/<date> is crawler-disallowed (the prefix entry
   // in CRAWLER_DISALLOW filters the element route out of liveInternalRoutes)
   // and enumerating the dates would publish exactly the index the gate exists
   // to withhold.
-  const [trips, courses, blogPosts] = await Promise.all([
-    fetchAllTrips(),
-    fetchAllCourses(),
-    fetchAllBlogPosts(),
-  ]);
+  const [trips, courses, blogPosts, latestVocabUpdate, latestScoreboardUpdate] =
+    await Promise.all([
+      fetchAllTrips(),
+      fetchAllCourses(),
+      fetchAllBlogPosts(),
+      fetchLatestVocabUpdate(),
+      fetchLatestScoreboardUpdate(),
+    ]);
   const elements = liveInternalRoutes();
 
-  const now = new Date();
+  const latestTripUpdate = latest(trips.map((r) => r.updatedAt));
+  const latestCourseUpdate = latest(courses.map((r) => r.updatedAt));
+  const latestBlogUpdate = latest(blogPosts.map((r) => r.updatedAt));
+  const latestDocUpdate = latest(DOC_PAGES.map((p) => p.lastModified));
 
-  const latestTripUpdate = trips.reduce<Date | null>((max, row) => {
-    if (!row.updatedAt) return max;
-    const candidate = new Date(row.updatedAt);
-    return !max || candidate > max ? candidate : max;
-  }, null);
+  /**
+   * SHAN-516: every lastmod traces to a row or a commit. This used to be one
+   * shared `new Date()`, so 21 of the 24 URLs claimed to have changed at the
+   * instant the sitemap was generated and the stamp advanced on each
+   * revalidate. Google only honours lastmod that is consistently accurate and
+   * drops it for the whole file when it is not, which meant the fabricated
+   * dates were discrediting the genuinely correct trip and course ones
+   * alongside them.
+   *
+   * An index page's date is the newest content it lists. A route with no
+   * signal — a fetch that failed, an element added here without a case below —
+   * returns null and its `lastmod` tag is omitted entirely. Omission is the
+   * honest fallback: making no claim costs a recrawl hint, whereas falling
+   * back to `now()` re-creates the bug on every backend outage.
+   */
+  function lastModifiedOf(route: string): Date | null {
+    switch (route) {
+      case "/trips":
+        return latestTripUpdate;
+      case "/courses":
+        return latestCourseUpdate;
+      case "/blog":
+        return latestBlogUpdate;
+      case "/docs":
+        return latestDocUpdate;
+      // Two routes over one table — see fetchLatestVocabUpdate.
+      case "/knowledge":
+      case "/vocabulary":
+        return latestVocabUpdate;
+      case "/scoreboard":
+        return latestScoreboardUpdate;
+      default:
+        return null;
+    }
+  }
 
-  const entries: MetadataRoute.Sitemap = [
-    {
-      url: SITE_URL,
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 1.0,
-    },
-  ];
+  const entries: MetadataRoute.Sitemap = [];
 
   for (const el of elements) {
-    const lastModified: Date =
-      el.route === "/trips" && latestTripUpdate ? latestTripUpdate : now;
     entries.push({
       url: `${SITE_URL}${el.route}`,
-      lastModified,
+      lastModified: lastModifiedOf(el.route) ?? undefined,
       changeFrequency: "weekly",
       priority: 0.7,
     });
@@ -135,7 +221,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const row of trips) {
     entries.push({
       url: `${SITE_URL}/trips/${row.slug}`,
-      lastModified: row.updatedAt ? new Date(row.updatedAt) : now,
+      lastModified: latest([row.updatedAt]) ?? undefined,
       changeFrequency: "monthly",
       priority: 0.6,
     });
@@ -144,7 +230,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const row of courses) {
     entries.push({
       url: `${SITE_URL}/courses/${row.slug}`,
-      lastModified: row.updatedAt ? new Date(row.updatedAt) : now,
+      lastModified: latest([row.updatedAt]) ?? undefined,
       changeFrequency: "monthly",
       priority: 0.6,
     });
@@ -153,7 +239,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const row of blogPosts) {
     entries.push({
       url: `${SITE_URL}/blog/${row.slug}`,
-      lastModified: row.updatedAt ? new Date(row.updatedAt) : now,
+      lastModified: latest([row.updatedAt]) ?? undefined,
       changeFrequency: "monthly",
       priority: 0.6,
     });
@@ -162,11 +248,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const p of DOC_PAGES) {
     entries.push({
       url: `${SITE_URL}/docs/${p.slug}`,
-      lastModified: now,
+      lastModified: latest([p.lastModified]) ?? undefined,
       changeFrequency: "monthly",
       priority: 0.5,
     });
   }
+
+  // The homepage is the periodic table: its content is whatever the elements
+  // currently hold, so it is exactly as fresh as the newest thing below it.
+  // Computed last and unshifted so it sees every entry.
+  const homeLastModified = latest(entries.map((e) => e.lastModified));
+
+  entries.unshift({
+    url: SITE_URL,
+    lastModified: homeLastModified ?? undefined,
+    changeFrequency: "daily",
+    priority: 1.0,
+  });
 
   return entries;
 }
