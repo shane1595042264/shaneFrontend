@@ -39,7 +39,17 @@ Validation failures (bad params, query, or body) return 400 and add a structured
 
 ## Pagination
 
-Most modules paginate by keyset, newest-first, via \`limit\` (1 to 100) and \`cursor\`. The cursor value differs by module: the journal cursor is the last entry's DATE (\`YYYY-MM-DD\`); trips, loans, tea, scoreboard matches, courses, and rng history use a \`createdAt\` ISO timestamp. Read \`nextCursor\` from each response; null means done.
+Most modules paginate by keyset, newest-first, via \`limit\` (1 to 100) and \`cursor\`. **Treat \`cursor\` as opaque: read \`nextCursor\` off a response and send it back verbatim.** Null means done.
+
+The cursor value differs by module. The journal entries cursor is the last entry's DATE (\`YYYY-MM-DD\`). Blog and journal version history key on the version number. Everything else — trips, loans, tea, scoreboard matches, courses, rng history, journal activity, blog posts — keys on a timestamp, and since SHAN-513 that cursor carries the boundary row's id too, as \`<iso-timestamp>_<row-id>\`:
+
+\`\`\`
+2026-05-24T21:32:37.484Z_5269f919-dfae-4d7a-9320-0036f2554ab0
+\`\`\`
+
+The id half is not decoration. A timestamp alone is not unique and the ISO form is only millisecond-precise, while the stored column is microsecond-precise, so a cursor built from the timestamp alone could skip rows that shared the boundary row's millisecond — silently, with a 200 and a short page. The id makes the sort key total and lets the server read the boundary row's exact stored timestamp back.
+
+Cursors minted before this change (a bare ISO timestamp, no \`_\`) are still accepted, so nothing in flight broke. A malformed cursor is a **400**, never a silent reset to page 1.
 
 Knowledge and vocabulary are the exception: they page by \`limit\` (1 to 500, default 100) and \`offset\`, and echo \`{ total, limit, offset }\` back so you can compute the page count up front. They have no \`nextCursor\`, so you are done when \`offset + limit >= total\`.
 
