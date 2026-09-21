@@ -53,6 +53,8 @@ Cursors minted before this change (a bare ISO timestamp, no \`_\`) are still acc
 
 Knowledge and vocabulary are the exception: they page by \`limit\` (1 to 500, default 100) and \`offset\`, and echo \`{ total, limit, offset }\` back so you can compute the page count up front. They have no \`nextCursor\`, so you are done when \`offset + limit >= total\`.
 
+Offset paging needs the same total sort key for the same reason, and since SHAN-515 it has one: both routes order by \`(created_at DESC, id DESC)\`. Each page is a separate query, and Postgres promises nothing about how rows that tie on the sort key fall between two of them, so without the id half a walk over \`offset=0, 100, 200 …\` could return one entry on two pages and never return another. Offset is still only stable against a still list: rows written between your requests shift everything after them, so an ingest running alongside a long walk can repeat a row. Re-read from \`offset=0\` if you need a consistent snapshot.
+
 ## Caching and conditional GET
 
 Every 200 JSON response to a GET carries a weak validator, \`ETag: W/"..."\`, plus \`Cache-Control: private, no-cache\`. Send the validator back as \`If-None-Match\` on the next poll and an unchanged resource answers **304** with an empty body instead of re-sending the payload:
