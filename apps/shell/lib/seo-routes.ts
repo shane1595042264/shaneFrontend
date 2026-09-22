@@ -65,6 +65,36 @@ export const CRAWLER_DISALLOW: string[] = [
   // don't control the canonical tag on; /courses/:slug is the indexed surface
   // and already carries the Course JSON-LD pointing at itself.
   "/learn",
+  // SHAN-520: the JSON API, not a page. The next.config.ts rewrite (SHAN-458)
+  // proxies the entire backend onto this domain, so every public endpoint was
+  // crawlable here under the blanket `Allow: /` — an indexable second copy of
+  // content whose real home is the HTML page that renders it, on a URL that
+  // cannot carry a rel=canonical to say so. The backend origin gets the same
+  // treatment from its own robots.txt (shaneBackend
+  // src/modules/shared/crawler-policy.ts), which also sets
+  // X-Robots-Tag: noindex — and that header rides this rewrite, so the /api/*
+  // responses served from this domain carry a noindex as well.
+  //
+  // Safe to block here rather than lean on that header alone, which was
+  // checked rather than assumed: Googlebot executes XHRs while rendering, so a
+  // blocked /api would matter if any public page's content arrived
+  // client-side. After SHAN-507 through SHAN-510 every public page is a server
+  // component with its content in the SSR HTML, and every client island
+  // renders a fetch failure as an added banner rather than replacing the list.
+  // The only two early returns (components/blog/blog-index.tsx,
+  // components/courses/catalog.tsx) both require the server seed to ALSO be
+  // absent, so a blocked refresh leaves the seeded content on screen.
+  //
+  // The one real thing this gives up, stated so it is not a surprise later:
+  // course cover bytes are served from /api/courses/covers/:id, so they stop
+  // being eligible for Google Images. Page text indexing is unaffected (a
+  // blocked image does not change what Googlebot reads), and the surface that
+  // actually matters for sharing is unaffected too — social unfurls use the
+  // /opengraph-image routes on this domain, not /api.
+  //
+  // Advisory to crawlers only. This changes nothing for agents: the documented
+  // read API, PAT auth and the /docs and /llms.txt surfaces are untouched.
+  "/api",
 ];
 
 /**
