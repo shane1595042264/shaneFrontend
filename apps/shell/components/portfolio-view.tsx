@@ -1,7 +1,11 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { FEATURED_PROJECTS, RESERVED_SLOTS } from "@/lib/portfolio";
+import {
+  FEATURED_PROJECTS,
+  PORTFOLIO_HERO,
+  RESERVED_SLOTS,
+} from "@/lib/portfolio";
 
 /**
  * The Portfolio view of the homepage (SHAN-517) — what a signed-out visitor
@@ -70,16 +74,21 @@ export function PortfolioView({
           className="flex flex-col gap-5"
         >
           <span className="text-[11px] uppercase tracking-[0.4em] text-gray-400">
-            Shane Li
+            {PORTFOLIO_HERO.eyebrow}
           </span>
+          {/*
+            The line break is data, not layout (SHAN-519): app/opengraph-image.tsx
+            renders the same two lines so the share card breaks where the page
+            does. Hence the explicit <br /> between the array entries rather
+            than letting the container wrap wherever it lands.
+          */}
           <h1 className="text-3xl font-semibold leading-[1.15] tracking-tight text-white sm:text-5xl">
-            I build small things
+            {PORTFOLIO_HERO.headline[0]}
             <br />
-            and keep most of them.
+            {PORTFOLIO_HERO.headline[1]}
           </h1>
           <p className="max-w-xl text-sm leading-relaxed text-gray-400 sm:text-base">
-            Software engineer in Texas. Most of what I make is for an audience of
-            one. A few turned out to be worth pointing at.
+            {PORTFOLIO_HERO.blurb}
           </p>
         </motion.header>
 
@@ -89,7 +98,7 @@ export function PortfolioView({
               id="featured-work"
               className="shrink-0 text-[11px] uppercase tracking-[0.3em] text-gray-400"
             >
-              Selected work
+              {PORTFOLIO_HERO.sectionLabel}
             </h2>
             <span aria-hidden="true" className="h-px grow bg-white/10" />
           </div>
