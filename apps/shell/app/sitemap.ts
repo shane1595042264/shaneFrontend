@@ -207,9 +207,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
+  /**
+   * SHAN-524: /blog is a real route with a real empty state, but while the
+   * post list is empty it is a thin page, and app/blog/page.tsx marks it
+   * noindex on exactly this condition. One sitemap generation must not
+   * advertise a URL that the same content state just told crawlers to skip —
+   * a noindex URL in a sitemap is its own Search Console warning, and a
+   * contentless one is the soft-404 finding the noindex is there to prevent.
+   *
+   * Content-driven, like the noindex: the first published post puts the entry
+   * back with no one having to remember it. Only /blog is checked because only
+   * /blog is empty — courses, trips, scoreboard, knowledge and vocabulary all
+   * have rows, so a general empty-index rule would be written blind.
+   *
+   * A failed fetch also lands here and drops the entry for one revalidation
+   * window. That is the same direction the page errs in, and for the same
+   * reason: a crawler arriving during the outage gets the empty page.
+   */
+  const sitemapElements =
+    blogPosts.length === 0
+      ? elements.filter((el) => el.route !== "/blog")
+      : elements;
+
   const entries: MetadataRoute.Sitemap = [];
 
-  for (const el of elements) {
+  for (const el of sitemapElements) {
     entries.push({
       url: `${SITE_URL}${el.route}`,
       lastModified: lastModifiedOf(el.route) ?? undefined,

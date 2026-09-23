@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { BlogIndex } from "@/components/blog/blog-index";
 import { buildPostsQuery, type BlogPostPage } from "@/lib/api/blog";
 import { API_URL } from "@/lib/api-url";
@@ -35,6 +36,37 @@ async function fetchFirstPage(): Promise<BlogPostPage> {
   }
 }
 
+/**
+ * SHAN-524: an empty blog should not be offered to search engines as a page.
+ *
+ * Every published row was a trashed E2E fixture, so `/api/blog/posts` returns
+ * `[]` on prod and the whole rendered body is the header plus "No posts yet."
+ * That is a thin page, and a thin page that is both indexable and listed in
+ * sitemap.xml is what Search Console reports as "Submitted URL seems to be a
+ * soft 404" — a finding that counts against the sitemap as a whole, not just
+ * the one URL. app/sitemap.ts drops the `/blog` entry on the same condition.
+ *
+ * Nothing here is a manual switch: the day a post ships, `posts.length` is
+ * non-zero, this returns no `robots` value, and the route is indexable again.
+ *
+ * `follow` stays true because the page is thin, not private — the crawler
+ * should still walk the nav links out of it.
+ *
+ * Returning `{}` in the normal case contributes nothing to the merge, so the
+ * title, description, canonical, feed `alternates` and openGraph declared in
+ * app/blog/layout.tsx survive untouched. That is the SHAN-464 rule read in the
+ * other direction: `alternates` is replaced only by a segment that re-declares
+ * it, and this one deliberately does not.
+ *
+ * The `fetchFirstPage()` call is shared with the render below rather than
+ * doubled — Next dedupes identical `fetch`es within one render pass.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await fetchFirstPage();
+  if (page.posts.length > 0) return {};
+  return { robots: { index: false, follow: true } };
+}
+
 export default async function BlogIndexPage() {
   const page = await fetchFirstPage();
 
@@ -44,14 +76,21 @@ export default async function BlogIndexPage() {
     name: "Shane's Blog",
     url: `${SITE_URL}/blog`,
     author: { "@type": "Person", name: "Shane Li", url: SITE_URL },
-    blogPost: page.posts.slice(0, 20).map((p) => ({
-      "@type": "BlogPosting",
-      headline: p.title,
-      url: `${SITE_URL}/blog/${p.slug}`,
-      datePublished: p.publishedAt,
-      dateModified: p.updatedAt,
-      ...(p.tags.length ? { keywords: p.tags.join(", ") } : {}),
-    })),
+    // Omitted rather than emitted as `[]` when there is nothing to list: an
+    // empty array is a positive claim that this Blog contains no posts, which
+    // is the assertion the noindex above exists to avoid making.
+    ...(page.posts.length
+      ? {
+          blogPost: page.posts.slice(0, 20).map((p) => ({
+            "@type": "BlogPosting",
+            headline: p.title,
+            url: `${SITE_URL}/blog/${p.slug}`,
+            datePublished: p.publishedAt,
+            dateModified: p.updatedAt,
+            ...(p.tags.length ? { keywords: p.tags.join(", ") } : {}),
+          })),
+        }
+      : {}),
   };
 
   return (
