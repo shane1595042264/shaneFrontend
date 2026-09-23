@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   FEATURED_PROJECTS,
   PORTFOLIO_HERO,
+  PROFILE_LINKS,
   RESERVED_SLOTS,
 } from "@/lib/portfolio";
 
@@ -219,31 +220,73 @@ export function PortfolioView({
             ease: "easeOut",
             delay: reduceMotion ? 0 : 0.3,
           }}
-          className="flex flex-col gap-3 border-t border-white/10 pt-8"
+          className="flex flex-col gap-6 border-t border-white/10 pt-8"
         >
-          <p className="text-sm text-gray-400">
-            The rest of it is filed as a periodic table. Journals, trackers,
-            half-finished tools, a few links out.
-          </p>
           {/*
-            A button, not a link: the table is already in this document and
-            switching is a client-side toggle. The table's own internal links
-            ship in the server HTML either way (see components/home-view.tsx),
-            so crawlers are not walled off by this being a button.
+            SHAN-521: the four profiles the Person JSON-LD on this route
+            declares in `sameAs`. Until this shipped, Portfolio — the default
+            view since SHAN-517 — had exactly one outbound link, and it went to
+            a product rather than to Shane, so the structured data asserted an
+            identity graph the visible page never corroborated.
+
+            Read from lib/portfolio.ts, the same const app/page.tsx builds
+            `sameAs` from, so the two can never come to disagree about which
+            profiles exist. Real anchors, not a toggle: these leave the site.
+
+            The visible label is just the platform name, which is enough beside
+            three siblings but thin on its own in a screen reader's link list,
+            so aria-label spells out the destination and the new tab. `nav` with
+            a name rather than a bare div: this is a set of navigation links and
+            an assistive user should be able to jump to it.
           */}
-          <button
-            type="button"
-            onClick={onShowTable}
-            className="group/table inline-flex w-fit items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-200 transition-colors duration-300 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-          >
-            Open the periodic table
-            <span
-              aria-hidden="true"
-              className="transition-transform duration-300 group-hover/table:translate-x-1"
+          <nav aria-label="Shane's profiles elsewhere">
+            <ul className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              {PROFILE_LINKS.map((profile) => (
+                <li key={profile.id}>
+                  <a
+                    href={profile.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${profile.label} — opens ${profile.host} in a new tab.`}
+                    className="rounded text-sm text-gray-400 underline-offset-4 transition-colors duration-300 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    {profile.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/*
+            The paragraph and the switch keep their own tighter gap-3; the
+            footer's gap-6 is the separation between them and the profile links
+            above, which are a different kind of destination.
+          */}
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-gray-400">
+              The rest of it is filed as a periodic table. Journals, trackers,
+              half-finished tools, a few links out.
+            </p>
+            {/*
+              A button, not a link: the table is already in this document and
+              switching is a client-side toggle. The table's own internal links
+              ship in the server HTML either way (see components/home-view.tsx),
+              so crawlers are not walled off by this being a button.
+            */}
+            <button
+              type="button"
+              onClick={onShowTable}
+              className="group/table inline-flex w-fit items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-200 transition-colors duration-300 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              &#8594;
-            </span>
-          </button>
+              Open the periodic table
+              <span
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover/table:translate-x-1"
+              >
+                &#8594;
+              </span>
+            </button>
+          </div>
         </motion.footer>
       </div>
     </div>

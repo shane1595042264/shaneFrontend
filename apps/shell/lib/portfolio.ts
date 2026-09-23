@@ -73,3 +73,61 @@ export const FEATURED_PROJECTS: PortfolioProject[] = [
  * aria-hidden at the call site, never focusable, no link.
  */
 export const RESERVED_SLOTS = ["02", "03"] as const;
+
+export interface ProfileLink {
+  id: string;
+  /** Platform name. The visible label. */
+  label: string;
+  /** Bare hostname, used to say out loud where the link goes. */
+  host: string;
+  url: string;
+}
+
+/**
+ * Shane's canonical personal profiles (SHAN-521).
+ *
+ * This is the single source of truth for two surfaces that must agree: the
+ * links rendered in the Portfolio footer, and the `sameAs` array of the Person
+ * JSON-LD in app/page.tsx. They were separate hand-written lists until this
+ * ticket, and the visible page named none of the four profiles the structured
+ * data claimed — an identity assertion with no href behind it.
+ *
+ * Why it belongs here rather than being read out of lib/element-registry.ts,
+ * which also has these four as external tiles: the registry is the table's
+ * inventory and answers "what tiles exist", so its entries carry table-shaped
+ * data (symbol, category, status) and its URLs are whatever a tile should open.
+ * Its Bilibili URL, for instance, carries a `?spm_id_from=` referrer token that
+ * is fine on a tile and wrong in `sameAs`, where the value is meant to be the
+ * profile's canonical address. Two lists that answer different questions is the
+ * same reasoning as the FEATURED_PROJECTS comment at the top of this file.
+ *
+ * nibbook.com is excluded on purpose, for the reason app/page.tsx already gave
+ * when this list lived there: it is a product, not a personal identity. It is
+ * also already the one project card, so linking it twice would say less.
+ */
+export const PROFILE_LINKS: ProfileLink[] = [
+  {
+    id: "github",
+    label: "GitHub",
+    host: "github.com",
+    url: "https://github.com/shane1595042264",
+  },
+  {
+    id: "linkedin",
+    label: "LinkedIn",
+    host: "linkedin.com",
+    url: "https://www.linkedin.com/in/shane-juntao-li/",
+  },
+  {
+    id: "youtube",
+    label: "YouTube",
+    host: "youtube.com",
+    url: "https://www.youtube.com/@mr.doubleplus8206",
+  },
+  {
+    id: "bilibili",
+    label: "Bilibili",
+    host: "bilibili.com",
+    url: "https://space.bilibili.com/453338854",
+  },
+];

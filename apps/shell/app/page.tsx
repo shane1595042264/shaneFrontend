@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { allElements } from "@/lib/element-registry";
+import { PROFILE_LINKS } from "@/lib/portfolio";
 import { HomeView } from "@/components/home-view";
 
 const SITE_URL = "https://shanejli.com";
@@ -81,15 +82,16 @@ const personJsonLd = {
   url: SITE_URL,
   // sameAs links the on-site Person entity to Shane's canonical profiles so
   // search engines can consolidate identity signals (Knowledge Panel
-  // eligibility, disambiguation). These are the personal-profile external
-  // elements already surfaced on the homepage via element-registry.ts;
-  // nibbook.com is a product, not a personal identity, so it is excluded.
-  sameAs: [
-    "https://github.com/shane1595042264",
-    "https://www.linkedin.com/in/shane-juntao-li/",
-    "https://www.youtube.com/@mr.doubleplus8206",
-    "https://space.bilibili.com/453338854",
-  ],
+  // eligibility, disambiguation).
+  //
+  // SHAN-521: this used to be a literal array written out here, and the
+  // Portfolio view — the page a signed-out visitor and every rendering crawler
+  // actually lands on since SHAN-517 — linked none of the four. The claim had
+  // no href behind it. Both now read lib/portfolio.ts, so the structured data
+  // and the visible links cannot describe different sets of profiles. See that
+  // file for why the list is not derived from element-registry.ts and why
+  // nibbook.com is excluded.
+  sameAs: PROFILE_LINKS.map((profile) => profile.url),
 };
 
 const websiteJsonLd = {
