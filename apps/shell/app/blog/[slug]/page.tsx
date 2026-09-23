@@ -87,7 +87,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description =
     toPlainExcerpt(data.content, 160, "…") || "A post on Shane's blog.";
   const url = `${SITE_URL}/blog/${slug}`;
-  const ogImagePath = `/blog/${slug}/opengraph-image`;
   return {
     title,
     description,
@@ -104,6 +103,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         "application/feed+json": "/blog/feed.json",
       },
     },
+    // No `images` key on purpose: the opengraph-image.tsx file convention emits
+    // og:image plus :alt/:type/:width/:height and a cache-busting content hash,
+    // and naming the route here would collapse all of that to one bare URL. See
+    // lib/og-image-guard.ts, which fails the build if it comes back.
     openGraph: {
       title,
       description,
@@ -113,9 +116,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       publishedTime: data.post.publishedAt,
       modifiedTime: data.post.updatedAt,
       tags: data.post.tags,
-      images: [ogImagePath],
     },
-    twitter: { card: "summary_large_image", title, description, images: [ogImagePath] },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

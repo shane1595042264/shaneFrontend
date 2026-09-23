@@ -18,13 +18,16 @@ export const metadata: Metadata = {
       "application/feed+json": "/blog/feed.json",
     },
   },
+  // No `images` key on purpose: the opengraph-image.tsx file convention emits
+  // og:image plus :alt/:type/:width/:height and a cache-busting content hash,
+  // and naming the route here would collapse all of that to one bare URL. See
+  // lib/og-image-guard.ts, which fails the build if it comes back.
   openGraph: {
     title: "Blog — Shane",
     description:
       "Shane's public blog: long-form writing on software, travel, and whatever else stuck.",
     url: "https://shanejli.com/blog",
     siteName: "Shane — Periodic Table of Life",
-    images: ["/opengraph-image"],
   },
   twitter: { card: "summary_large_image" },
 };

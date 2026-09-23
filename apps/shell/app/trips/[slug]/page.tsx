@@ -74,24 +74,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? `${trip.title} — uploaded ${new Date(trip.createdAt).toLocaleDateString()}`
     : undefined;
   const url = `https://shanejli.com/trips/${slug}`;
-  const ogImagePath = `/trips/${slug}/opengraph-image`;
   return {
     title,
     description,
     alternates: { canonical: url },
+    // No `images` key on purpose: the opengraph-image.tsx file convention emits
+    // og:image plus :alt/:type/:width/:height and a cache-busting content hash,
+    // and naming the route here would collapse all of that to one bare URL. See
+    // lib/og-image-guard.ts, which fails the build if it comes back.
     openGraph: {
       title,
       description,
       url,
       siteName: "Shane — Periodic Table of Life",
       type: "article",
-      images: [ogImagePath],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [ogImagePath],
     },
   };
 }

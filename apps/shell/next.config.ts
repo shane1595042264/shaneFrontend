@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 import { COURSE_HOST } from "./lib/course-launch-url";
 import { assertCrawlerDisallowCoverage } from "./lib/seo-routes-guard";
 import { assertContrastFloor } from "./lib/contrast-guard";
+import { assertNoHardCodedOgImages } from "./lib/og-image-guard";
 
 // SHAN-497: fail the build if an auth-gated page is missing from
 // CRAWLER_DISALLOW, which would leak it into robots.txt and sitemap.xml as a
@@ -21,6 +22,12 @@ assertContrastFloor([
   path.join(process.cwd(), "lib"),
   path.join(process.cwd(), "..", "..", "packages", "ui", "src"),
 ]);
+
+// SHAN-522: fail the build if a route names its own opengraph-image path in
+// metadata, which suppresses the :alt/:type/:width/:height tags and the
+// cache-busting content hash that the file convention emits for free. Same
+// execution story as the two guards above: build-time only.
+assertNoHardCodedOgImages(path.join(process.cwd(), "app"));
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@shane/ui", "@shane/types"],

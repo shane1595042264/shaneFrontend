@@ -45,14 +45,12 @@ export const metadata: Metadata = {
   // openGraph and twitter are replaced wholesale rather than deep-merged with
   // the parent's, so url, siteName and type are restated here.
   //
-  // No `images` key on either, and that is the one place this deliberately
-  // diverges from the sibling layouts. They set images: ["/opengraph-image"],
-  // which collapses to a single bare og:image and drops the :alt, :type,
-  // :width and :height that the file-based app/opengraph-image.tsx convention
-  // emits on its own. Naming the image here would strip those off the most
-  // shared URL on the site; staying silent lets the file convention keep
-  // supplying the full set. (og:image:alt stays "Periodic Table of Life"
-  // because the generated card genuinely depicts one.)
+  // No `images` key on purpose: the opengraph-image.tsx file convention emits
+  // og:image plus :alt/:type/:width/:height and a cache-busting content hash,
+  // and naming the route here would collapse all of that to one bare URL. See
+  // lib/og-image-guard.ts, which fails the build if it comes back. This was
+  // the first route to get it right (SHAN-518) and for a month the only one;
+  // SHAN-522 swept the other seventeen and added the guard.
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,

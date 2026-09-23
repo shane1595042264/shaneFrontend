@@ -56,19 +56,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // The layout advertises RSS/JSON feeds on its canonical; both are gone now,
     // so clear the inherited `types` rather than letting it cascade down here.
     alternates: { canonical: `https://shanejli.com/journal/${date}`, types: {} },
+    // No `images` key on purpose: the opengraph-image.tsx file convention emits
+    // og:image plus :alt/:type/:width/:height and a cache-busting content hash,
+    // and naming the route here would collapse all of that to one bare URL. See
+    // lib/og-image-guard.ts, which fails the build if it comes back.
     openGraph: {
       title,
       description: "A private journal entry. Members only.",
       type: "article",
       url: `https://shanejli.com/journal/${date}`,
       siteName: "Shane — Periodic Table of Life",
-      images: [`/journal/${date}/opengraph-image`],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: "A private journal entry. Members only.",
-      images: [`/journal/${date}/opengraph-image`],
     },
   };
 }
