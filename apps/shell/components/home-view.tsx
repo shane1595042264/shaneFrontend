@@ -80,17 +80,81 @@ export function HomeView({ elements }: { elements: ElementConfig[] }) {
     setMode(user ? "table" : "portfolio");
   }, [authLoading, user]);
 
-  const choose = useCallback((next: HomeMode) => {
-    settled.current = true;
-    setMode(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // Preference simply will not persist. The switch still works.
-    }
-  }, []);
+  /**
+   * Set by a switch whose own control is inside the view being hidden, read
+   * once by the effect below (SHAN-523). A ref rather than state because
+   * handing focus over is not something the page renders differently for, and
+   * because the flag has to survive into the commit that reveals the target
+   * without causing a second one.
+   */
+  const handOverFocus = useRef(false);
 
-  const showTable = useCallback(() => choose("table"), [choose]);
+  /** The table view's heading, the thing focus is handed to. */
+  const tableHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  const choose = useCallback(
+    (
+      next: HomeMode,
+      /**
+       * True when the control that triggered this switch lives inside the
+       * view about to be hidden, so leaving focus where it is would drop it
+       * on a `display: none` node and the browser would reset it to <body>.
+       */
+      fromHiddenControl = false,
+    ) => {
+      settled.current = true;
+      if (fromHiddenControl) handOverFocus.current = true;
+      setMode(next);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, next);
+      } catch {
+        // Preference simply will not persist. The switch still works.
+      }
+    },
+    [],
+  );
+
+  /*
+    Hand focus to the heading of the view that just opened.
+
+    Only ever runs for a switch that asked for it, which is why the flag is
+    checked before anything else: on mount, and on every switch driven by the
+    toggle buttons or by the auth effect above, this must be a no-op. Stealing
+    focus on load would fight the skip link, and stealing it off a toggle the
+    visitor just pressed would make pressing it again harder.
+
+    Focusing rather than scrolling is deliberate — it settles all three
+    symptoms at once. The heading is announced ("Periodic Table of Life,
+    heading level 1"), which is the only signal a screen reader gets that the
+    view changed; the next Tab continues from the table instead of restarting
+    at the skip link; and focus() scrolls the heading into view, which is what
+    keeps the visitor off the bottom of the table. The CTA sits at the foot of
+    the taller Portfolio page, so without this the browser clamps scroll to the
+    shorter page's maximum and opens the table halfway down.
+  */
+  useEffect(() => {
+    if (!handOverFocus.current) return;
+    /*
+      Cleared before the mode check, and the mode is checked at all, so that a
+      request can never outlive the switch it was made for. A CTA activation
+      while the table is already showing would have React bail out of the
+      re-render, which means this effect never runs and the flag survives into
+      whatever switch comes next — and handing focus to the table heading
+      during a switch *away* from the table would drop it on a display:none
+      node, which is the exact failure this ticket is about. Not reachable by a
+      real visitor (the CTA is inside the hidden subtree at that point), but it
+      is reachable by a synthetic click, which is how this was verified.
+    */
+    handOverFocus.current = false;
+    if (mode !== "table") return;
+    tableHeadingRef.current?.focus();
+  }, [mode]);
+
+  /** The Portfolio footer CTA. Its own button is hidden by the switch. */
+  const showTableFromPortfolio = useCallback(
+    () => choose("table", true),
+    [choose],
+  );
 
   return (
     <div className="flex w-full flex-col items-center">
@@ -106,7 +170,12 @@ export function HomeView({ elements }: { elements: ElementConfig[] }) {
           >
             Portfolio
           </ModeButton>
-          <ModeButton active={mode === "table"} onClick={showTable}>
+          {/*
+            No focus hand-over here, unlike the Portfolio CTA below: this
+            button sits outside both subtrees, so it stays visible and keeps
+            focus, and its aria-pressed flip is what announces the change.
+          */}
+          <ModeButton active={mode === "table"} onClick={() => choose("table")}>
             Table
           </ModeButton>
         </div>
@@ -131,7 +200,10 @@ export function HomeView({ elements }: { elements: ElementConfig[] }) {
         keyboard or announced by a screen reader.
       */}
       <div className={mode === "portfolio" ? "w-full" : "hidden"}>
-        <PortfolioView active={mode === "portfolio"} onShowTable={showTable} />
+        <PortfolioView
+          active={mode === "portfolio"}
+          onShowTable={showTableFromPortfolio}
+        />
       </div>
 
       <div
@@ -148,7 +220,23 @@ export function HomeView({ elements }: { elements: ElementConfig[] }) {
             out of the accessibility tree entirely — so this is one visible h1
             per view, not a page with two.
           */}
-          <h1 className="mb-1 text-xl font-bold tracking-tight sm:mb-2 sm:text-2xl md:text-4xl">
+          {/*
+            tabIndex={-1} makes this focusable programmatically without adding
+            a Tab stop, the standard shape for a skip target. It is the landing
+            point for the Portfolio CTA (SHAN-523) — see the effect above for
+            why focus moves at all.
+
+            outline-none is safe precisely because of the -1: nothing can ever
+            reach this by keyboard, so there is no keyboard user whose focus
+            indicator is being removed. The ring would only ever appear on a
+            visitor who just clicked a button somewhere else, which reads as a
+            rendering glitch rather than as guidance.
+          */}
+          <h1
+            ref={tableHeadingRef}
+            tabIndex={-1}
+            className="mb-1 text-xl font-bold tracking-tight outline-none sm:mb-2 sm:text-2xl md:text-4xl"
+          >
             Periodic Table of Life
           </h1>
           <p className="text-xs text-gray-400 sm:text-sm">
