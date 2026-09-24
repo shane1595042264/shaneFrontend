@@ -91,7 +91,10 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
         if (dismissable && e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="max-h-full w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-gray-950 p-6">
+      {/* scheme-dark: the panel scrolls on short viewports and Chrome paints a
+          light-mode scrollbar on it otherwise, since the site never sets
+          color-scheme globally. */}
+      <div className="max-h-full w-full max-w-lg overflow-y-auto overscroll-contain scheme-dark rounded-lg border border-white/15 bg-gray-950 p-6">
         {raw ? (
           <>
             <h3 id="mint-token-dialog-title" className="text-lg font-semibold text-white">
