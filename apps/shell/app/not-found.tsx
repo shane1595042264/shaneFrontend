@@ -45,7 +45,16 @@ export default function NotFound() {
         >
           Back to home
         </Link>
-        <nav aria-label="Site" className="pt-6 space-y-3">
+        {/*
+          Hidden from `lg` up, which is exactly where components/nav-bar.tsx
+          switches its link row on (`hidden lg:flex`). Above that breakpoint
+          this list would be a second copy of the nav sitting a few hundred
+          pixels below it; under it the nav is a closed hamburger, so this is
+          the only set of routes on screen. The edge 404s carry the list
+          unconditionally because they never get the NavBar at all — see
+          lib/edge-not-found.ts.
+        */}
+        <nav aria-label="Site" className="pt-6 space-y-3 lg:hidden">
           <p className="text-xs uppercase tracking-wider text-gray-400">
             Elsewhere on the site
           </p>
