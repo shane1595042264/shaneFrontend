@@ -31,7 +31,7 @@ Reads (members only, like everything else here):
 |---|---|---|
 | GET | /entries | \`?limit=1..100&cursor=YYYY-MM-DD&from=&to=&q=\`; \`q\` is case-insensitive substring over body and appends; returns \`{entries, nextCursor}\` |
 | GET | /entries/:date | \`{entry, author, content, currentVersionNum, appends}\`; the If-Match seed |
-| GET | /entries/:date/versions | metadata only, NO \`content\`; \`?limit=1..100&cursor=<versionNum>\` returns \`{versions, nextCursor}\` descending by versionNum |
+| GET | /entries/:date/versions | metadata only, NO \`content\`; \`?limit=1..100&cursor=<versionNum>\` returns \`{versions, nextCursor}\` descending by versionNum; the cursor and \`:num\` are bounded to 1..2147483647, the int4 range of the column |
 | GET | /entries/:date/versions/:num | one version, with \`content\`: this is where you read a body |
 | GET | /entries/:date/appends | append timeline; soft-deleted appends are omitted |
 | GET | /activity | site-wide audit trail, newest first; \`?limit=1..100&cursor=<ISO timestamp>\` returns \`{activity, nextCursor}\` |

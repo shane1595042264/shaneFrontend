@@ -21,7 +21,7 @@ Free-text note ingest with AI classification, plus structured entries, connectio
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| GET | /entries | public | \`?language=&label=&search=&category=&app=&location=&limit=1..500&offset=\`; returns \`{entries, total, limit, offset}\` (offset pagination, unlike most modules) |
+| GET | /entries | public | \`?language=&label=&search=&category=&app=&location=&limit=1..500&offset=0..1000000\`; returns \`{entries, total, limit, offset}\` (offset pagination, unlike most modules) |
 | GET | /entries/:id | public | \`{entry, connections, connectedEntries}\` |
 | POST | /entries | knowledge:write | word + language required; 409 \`{error, existingEntry}\` on (word, language, category) duplicate; auto-enriches vocabulary entries via LLM unless \`autoEnrich:false\` (enrich failure never blocks) |
 | PUT | /entries/:id | auth only | owner-only (legacy ownerless rows editable by anyone authed); \`memorizationLocations\` feeds the long-term-memorized derivation |

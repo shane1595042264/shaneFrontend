@@ -22,7 +22,7 @@ A post is a slug plus an append-only chain of versions, exactly like a journal e
 | GET | /posts/:slug/versions | \`{versions, nextCursor}\` newest first. Bodies are NOT included (versions are never pruned, so listing them would grow without bound); read one at a time below |
 | GET | /posts/:slug/versions/:num | \`{version}\` including the full body |
 
-Pagination on \`/posts\` is a keyset cursor: \`cursor\` is the previous page's last \`publishedAt\` as an ISO 8601 **datetime**. Note the contrast with the Journal API, whose cursor is an ISO **date** (\`YYYY-MM-DD\`) because entries are keyed by day. Passing a bare date here is a 400, not a silent empty page. \`nextCursor\` is null on the last page. \`/posts/:slug/versions\` pages on \`versionNum\` instead, like the journal's.
+Pagination on \`/posts\` is a keyset cursor: \`cursor\` is the previous page's last \`publishedAt\` as an ISO 8601 **datetime**. Note the contrast with the Journal API, whose cursor is an ISO **date** (\`YYYY-MM-DD\`) because entries are keyed by day. Passing a bare date here is a 400, not a silent empty page. \`nextCursor\` is null on the last page. \`/posts/:slug/versions\` pages on \`versionNum\` instead, like the journal's. A version number — as \`:num\`, as \`?cursor=\`, or as \`target_version_num\` on a revert — is bounded to 1..2147483647, matching the int4 column; past that you get a 400 rather than the 500 Postgres used to raise (SHAN-529).
 
 Sending a valid \`Authorization\` header on any read only ever widens what you see, never narrows it: it adds your own drafts.
 

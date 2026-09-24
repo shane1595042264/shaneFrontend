@@ -41,7 +41,7 @@ Validation failures (bad params, query, or body) return 400 and add a structured
 
 Most modules paginate by keyset, newest-first, via \`limit\` (1 to 100) and \`cursor\`. **Treat \`cursor\` as opaque: read \`nextCursor\` off a response and send it back verbatim.** Null means done.
 
-The cursor value differs by module. The journal entries cursor is the last entry's DATE (\`YYYY-MM-DD\`). Blog and journal version history key on the version number. Everything else — trips, loans, tea, scoreboard matches, courses, rng history, journal activity, blog posts — keys on a timestamp, and since SHAN-513 that cursor carries the boundary row's id too, as \`<iso-timestamp>_<row-id>\`:
+The cursor value differs by module. The journal entries cursor is the last entry's DATE (\`YYYY-MM-DD\`). Blog and journal version history key on the version number, which is bounded to 1..2147483647 (the range of the int4 column behind it); a larger value is a 400, not a 500 from Postgres. Everything else — trips, loans, tea, scoreboard matches, courses, rng history, journal activity, blog posts — keys on a timestamp, and since SHAN-513 that cursor carries the boundary row's id too, as \`<iso-timestamp>_<row-id>\`:
 
 \`\`\`
 2026-05-24T21:32:37.484Z_5269f919-dfae-4d7a-9320-0036f2554ab0
@@ -51,7 +51,7 @@ The id half is not decoration. A timestamp alone is not unique and the ISO form 
 
 Cursors minted before this change (a bare ISO timestamp, no \`_\`) are still accepted, so nothing in flight broke. A malformed cursor is a **400**, never a silent reset to page 1.
 
-Knowledge and vocabulary are the exception: they page by \`limit\` (1 to 500, default 100) and \`offset\`, and echo \`{ total, limit, offset }\` back so you can compute the page count up front. They have no \`nextCursor\`, so you are done when \`offset + limit >= total\`.
+Knowledge and vocabulary are the exception: they page by \`limit\` (1 to 500, default 100) and \`offset\`, and echo \`{ total, limit, offset }\` back so you can compute the page count up front. They have no \`nextCursor\`, so you are done when \`offset + limit >= total\`. \`offset\` runs 0 to 1,000,000 — 10,000 pages at the default size of 100, 2,000 at the 500 maximum, far past any list here — and anything above that is a 400. Before SHAN-529 it had no ceiling, so a value Postgres could not parse as a bigint (\`1e30\`, \`9223372036854775807\`) reached the query and came back as a 500.
 
 Offset paging needs the same total sort key for the same reason, and since SHAN-515 it has one: both routes order by \`(created_at DESC, id DESC)\`. Each page is a separate query, and Postgres promises nothing about how rows that tie on the sort key fall between two of them, so without the id half a walk over \`offset=0, 100, 200 …\` could return one entry on two pages and never return another. Offset is still only stable against a still list: rows written between your requests shift everything after them, so an ingest running alongside a long walk can repeat a row. Re-read from \`offset=0\` if you need a consistent snapshot.
 

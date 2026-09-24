@@ -22,7 +22,7 @@ This module writes the same \`vocab_words\` table as the [Knowledge API](/docs/k
 | GET | /labels | \`{labels}\`, every distinct label across all words, sorted |
 | GET | /languages | \`{languages}\`, every distinct language, sorted |
 
-\`GET /words\` filters: \`language\` exact match, \`label\` exact match against the array (containment, not substring), \`search\` case-insensitive substring **on the word column only** (definitions and examples are not searched), \`limit\` 1..500 default 100, \`offset\` >= 0 default 0. Oversized filter values are rejected with a 400 before touching the database.
+\`GET /words\` filters: \`language\` exact match, \`label\` exact match against the array (containment, not substring), \`search\` case-insensitive substring **on the word column only** (definitions and examples are not searched), \`limit\` 1..500 default 100, \`offset\` 0..1000000 default 0 (SHAN-529: an unbounded offset used to reach Postgres and 500). Oversized filter values are rejected with a 400 before touching the database.
 
 ## Writes
 
