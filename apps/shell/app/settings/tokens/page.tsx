@@ -1,49 +1,69 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { listTokens, revokeToken, type ApiToken } from "@/lib/api/tokens";
-import { TokenList } from "@/components/settings/token-list";
+import { TokenList, TokenListSkeleton } from "@/components/settings/token-list";
 import { MintTokenDialog } from "@/components/settings/mint-token-dialog";
+import { RevokeTokenDialog } from "@/components/settings/revoke-token-dialog";
 import { TimezoneSection } from "@/components/settings/timezone-section";
-import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 export default function TokensPage() {
   const [tokens, setTokens] = useState<ApiToken[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Only the first fetch shows the skeleton. Refreshes after a mint or a
+  // revoke keep the current list on screen so the page does not flash empty.
+  const [loaded, setLoaded] = useState(false);
   const [showMint, setShowMint] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [revokeConfirmId, setRevokeConfirmId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  // Set by a confirmed revoke and read once when the dialog unmounts. The
+  // focus trap hands focus back to the row's Revoke button that opened the
+  // dialog, but that button leaves the DOM as soon as refresh() moves the token
+  // into the revoked list, which would strand focus on <body>. Parent effects
+  // run after the child's cleanup in the same commit, so this wins.
+  const focusHeadingOnClose = useRef(false);
+
+  useEffect(() => {
+    if (revokeConfirmId !== null || !focusHeadingOnClose.current) return;
+    focusHeadingOnClose.current = false;
+    headingRef.current?.focus();
+  }, [revokeConfirmId]);
 
   const refresh = () => {
-    setLoading(true);
-    setError(null);
+    setLoadError(null);
     listTokens()
       .then(setTokens)
-      .catch((err: any) => setError(err?.message ?? "Failed to load tokens"))
-      .finally(() => setLoading(false));
+      .catch((err: unknown) =>
+        setLoadError(err instanceof Error ? err.message : "Failed to load tokens"),
+      )
+      .finally(() => setLoaded(true));
   };
 
   useEffect(refresh, []);
 
-  useEffect(() => {
-    if (!revokeConfirmId) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && !revokingId) setRevokeConfirmId(null);
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [revokeConfirmId, revokingId]);
+  const openRevoke = (id: string) => {
+    setRevokeError(null);
+    setRevokeConfirmId(id);
+  };
+
+  const closeRevoke = () => {
+    setRevokeConfirmId(null);
+    setRevokeError(null);
+  };
 
   const handleRevoke = async (id: string) => {
-    setError(null);
+    setRevokeError(null);
     setRevokingId(id);
     try {
       await revokeToken(id);
+      focusHeadingOnClose.current = true;
       setRevokeConfirmId(null);
       refresh();
-    } catch (err: any) {
-      setError(err?.message ?? "Failed to revoke token");
+    } catch (err: unknown) {
+      setRevokeError(err instanceof Error ? err.message : "Failed to revoke token");
     } finally {
       setRevokingId(null);
     }
@@ -54,57 +74,73 @@ export default function TokensPage() {
     : null;
 
   return (
-    <section>
+    <div>
       <TimezoneSection />
-      <header className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-medium">Personal Access Tokens</h2>
-        <button onClick={() => setShowMint(true)} className="rounded bg-black px-3 py-1.5 text-sm text-white">
-          New token
-        </button>
-      </header>
-      {error && (
-        <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>
+
+      <section aria-labelledby="pat-heading">
+        <header className="mb-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+          <div className="min-w-0 flex-1">
+            <h2
+              id="pat-heading"
+              ref={headingRef}
+              tabIndex={-1}
+              className="text-lg font-medium outline-none"
+            >
+              Personal access tokens
+            </h2>
+            <p className="mt-1 text-xs text-gray-400">
+              Let agents and scripts write on your behalf, one scope at a time. The{" "}
+              <Link
+                href="/docs/auth"
+                className="text-gray-200 underline decoration-white/30 underline-offset-2 transition-colors hover:text-white"
+              >
+                API docs
+              </Link>{" "}
+              show how to send one.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMint(true)}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-gray-200"
+          >
+            New token
+          </button>
+        </header>
+
+        {loadError && (
+          <p role="alert" className="mb-3 text-sm text-red-400">
+            {loadError}
+          </p>
+        )}
+
+        {/* A failed first load must not render the empty-state card, which would
+            claim there are no tokens when the request simply never answered. */}
+        {!loaded ? (
+          <TokenListSkeleton />
+        ) : loadError && tokens.length === 0 ? null : (
+          <TokenList tokens={tokens} onRevoke={openRevoke} />
+        )}
+      </section>
+
+      {showMint && (
+        <MintTokenDialog
+          onClose={() => {
+            setShowMint(false);
+            refresh();
+          }}
+        />
       )}
-      {loading ? <p>Loading…</p> : <TokenList tokens={tokens} onRevoke={(id) => setRevokeConfirmId(id)} />}
-      {showMint && <MintTokenDialog onClose={() => { setShowMint(false); refresh(); }} />}
 
       {tokenToRevoke && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={() => { if (!revokingId) setRevokeConfirmId(null); }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="pat-revoke-heading"
-        >
-          <FocusTrappedDiv
-            className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-sm w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="pat-revoke-heading" className="text-lg font-semibold text-white mb-2">
-              Revoke &ldquo;{tokenToRevoke.name}&rdquo;?
-            </h3>
-            <p className="text-sm text-gray-400 mb-6">
-              Any agent or script using this token will start failing immediately. This cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setRevokeConfirmId(null)}
-                disabled={!!revokingId}
-                className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 disabled:opacity-50 text-gray-400 rounded transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleRevoke(tokenToRevoke.id)}
-                disabled={!!revokingId}
-                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded transition-colors"
-              >
-                {revokingId ? "Revoking..." : "Revoke"}
-              </button>
-            </div>
-          </FocusTrappedDiv>
-        </div>
+        <RevokeTokenDialog
+          token={tokenToRevoke}
+          revoking={revokingId === tokenToRevoke.id}
+          error={revokeError}
+          onCancel={closeRevoke}
+          onConfirm={() => handleRevoke(tokenToRevoke.id)}
+        />
       )}
-    </section>
+    </div>
   );
 }

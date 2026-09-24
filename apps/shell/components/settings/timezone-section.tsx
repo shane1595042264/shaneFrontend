@@ -81,7 +81,7 @@ export function TimezoneSection() {
     try {
       const res = await updateMyTimezone(value);
       patchUser({ timezone: res.timezone });
-      setStatus({ kind: "ok", msg: `Saved — today is ${getTodayInTimezone(res.timezone)} in ${res.timezone}.` });
+      setStatus({ kind: "ok", msg: `Saved. Today is ${getTodayInTimezone(res.timezone)} in ${res.timezone}.` });
     } catch (err: any) {
       setStatus({ kind: "err", msg: err?.message ?? "Failed to save timezone" });
     } finally {
@@ -104,7 +104,7 @@ export function TimezoneSection() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           disabled={saving}
-          className="min-h-11 min-w-[16rem] rounded border border-white/15 bg-black/30 px-3 py-1.5 font-mono text-sm text-white/90 focus:border-white/40 focus:outline-none"
+          className="min-h-11 min-w-[16rem] scheme-dark rounded-md border border-white/15 bg-black/40 px-3 py-1.5 font-mono text-sm text-white/90 focus:border-white/40 focus:outline-none"
         >
           {zones.map((z) => (
             <option key={z} value={z}>{z}</option>
@@ -114,7 +114,7 @@ export function TimezoneSection() {
           type="button"
           onClick={save}
           disabled={!dirty || saving}
-          className="inline-flex min-h-11 items-center justify-center rounded bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save"}
         </button>
