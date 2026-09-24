@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { renderEdgeNotFound } from "@/lib/edge-not-found";
 
 // SHAN-224 + SHAN-231: edge middleware that turns soft-404s into real HTTP 404s
 // for /journal/:date and /trips/:slug. Two layers:
@@ -52,45 +53,27 @@ function isValidJournalDate(value: string): boolean {
   );
 }
 
-const JOURNAL_NOT_FOUND_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Not Found — Journal — Shane</title>
-<meta name="robots" content="noindex,follow">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  body { background:#000; color:#9ca3af; font-family:ui-sans-serif,system-ui,sans-serif; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:6rem 1rem; }
-  p { font-size:0.875rem; font-style:italic; margin:0; }
-  a { color:#60a5fa; font-size:0.875rem; text-decoration:none; }
-  a:hover { color:#93c5fd; }
-</style>
-</head>
-<body>
-<p>No entry for this date.</p>
-<a href="/journal">&larr; Back to journal</a>
-</body>
-</html>`;
+// SHAN-528: the five documents below used to be five hand-written copies of
+// one HTML string, identical apart from a title, a sentence and one href. They
+// go through lib/edge-not-found.ts now, which also gives them the site
+// wordmark, an <h1> (they had no heading element at all) and the registry-
+// derived list of public routes — see that file for why a 404 returned from
+// the edge is the one page on the site that never gets the NavBar.
+const JOURNAL_NOT_FOUND_HTML = renderEdgeNotFound({
+  title: "Not Found — Journal — Shane",
+  heading: "No entry for this date",
+  message: "This date has no entry, or the link points at one that never existed.",
+  backHref: "/journal",
+  backLabel: "Back to journal",
+});
 
-const TRIP_NOT_FOUND_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Not Found — Trips — Shane</title>
-<meta name="robots" content="noindex,follow">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  body { background:#000; color:#9ca3af; font-family:ui-sans-serif,system-ui,sans-serif; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:6rem 1rem; }
-  p { font-size:0.875rem; font-style:italic; margin:0; }
-  a { color:#60a5fa; font-size:0.875rem; text-decoration:none; }
-  a:hover { color:#93c5fd; }
-</style>
-</head>
-<body>
-<p>Trip not found.</p>
-<a href="/trips">&larr; Back to trips</a>
-</body>
-</html>`;
+const TRIP_NOT_FOUND_HTML = renderEdgeNotFound({
+  title: "Not Found — Trips — Shane",
+  heading: "Trip not found",
+  message: "This itinerary doesn't exist, or its link has changed.",
+  backHref: "/trips",
+  backLabel: "Back to trips",
+});
 
 // Sibling routes under /journal/ that are NOT date entries — must be
 // allowlisted so middleware doesn't 404 them. Matches the folder layout in
@@ -118,25 +101,13 @@ const JOURNAL_NON_DATE_SEGMENTS = new Set([
 // /journal/tea/[id] and edit page /journal/tea/[id]/edit are handled separately.
 const TEA_NON_ID_SEGMENTS = new Set(["new"]);
 
-const TEA_NOT_FOUND_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Not Found — Tea — Shane</title>
-<meta name="robots" content="noindex,follow">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  body { background:#000; color:#9ca3af; font-family:ui-sans-serif,system-ui,sans-serif; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:6rem 1rem; }
-  p { font-size:0.875rem; font-style:italic; margin:0; }
-  a { color:#60a5fa; font-size:0.875rem; text-decoration:none; }
-  a:hover { color:#93c5fd; }
-</style>
-</head>
-<body>
-<p>This tea entry doesn&apos;t exist.</p>
-<a href="/journal">&larr; Back to journal</a>
-</body>
-</html>`;
+const TEA_NOT_FOUND_HTML = renderEdgeNotFound({
+  title: "Not Found — Tea — Shane",
+  heading: "Tea entry not found",
+  message: "This tea entry doesn't exist, or its link has changed.",
+  backHref: "/journal",
+  backLabel: "Back to journal",
+});
 
 // SHAN-454: read-only sub-pages hanging off a journal date. They render the
 // same "does this entry exist" question as the date page, so they must share
@@ -170,25 +141,13 @@ const JOURNAL_DATE_SUBPATH_RE =
 // a 404, and returns the edge 404 like any other unknown slug.
 const TRIPS_NON_SLUG_SEGMENTS = new Set(["new", "groups"]);
 
-const COURSES_NOT_FOUND_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Not Found — Courses — Shane</title>
-<meta name="robots" content="noindex,follow">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  body { background:#000; color:#9ca3af; font-family:ui-sans-serif,system-ui,sans-serif; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:6rem 1rem; }
-  p { font-size:0.875rem; font-style:italic; margin:0; }
-  a { color:#60a5fa; font-size:0.875rem; text-decoration:none; }
-  a:hover { color:#93c5fd; }
-</style>
-</head>
-<body>
-<p>Course not found.</p>
-<a href="/courses">&larr; Back to courses</a>
-</body>
-</html>`;
+const COURSES_NOT_FOUND_HTML = renderEdgeNotFound({
+  title: "Not Found — Courses — Shane",
+  heading: "Course not found",
+  message: "This course doesn't exist, or its link has changed.",
+  backHref: "/courses",
+  backLabel: "Back to courses",
+});
 
 // SHAN-460: segments under /courses/ that are neither a real route nor a
 // possible course slug. "covers" is here because cover bytes are served by the
@@ -201,25 +160,13 @@ const COURSES_NOT_FOUND_HTML = `<!DOCTYPE html>
 // pass-through set for this branch.
 const COURSES_RESERVED_SEGMENTS = new Set(["covers"]);
 
-const BLOG_NOT_FOUND_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Not Found — Blog — Shane</title>
-<meta name="robots" content="noindex,follow">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  body { background:#000; color:#9ca3af; font-family:ui-sans-serif,system-ui,sans-serif; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:6rem 1rem; }
-  p { font-size:0.875rem; font-style:italic; margin:0; }
-  a { color:#60a5fa; font-size:0.875rem; text-decoration:none; }
-  a:hover { color:#93c5fd; }
-</style>
-</head>
-<body>
-<p>Post not found.</p>
-<a href="/blog">&larr; Back to blog</a>
-</body>
-</html>`;
+const BLOG_NOT_FOUND_HTML = renderEdgeNotFound({
+  title: "Not Found — Blog — Shane",
+  heading: "Post not found",
+  message: "This post doesn't exist, or its link has changed.",
+  backHref: "/blog",
+  backLabel: "Back to blog",
+});
 
 // SHAN-487: real routes under /blog/ that are NOT post slugs, so the slug
 // branch below must let them through instead of HEAD-probing the API for a post
