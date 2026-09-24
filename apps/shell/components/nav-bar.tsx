@@ -8,9 +8,21 @@ import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
 import { UserMenu } from "@/components/user-menu";
 import { LoginButton } from "@/components/login-button";
+import {
+  HOME_LINK,
+  PRIVATE_NAV_LINKS,
+  publicNavLinks,
+  type NavLink,
+} from "@/lib/nav-links";
 
 // Ties the hamburger's aria-controls to the panel it owns.
 const MOBILE_MENU_ID = "mobile-nav-menu";
+
+/**
+ * Computed once at module scope, not per render: it is derived from the static
+ * element registry, so it is the same array on every page and every render.
+ */
+const PUBLIC_LINKS: NavLink[] = [HOME_LINK, ...publicNavLinks()];
 
 export function NavBar() {
   const { user, loading } = useAuth();
@@ -38,12 +50,25 @@ export function NavBar() {
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen]);
 
-  const navLinks = [
-    { href: "/", label: "Table", exact: true },
-    { href: "/journal", label: "Journal" },
-    { href: "/rng-capitalist", label: "RNG" },
-    { href: "/knowledge", label: "Knowledge" },
-  ];
+  /*
+    SHAN-526: the public routes always, Shane's two gated shortcuts only once a
+    session has resolved and found a user.
+
+    `hydrated` is doing the same job here as it does for the UserMenu slot
+    below, and it is not optional. Every page ships this nav in its prerendered
+    HTML with exactly PUBLIC_LINKS in it. `loading` lives in a context above the
+    nav and can flip to false before this tree hydrates, so gating on it alone
+    would let the hydration render emit two links the server HTML never
+    contained — React discards the document and client-renders it (intermittent
+    #418, signed in only; SHAN-492). The local flag is false during our own
+    hydration render no matter what the auth context is doing, so the first
+    client render always matches the server and the shortcuts appear on the
+    next commit.
+  */
+  const showPrivate = hydrated && !loading && Boolean(user);
+  const navLinks = showPrivate
+    ? [...PUBLIC_LINKS, ...PRIVATE_NAV_LINKS]
+    : PUBLIC_LINKS;
 
   function linkClass(href: string, exact?: boolean) {
     const isActive = exact ? pathname === href : pathname.startsWith(href);
@@ -59,8 +84,13 @@ export function NavBar() {
         Shane.
       </Link>
 
-      {/* Desktop nav */}
-      <div className="hidden md:flex items-center gap-6 text-sm">
+      {/*
+        Desktop nav. `lg` rather than `md` since SHAN-526: the row went from
+        four links to seven, which overflows against the brand and the user
+        menu at 768px, so the hamburger now covers tablet widths too. The gap
+        tightens to 5 for the same reason.
+      */}
+      <div className="hidden lg:flex items-center gap-5 text-sm">
         {navLinks.map((link) => (
           <Link
             key={link.href}
@@ -85,7 +115,7 @@ export function NavBar() {
       <button
         ref={toggleRef}
         type="button"
-        className="md:hidden flex items-center justify-center w-8 h-8 text-gray-400 hover:text-white transition-colors"
+        className="lg:hidden flex items-center justify-center w-8 h-8 text-gray-400 hover:text-white transition-colors"
         onClick={() => setMenuOpen((prev) => !prev)}
         aria-label={menuOpen ? "Close menu" : "Open menu"}
         aria-expanded={menuOpen}
@@ -117,7 +147,7 @@ export function NavBar() {
                 accessibility tree. */}
             <div
               aria-hidden="true"
-              className="fixed inset-0 z-40 md:hidden"
+              className="fixed inset-0 z-40 lg:hidden"
               onClick={() => setMenuOpen(false)}
             />
             <motion.div
@@ -126,7 +156,7 @@ export function NavBar() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
               id={MOBILE_MENU_ID}
-              className="absolute top-full left-0 right-0 z-50 md:hidden border-b border-white/10 bg-zinc-950"
+              className="absolute top-full left-0 right-0 z-50 lg:hidden border-b border-white/10 bg-zinc-950"
             >
               <div className="flex flex-col px-4 py-3 gap-3 text-sm">
                 {navLinks.map((link) => (
