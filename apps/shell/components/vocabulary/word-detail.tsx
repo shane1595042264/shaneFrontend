@@ -273,7 +273,11 @@ export function WordDetail({
 
           {showConnectForm && (
             <div className="flex flex-wrap items-end gap-2 mb-3 p-3 bg-white/5 rounded">
+              {/* SHAN-532: both selects sit behind the "+ Connect" toggle, so a
+                  Lighthouse pass never opens them and never reports them. Same
+                  unnamed-combobox defect as the filter bar regardless. */}
               <select
+                aria-label="Word to connect"
                 value={connectTarget}
                 onChange={(e) => setConnectTarget(e.target.value)}
                 className="flex-1 min-w-[120px] px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none"
@@ -286,6 +290,7 @@ export function WordDetail({
                 ))}
               </select>
               <select
+                aria-label="Connection type"
                 value={connectType}
                 onChange={(e) => setConnectType(e.target.value)}
                 className="px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none"

@@ -510,7 +510,10 @@ export function EntryDetail({
 
           {showConnectForm && (
             <div className="flex flex-wrap items-end gap-2 mb-3 p-3 bg-white/5 rounded">
+              {/* SHAN-532: toggle-hidden, so Lighthouse scored /knowledge clean
+                  while these two were as anonymous as the /vocabulary filters. */}
               <select
+                aria-label="Entry to connect"
                 value={connectTarget}
                 onChange={(e) => setConnectTarget(e.target.value)}
                 className="flex-1 min-w-[120px] px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none"
@@ -523,6 +526,7 @@ export function EntryDetail({
                 ))}
               </select>
               <select
+                aria-label="Connection type"
                 value={connectType}
                 onChange={(e) => setConnectType(e.target.value)}
                 className="px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none"

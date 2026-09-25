@@ -31,7 +31,11 @@ export function FilterBar({
         className="px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 w-48"
       />
 
+      {/* SHAN-532: the "All languages" / "All labels" first options read as
+          labels but are values -- they are replaced by the chosen language the
+          moment the filter is applied, leaving an anonymous combobox. */}
       <select
+        aria-label="Filter by language"
         value={selectedLanguage}
         onChange={(e) => onLanguageChange(e.target.value)}
         className="px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:border-blue-500/50"
@@ -45,6 +49,7 @@ export function FilterBar({
       </select>
 
       <select
+        aria-label="Filter by label"
         value={selectedLabel}
         onChange={(e) => onLabelChange(e.target.value)}
         className="px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:border-blue-500/50"

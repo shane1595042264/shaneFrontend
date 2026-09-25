@@ -4,6 +4,7 @@ import { COURSE_HOST } from "./lib/course-launch-url";
 import { assertCrawlerDisallowCoverage } from "./lib/seo-routes-guard";
 import { assertContrastFloor } from "./lib/contrast-guard";
 import { assertNoHardCodedOgImages } from "./lib/og-image-guard";
+import { assertSelectsAreNamed } from "./lib/select-name-guard";
 
 // SHAN-497: fail the build if an auth-gated page is missing from
 // CRAWLER_DISALLOW, which would leak it into robots.txt and sitemap.xml as a
@@ -28,6 +29,17 @@ assertContrastFloor([
 // cache-busting content hash that the file convention emits for free. Same
 // execution story as the two guards above: build-time only.
 assertNoHardCodedOgImages(path.join(process.cwd(), "app"));
+
+// SHAN-532: fail the build if a <select> ships with no accessible name. Unlike
+// the three guards above this one cannot be replaced by auditing the deployed
+// page: four of the seven offenders it first caught render only inside a
+// "+ Connect" form, and Lighthouse scores the tree it loads, so a control one
+// click away is invisible to it forever. Same build-time-only execution story.
+assertSelectsAreNamed([
+  path.join(process.cwd(), "app"),
+  path.join(process.cwd(), "components"),
+  path.join(process.cwd(), "..", "..", "packages", "ui", "src"),
+]);
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@shane/ui", "@shane/types"],

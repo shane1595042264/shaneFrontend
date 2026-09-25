@@ -35,8 +35,13 @@ export function AddWordForm({ onSubmit, loading }: AddWordFormProps) {
       </div>
 
       <div>
-        <label className="block text-xs text-gray-400 mb-1">Language</label>
+        {/* SHAN-532: htmlFor/id rather than an aria-label, because the visible
+            "Language" text is already the right name -- an aria-label would
+            shadow it with a second string, and associating the real one also
+            makes clicking the word focus the select. */}
+        <label htmlFor="add-word-language" className="block text-xs text-gray-400 mb-1">Language</label>
         <select
+          id="add-word-language"
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
           className="px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:border-blue-500/50"
