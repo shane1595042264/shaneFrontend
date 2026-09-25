@@ -34,16 +34,26 @@ export default function VocabularyLayout({
 }) {
   return (
     <div>
-      <nav className="flex items-center gap-4 px-6 py-4 border-b border-white/8">
-        <Link
-          href="/"
-          className="text-sm text-gray-400 hover:text-white transition-colors"
-        >
-          &larr; Table
-        </Link>
-        <span className="text-xl font-bold text-blue-400">Vc</span>
-        <span className="text-gray-300">Vocabulary</span>
-      </nav>
+      {/* SHAN-531: same shape, and the same fix, as app/knowledge/layout.tsx —
+          /vocabulary served 129 kB of words with no heading element in it. See
+          the comment there for why the <h1> lives in the bar rather than in the
+          content, and why this is visually a no-op. */}
+      <header className="flex items-center gap-4 px-6 py-4 border-b border-white/8">
+        <nav>
+          <Link
+            href="/"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            &larr; Table
+          </Link>
+        </nav>
+        <h1 className="flex items-center gap-4">
+          {/* aria-hidden for the same reason as /knowledge: otherwise the
+              heading announces as "VcVocabulary". */}
+          <span aria-hidden="true" className="text-xl font-bold text-blue-400">Vc</span>
+          <span className="text-gray-300">Vocabulary</span>
+        </h1>
+      </header>
       <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
     </div>
   );

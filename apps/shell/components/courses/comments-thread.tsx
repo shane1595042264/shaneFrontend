@@ -266,12 +266,21 @@ export function CourseCommentsThread({ courseId, courseOwnerId }: Props) {
 
   return (
     <section className="mt-6 border-t border-white/10 pt-4">
-      <h3 className="mb-3 text-xs text-gray-400 uppercase">
+      {/*
+        SHAN-531: h2, not h3. This thread is a top-level section of
+        /courses/<slug>, whose only other heading is the course title <h1>, so
+        an h3 here skipped a level and was the single failing audit
+        (heading-order) in that page's Lighthouse run. The blog and journal
+        threads already say h2 for the same section. The knowledge copy is
+        correctly h3 and must stay that way — it nests under the entry-detail
+        <h2>, alongside that panel's other h3 sections.
+      */}
+      <h2 className="mb-3 text-xs text-gray-400 uppercase">
         Comments
         {comments.length > 0 && (
           <span className="ml-1 text-gray-400">({comments.length})</span>
         )}
-      </h3>
+      </h2>
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading…</p>

@@ -155,10 +155,22 @@ export default async function TripPage({ params }: PageProps) {
       />
       <header className="border-b border-white/10 bg-black px-4 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+          {/*
+            SHAN-531: the trip title used to be a plain <span> here, and the
+            itinerary itself lives in the sandboxed iframe below, whose heading
+            outline belongs to that document and not this one. The result was a
+            sitemap-advertised page with no heading element anywhere in it. This
+            <h1> is the only thing in the parent document that names the trip,
+            so it has to be a heading; the classes are unchanged and Tailwind's
+            preflight resets heading size and weight to inherit, so the
+            breadcrumb still reads at the same 14px it always did.
+          */}
           <div className="flex items-center gap-3 text-sm">
-            <Link href="/trips" className="text-gray-400 hover:text-gray-300">← Trips</Link>
-            <span className="text-gray-400">/</span>
-            <span className="font-medium text-white">{trip.title || trip.slug}</span>
+            <nav aria-label="Breadcrumb">
+              <Link href="/trips" className="text-gray-400 hover:text-gray-300">← Trips</Link>
+            </nav>
+            <span aria-hidden="true" className="text-gray-400">/</span>
+            <h1 className="font-medium text-white">{trip.title || trip.slug}</h1>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-400">
