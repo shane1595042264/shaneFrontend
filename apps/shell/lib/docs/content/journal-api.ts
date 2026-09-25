@@ -51,11 +51,11 @@ Writes:
 | POST | /entries/:date/appends | entries:write | \`{content}\` 1..100k | 403 not author |
 | PATCH | /entries/:date/appends/:id | entries:write | \`{content}\` 1..100k | 404 unless you authored that append on that entry |
 | DELETE | /entries/:date/appends/:id | entries:write | none | soft delete; 204. Repeat delete 404s |
-| POST | /entries/:date/revert | entries:write + If-Match | \`{target_version_num}\` | 428/400/409 If-Match; 403 not author; nonexistent target currently 500s, check /versions first |
+| POST | /entries/:date/revert | entries:write + If-Match | \`{target_version_num}\` | 428/400/409 If-Match; 403 not author; 404 when target_version_num is not a version this entry has (SHAN-530) |
 | DELETE | /entries/:date | entries:write | none | 404 not author; irreversible |
 | POST | /entries/:date/suggestions | suggestions:write | \`{base_version_num, proposed_content}\` (full replacement, no diff format) | 403 if you are the author |
-| PATCH | /suggestions/:id/approve | suggestions:write + If-Match | none | 403 not entry author; non-pending currently 500s |
-| PATCH | /suggestions/:id/reject | suggestions:write | \`{reason?}\` max 2000 | 403 not entry author; non-pending currently 500s |
+| PATCH | /suggestions/:id/approve | suggestions:write + If-Match | none | 403 not entry author; 409 \`{currentStatus}\` if it was decided since you read it |
+| PATCH | /suggestions/:id/reject | suggestions:write | \`{reason?}\` max 2000 | 403 not entry author; 409 \`{currentStatus}\` if it was decided since you read it |
 | PATCH | /suggestions/:id/withdraw | suggestions:write | none | proposer + pending only; all failures are 403 |
 | GET | /inbox | auth only | none | pending suggestions on entries you author |
 | POST | /entries/:date/comments | comments:write | \`{content, parent_comment_id?}\` 1..10k | one reply level renders |
