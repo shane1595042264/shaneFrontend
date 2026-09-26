@@ -19,6 +19,14 @@ import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 
 type DiffView = "current" | "base" | "full";
 
+// SHAN-536: what to say when withdraw comes back 409 carrying the status the
+// suggestion actually has now.
+const DECIDED_MESSAGES: Record<string, string> = {
+  approved: "The author already approved this suggestion — there is nothing left to withdraw.",
+  rejected: "The author already rejected this suggestion — there is nothing left to withdraw.",
+  withdrawn: "This suggestion has already been withdrawn.",
+};
+
 export default function SuggestionDetailPage() {
   const params = useParams<{ date: string; id: string }>();
   const date = params.date;
@@ -170,7 +178,17 @@ export default function SuggestionDetailPage() {
       await withdrawSuggestion(id, date);
       router.push(`/journal/${date}/suggestions`);
     } catch (e: any) {
-      setWithdrawError(e.message ?? "Withdraw failed");
+      // SHAN-536: mirrors handleApprove's VERSION_CONFLICT branch. Refreshing
+      // is the point — the suggestion is no longer pending, so the Withdraw
+      // button should be gone once the message is read.
+      if (e.message === "ALREADY_DECIDED") {
+        // "withdrawn" gets its own sentence: it means another tab of yours got
+        // there first, so blaming the author would be wrong.
+        setWithdrawError(DECIDED_MESSAGES[e.currentStatus as string] ?? "This suggestion is no longer pending.");
+        await refresh();
+      } else {
+        setWithdrawError(e.message ?? "Withdraw failed");
+      }
     } finally {
       setBusy(false);
     }

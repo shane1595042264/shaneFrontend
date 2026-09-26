@@ -113,6 +113,17 @@ export async function withdrawSuggestion(id: string, date: string) {
     method: "PATCH",
     headers: getAuthHeaders(),
   });
+  // SHAN-536: the route answered 403 for every failure until now, so there was
+  // nothing here worth branching on. It separates them, and 409 is the one a
+  // human can act on: the author approved or rejected the suggestion while this
+  // dialog was open, so the right response is to say so and re-read, not to
+  // offer a retry that can never succeed.
+  if (res.status === 409) {
+    const body = await res.json().catch(() => ({}));
+    const e = new Error("ALREADY_DECIDED");
+    (e as any).currentStatus = body.currentStatus;
+    throw e;
+  }
   if (!res.ok) throw new Error("Failed to withdraw");
   const suggestion = (await res.json()).suggestion as Suggestion;
   await revalidateJournalEntry(date).catch(() => {});
