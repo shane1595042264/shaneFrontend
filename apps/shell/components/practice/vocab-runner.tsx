@@ -80,7 +80,7 @@ export function VocabRunner({ session, cards }: { session: Session; cards: Vocab
         </span>
       </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center px-4 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
         <h2 className="text-4xl font-semibold">{current.word}</h2>
         <p className="mt-3 text-xs tracking-widest text-gray-400">
           Lv {dots} at {session.locationName}
@@ -133,7 +133,7 @@ export function VocabRunner({ session, cards }: { session: Session; cards: Vocab
             {toast}
           </p>
         )}
-      </main>
+      </div>
 
       <footer className="border-t border-white/10 px-4 py-2 text-center text-[11px] text-gray-400">
         Space reveal · ← / J don&apos;t remember · → / K remember · Esc end

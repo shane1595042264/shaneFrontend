@@ -5,6 +5,7 @@ import { assertCrawlerDisallowCoverage } from "./lib/seo-routes-guard";
 import { assertContrastFloor } from "./lib/contrast-guard";
 import { assertNoHardCodedOgImages } from "./lib/og-image-guard";
 import { assertSelectsAreNamed } from "./lib/select-name-guard";
+import { assertSingleMainLandmark } from "./lib/main-landmark-guard";
 
 // SHAN-497: fail the build if an auth-gated page is missing from
 // CRAWLER_DISALLOW, which would leak it into robots.txt and sitemap.xml as a
@@ -40,6 +41,22 @@ assertSelectsAreNamed([
   path.join(process.cwd(), "components"),
   path.join(process.cwd(), "..", "..", "packages", "ui", "src"),
 ]);
+
+// SHAN-534: fail the build if a second <main> appears anywhere. app/layout.tsx
+// wraps {children} in <main id="main-content"> on every route, so any other one
+// is nested inside it rather than beside it: invalid HTML, and two overlapping
+// "main" entries in the landmark list. app/not-found.tsx had documented the rule
+// in a comment since it was written and SHAN-533 fixed four layouts, and the
+// codebase still had 19 more across 16 files, /blog and /docs among them. Same
+// build-time-only execution story as the four guards above.
+assertSingleMainLandmark(
+  [
+    path.join(process.cwd(), "app"),
+    path.join(process.cwd(), "components"),
+    path.join(process.cwd(), "..", "..", "packages", "ui", "src"),
+  ],
+  path.join(process.cwd(), "app", "layout.tsx"),
+);
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@shane/ui", "@shane/types"],

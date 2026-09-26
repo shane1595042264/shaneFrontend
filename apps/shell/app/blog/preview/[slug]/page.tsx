@@ -58,7 +58,7 @@ export default function BlogPreviewPage() {
 
   if (authLoading || state === "loading") {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-10" aria-busy={true}>
+      <div className="mx-auto max-w-3xl px-4 py-10" aria-busy={true}>
         <div role="status" aria-label="Loading preview">
           <span className="sr-only">Loading preview…</span>
           <div className="h-3 w-24 animate-pulse rounded bg-white/[0.08]" />
@@ -69,13 +69,13 @@ export default function BlogPreviewPage() {
             ))}
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (state !== "ready" || !post) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
+      <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
         <Link href="/blog" className="text-gray-400 hover:text-white">
           &larr; back to blog
         </Link>
@@ -86,7 +86,7 @@ export default function BlogPreviewPage() {
               : "No such post. If this is your draft, sign in to read it."
             : (error ?? "Failed to load this post.")}
         </p>
-      </main>
+      </div>
     );
   }
 
@@ -95,7 +95,7 @@ export default function BlogPreviewPage() {
   const minutes = readingTimeMinutes(post.content);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-10">
       <Link href="/blog" className="text-sm text-gray-400 hover:text-white">
         &larr; Back to blog
       </Link>
@@ -174,6 +174,6 @@ export default function BlogPreviewPage() {
       <article className="mt-8">
         <PostBody content={post.content} />
       </article>
-    </main>
+    </div>
   );
 }

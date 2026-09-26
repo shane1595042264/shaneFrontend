@@ -120,7 +120,7 @@ export default async function DocPageView({ params }: PageProps) {
   const next = index >= 0 && index < DOC_PAGES.length - 1 ? DOC_PAGES[index + 1] : null;
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-10">
       <DocHashScroll />
       <nav className="mb-6 flex items-center justify-between gap-3 text-sm">
         <Link href="/docs" className="text-gray-400 hover:text-gray-300">
@@ -173,6 +173,6 @@ export default async function DocPageView({ params }: PageProps) {
           )}
         </nav>
       )}
-    </main>
+    </div>
   );
 }

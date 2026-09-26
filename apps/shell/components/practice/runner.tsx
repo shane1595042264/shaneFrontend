@@ -196,7 +196,7 @@ export function PracticeRunner({ session, items, setsPerStrike }: Props) {
           <LocationPrompt onPick={onLocationPicked} onSkip={() => onLocationPicked(null)} />
         </div>
       ) : (
-        <main className="flex flex-1 flex-col items-center justify-center px-4 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
           <h2 className="text-xl font-semibold">{current.word}</h2>
           <p className="mt-1 text-sm text-gray-400">
             Set {timer?.currentSet ?? "—"} / {setsPerStrike} · {setsCompleted} done
@@ -222,7 +222,7 @@ export function PracticeRunner({ session, items, setsPerStrike }: Props) {
               </>
             )}
           </div>
-        </main>
+        </div>
       )}
     </div>
   );

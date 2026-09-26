@@ -179,7 +179,7 @@ export default function BlogHistoryPage() {
   }, [revertTarget, reverting]);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-8">
       <Link href={`/blog/${slug}`} className="text-sm text-gray-400 hover:text-white">
         &larr; back to post
       </Link>
@@ -385,6 +385,6 @@ export default function BlogHistoryPage() {
           </FocusTrappedDiv>
         </div>
       )}
-    </main>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ const TILE_HEIGHTS = [180, 240, 150, 210, 280, 170];
 
 export default function BlogLoading() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-8 border-b border-white/10 pb-6">
         <div className="h-8 w-28 animate-pulse rounded bg-white/10" />
         <div className="mt-3 h-4 w-80 max-w-full animate-pulse rounded bg-white/10" />
@@ -26,6 +26,6 @@ export default function BlogLoading() {
           ))}
         </div>
       </div>
-    </main>
+    </div>
   );
 }

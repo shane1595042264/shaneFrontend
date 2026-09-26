@@ -175,7 +175,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
   };
 
   return (
-    <main className="mx-auto max-w-4xl px-4 pb-16">
+    <div className="mx-auto max-w-4xl px-4 pb-16">
       <nav className="flex items-center gap-3 py-4 text-sm">
         <Link href="/courses" className="text-gray-400 hover:text-gray-300">
           &larr; Courses
@@ -354,6 +354,6 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
           </FocusTrappedDiv>
         </div>
       )}
-    </main>
+    </div>
   );
 }

@@ -151,14 +151,14 @@ export function CoursesCatalog({ initialCourses }: CoursesCatalogProps) {
   // (SHAN-510). The refresh only adds the reader's own ratings.
   if (error && courses === null) {
     return (
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <div className="mx-auto max-w-6xl px-4 py-10">
         <InlineErrorState message={error} onRetry={load} backHref="/" />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Courses</h1>
@@ -279,6 +279,6 @@ export function CoursesCatalog({ initialCourses }: CoursesCatalogProps) {
           router.push(`/courses/${course.slug}`);
         }}
       />
-    </main>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import { DOC_PAGES } from "@/lib/docs/registry";
 // Static: content ships with the build.
 export default function DocsIndexPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-white">Documentation</h1>
         <p className="mt-1 text-sm text-gray-400">
@@ -48,6 +48,6 @@ export default function DocsIndexPage() {
           </li>
         ))}
       </ul>
-    </main>
+    </div>
   );
 }

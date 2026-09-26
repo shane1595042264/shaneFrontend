@@ -94,7 +94,7 @@ export default async function BlogIndexPage() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
@@ -126,6 +126,6 @@ export default async function BlogIndexPage() {
       </header>
 
       <BlogIndex initialPosts={page.posts} initialNextCursor={page.nextCursor} />
-    </main>
+    </div>
   );
 }

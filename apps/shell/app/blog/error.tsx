@@ -8,7 +8,7 @@ export default function BlogError({
   reset: () => void;
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-black px-4 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-black px-4 text-center">
       <span className="rounded border border-gray-600 bg-gray-900/60 px-2 py-1 font-mono text-sm text-gray-400">
         Bg
       </span>
@@ -27,6 +27,6 @@ export default function BlogError({
           Back to Table
         </a>
       </div>
-    </main>
+    </div>
   );
 }

@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function BlitzConnectLayout({ children }: { children: React.ReactNode }) {
-  return <main className="min-h-screen bg-black text-white">{children}</main>;
+  return <div className="min-h-screen bg-black text-white">{children}</div>;
 }
