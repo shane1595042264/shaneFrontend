@@ -40,7 +40,16 @@ export default function RngLayout({ children }: { children: React.ReactNode }) {
         or it would have traded a missing heading for a heading-order skip.
       */}
       <header className="flex items-center gap-4 px-6 py-4 border-b border-white/8">
-        <nav>
+        {/* flex, so this <nav> does not establish a line box of its own.
+            Before the bar was restructured the <a> was the flex item
+            directly and sat in its own 20px text-sm line box; an unstyled
+            block <nav> inherits the 16px/24px root strut instead, which is
+            4px taller and pushed the back link down ~1px. Making the nav a
+            flex container hands the height back to the link. Measured on
+            prod: nav 24px and link y 82 without this class, 20px and y 80.8
+            with it, which is the geometry the bare <a> had before SHAN-531.
+            Caught by a pixel diff of the before/after bar, not by eye. */}
+        <nav className="flex">
           <Link href="/" className="text-sm text-gray-400 hover:text-white transition-colors">&larr; Table</Link>
         </nav>
         <h1 className="flex items-center gap-4">

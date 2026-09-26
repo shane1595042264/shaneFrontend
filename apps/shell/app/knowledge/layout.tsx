@@ -43,12 +43,24 @@ export default function KnowledgeLayout({
         symbol and name are the page's <h1>.
 
         The classes are unchanged and Tailwind's preflight resets heading
-        font-size and weight to inherit, so this is the same bar pixel for
-        pixel — the flex row just moved up to the <header> and the gap-4
-        between "Kn" and "Knowledge" is now the <h1>'s own.
+        font-size and weight to inherit, so the symbol and name land on the
+        same pixels they always did — the flex row just moved up to the
+        <header> and the gap-4 between "Kn" and "Knowledge" is now the
+        <h1>'s own. (SHAN-531 claimed the whole bar was pixel for pixel. It
+        was not quite: the back link moved, which is what the className on
+        the <nav> below fixes.)
       */}
       <header className="flex items-center gap-4 px-6 py-4 border-b border-white/8">
-        <nav>
+        {/* flex, so this <nav> does not establish a line box of its own.
+            Before the bar was restructured the <a> was the flex item
+            directly and sat in its own 20px text-sm line box; an unstyled
+            block <nav> inherits the 16px/24px root strut instead, which is
+            4px taller and pushed the back link down ~1px. Making the nav a
+            flex container hands the height back to the link. Measured on
+            prod: nav 24px and link y 82 without this class, 20px and y 80.8
+            with it, which is the geometry the bare <a> had before SHAN-531.
+            Caught by a pixel diff of the before/after bar, not by eye. */}
+        <nav className="flex">
           <Link
             href="/"
             className="text-sm text-gray-400 hover:text-white transition-colors"
