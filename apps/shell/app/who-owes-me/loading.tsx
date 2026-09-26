@@ -1,4 +1,5 @@
-// Renders inside who-owes-me/layout.tsx <main> (max-w-4xl mx-auto px-6 py-8),
+// Renders inside who-owes-me/layout.tsx's content wrapper (max-w-4xl mx-auto
+// px-6 py-8 — a <div> since SHAN-533, the page's only <main> is the root one),
 // so this skeleton is content-only — no nav or container wrapper. Mirrors the
 // two summary total cards over the loan list in who-owes-me/page.tsx.
 export default function WhoOwesMeLoading() {

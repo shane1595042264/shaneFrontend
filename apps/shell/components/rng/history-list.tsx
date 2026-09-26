@@ -163,10 +163,14 @@ function HistoryItem({ decision }: { decision: Decision }) {
 }
 
 export function HistoryList({ decisions }: { decisions: Decision[] }) {
+  // SHAN-533: h2, not h3, in BOTH branches — see components/rng/ban-list.tsx
+  // for why. The empty branch is the one a fresh account renders, so fixing
+  // only the populated one would leave the skip in place for exactly the
+  // visitors who have nothing else on the page to orient by.
   if (decisions.length === 0) {
     return (
       <div>
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">History</h3>
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">History</h2>
         <p className="text-gray-400 text-sm">No decisions yet.</p>
       </div>
     );
@@ -174,7 +178,7 @@ export function HistoryList({ decisions }: { decisions: Decision[] }) {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">History</h3>
+      <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">History</h2>
       <div className="space-y-2">
         {decisions.map((d) => (
           <HistoryItem key={d.id} decision={d} />

@@ -65,7 +65,13 @@ export default function KnowledgeLayout({
           <span className="text-gray-300">Knowledge</span>
         </h1>
       </header>
-      <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
+      {/* SHAN-533: <div>, not <main>. app/layout.tsx already wraps {children}
+          in <main id="main-content">, so this was a second main landmark
+          nested inside the first — invalid HTML, and two overlapping "main"
+          entries in the landmark list. Spotted in this page's a11y tree while
+          verifying the SHAN-531 h1 above. app/not-found.tsx already documents
+          the rule; the container classes are unchanged. */}
+      <div className="max-w-5xl mx-auto px-6 py-8">{children}</div>
     </div>
   );
 }

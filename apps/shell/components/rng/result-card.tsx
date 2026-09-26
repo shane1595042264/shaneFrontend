@@ -26,7 +26,11 @@ export function ResultCard({ result }: { result: EvaluationResult }) {
       <div className="flex gap-4">
         {result.avatar_url && <img src={result.avatar_url} alt={result.product_name} className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />}
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-white truncate">{result.product_name}</h3>
+          {/* SHAN-533: h2, not h3 — the result card is a top-level section of
+              /rng-capitalist alongside History and Banned Categories, and the
+              page now opens with an h1. The verdict label below is a styled
+              <span> rather than a heading, so nothing nests under this. */}
+          <h2 className="text-lg font-semibold text-white truncate">{result.product_name}</h2>
           <div className="flex items-center gap-3 mt-1">
             <span className="text-white font-bold">${result.price.toFixed(2)}</span>
             <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-gray-300">{result.generic_category}</span>

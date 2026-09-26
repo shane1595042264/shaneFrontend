@@ -54,7 +54,10 @@ export default function VocabularyLayout({
           <span className="text-gray-300">Vocabulary</span>
         </h1>
       </header>
-      <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
+      {/* SHAN-533: <div>, not <main> — app/layout.tsx already renders
+          {children} inside <main id="main-content">. See the same note in
+          app/knowledge/layout.tsx. */}
+      <div className="max-w-5xl mx-auto px-6 py-8">{children}</div>
     </div>
   );
 }
