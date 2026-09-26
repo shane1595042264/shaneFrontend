@@ -34,7 +34,7 @@ Reads (members only, like everything else here):
 | GET | /entries/:date/versions | metadata only, NO \`content\`; \`?limit=1..100&cursor=<versionNum>\` returns \`{versions, nextCursor}\` descending by versionNum; the cursor and \`:num\` are bounded to 1..2147483647, the int4 range of the column |
 | GET | /entries/:date/versions/:num | one version, with \`content\`: this is where you read a body |
 | GET | /entries/:date/appends | append timeline; soft-deleted appends are omitted |
-| GET | /activity | site-wide audit trail, newest first; \`?limit=1..100&cursor=<ISO timestamp>\` returns \`{activity, nextCursor}\` |
+| GET | /activity | site-wide audit trail, newest first; \`?limit=1..100&cursor=<opaque, from nextCursor>\` returns \`{activity, nextCursor}\` |
 | GET | /entries/:date/activity | same shape, scoped to one entry |
 | GET | /entries/:date/neighbors | \`{prev, next}\` published dates |
 | GET | /entries/:date/suggestions | \`?status=pending\\|approved\\|rejected\\|withdrawn\` |
@@ -113,7 +113,7 @@ Rows carry **metadata only, never content bodies** — read the body from \`/ver
       }
     }
   ],
-  "nextCursor": "2026-09-11T10:00:00.000Z"
+  "nextCursor": "2026-09-11T10:00:00.000Z_9c4f1e77-0b3a-4e52-9a61-7d2f8c5b0e14"
 }
 \`\`\`
 
@@ -121,7 +121,7 @@ Rows carry **metadata only, never content bodies** — read the body from \`/ver
 
 \`action\` is one of: \`entry.create\`, \`entry.delete\`, \`entry.revert\`, \`append.create\`, \`append.update\`, \`append.delete\`, \`comment.create\`, \`comment.update\`, \`comment.delete\`, \`suggestion.create\`, \`suggestion.approve\`, \`suggestion.reject\`, \`suggestion.withdraw\`. Reactions are not logged. \`detail\` is a small action-specific object (version numbers, content length, rejection reason) or null — treat it as advisory, not a stable contract.
 
-Pagination is by \`createdAt\`: pass the last row's \`createdAt\` back as \`?cursor=\`. It is an ISO timestamp, not a \`YYYY-MM-DD\` date like the \`/entries\` cursor; a bare date is a 400.
+Pagination keys on \`createdAt\` plus the row id: send the previous response's \`nextCursor\` back verbatim as \`?cursor=\`. It is the compound form \`<iso-timestamp>_<row-id>\`, not a \`YYYY-MM-DD\` date like the \`/entries\` cursor; a bare date is a 400. Do not rebuild it from a row's \`createdAt\`, because the id half is what keeps a tie or a sub-millisecond gap from silently dropping rows. See [Pagination](/docs/conventions#pagination).
 
 ## Content rules
 

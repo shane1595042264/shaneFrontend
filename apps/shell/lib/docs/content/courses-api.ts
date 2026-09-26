@@ -12,7 +12,7 @@ The course catalog at /courses. Mounted at \`/api/courses\`. A course is an exte
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | / | \`{courses, nextCursor}\` newest first with \`rating: {average, count}\`, \`commentCount\`, \`myStars\` when authed. Paged like /api/trips: \`limit\` 1..100 and \`cursor\` = the previous page's last \`createdAt\` (ISO). Omit \`limit\` for the whole catalog; \`nextCursor\` is null on the last page |
+| GET | / | \`{courses, nextCursor}\` newest first with \`rating: {average, count}\`, \`commentCount\`, \`myStars\` when authed. Paged like /api/trips: \`limit\` 1..100 and \`cursor\` = the previous response's \`nextCursor\` sent back verbatim, which is the compound keyset form \`<iso-timestamp>_<row-id>\` and not a bare \`createdAt\` (see [Pagination](/docs/conventions#pagination)). Omit \`limit\` for the whole catalog; \`nextCursor\` is null on the last page |
 | GET | /:slug | one course, same shape |
 | GET | /covers/:courseId | cover bytes, public, immutable cache |
 | GET | /:id/comments | comments with author objects |

@@ -19,7 +19,7 @@ The IRL game scoreboard at /scoreboard. Mounted at \`/api/scoreboard\`. Three no
 | GET | /matches | \`{matches, nextCursor}\` newest first, each match with an embedded \`players\` array of \`{playerId, name, color, score, position}\` |
 | GET | /matches/:id | \`{match}\`, same shape; 404 if unknown |
 
-\`GET /matches\` takes \`gameId\`, \`status\` (\`live\` or \`final\`), \`limit\` (1..100, default 50) and \`cursor\`. **The cursor is an ISO datetime on \`createdAt\`, not a date string** (the journal's date-based cursor does not apply here). Do not build it yourself: page by passing back the \`nextCursor\` the previous response gave you, and stop when it is \`null\`. A full page always carries a \`nextCursor\`, so the last page of an exact multiple of \`limit\` costs one extra empty request -- the same contract as \`GET /api/courses\` and \`GET /api/journal/entries\`.
+\`GET /matches\` takes \`gameId\`, \`status\` (\`live\` or \`final\`), \`limit\` (1..100, default 50) and \`cursor\`. **The cursor is the compound keyset form \`<iso-timestamp>_<row-id>\`, keyed on \`createdAt\` plus the match id, not a date string** (the journal's date-based cursor does not apply here, and neither does a bare timestamp: see [Pagination](/docs/conventions#pagination)). Do not build it yourself: page by passing back the \`nextCursor\` the previous response gave you, and stop when it is \`null\`. A full page always carries a \`nextCursor\`, so the last page of an exact multiple of \`limit\` costs one extra empty request -- the same contract as \`GET /api/courses\` and \`GET /api/journal/entries\`.
 
 Aggregate over every page, not just the first. Win tallies computed from a single capped page under-count as soon as the history outgrows it.
 

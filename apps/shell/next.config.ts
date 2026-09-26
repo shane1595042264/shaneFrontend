@@ -6,6 +6,7 @@ import { assertContrastFloor } from "./lib/contrast-guard";
 import { assertNoHardCodedOgImages } from "./lib/og-image-guard";
 import { assertSelectsAreNamed } from "./lib/select-name-guard";
 import { assertSingleMainLandmark } from "./lib/main-landmark-guard";
+import { assertCursorDocsUseCompoundShape } from "./lib/docs/cursor-doc-guard";
 
 // SHAN-497: fail the build if an auth-gated page is missing from
 // CRAWLER_DISALLOW, which would leak it into robots.txt and sitemap.xml as a
@@ -56,6 +57,21 @@ assertSingleMainLandmark(
     path.join(process.cwd(), "..", "..", "packages", "ui", "src"),
   ],
   path.join(process.cwd(), "app", "layout.tsx"),
+);
+
+// SHAN-535: fail the build if an API doc page describes a keyset `cursor` as a
+// bare timestamp. SHAN-513 replaced that shape with `<iso-timestamp>_<row-id>`
+// because a bare timestamp silently drops rows, updated content/conventions.ts,
+// and left the five per-module pages (trips, courses, scoreboard, blog, journal
+// activity) advertising the old contract for four months. The legacy form is
+// still accepted, so following those pages produced a 200 and a short page, and
+// three of them told the caller to build the cursor out of a response field. The
+// house rule that public API changes touch the matching doc module is only as
+// good as something checking it. Same build-time-only execution story as the
+// five guards above.
+assertCursorDocsUseCompoundShape(
+  path.join(process.cwd(), "lib", "docs", "content"),
+  path.join(process.cwd(), "lib", "docs", "content", "conventions.ts"),
 );
 
 const nextConfig: NextConfig = {

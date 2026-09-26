@@ -69,7 +69,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The full collaborative journal write surface: entries, appends, versions, suggestions, comments, reactions.",
     body: journalApi,
-    lastModified: "2026-09-13T15:10:19-05:00",
+    lastModified: "2026-09-26T09:15:00-05:00",
   },
   {
     slug: "blog-api",
@@ -77,7 +77,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The public blog: slug-keyed posts, versioned titles and bodies, drafts, tags, and revert.",
     body: blogApi,
-    lastModified: "2026-09-14T15:08:46-05:00",
+    lastModified: "2026-09-26T09:15:00-05:00",
   },
   {
     slug: "images-api",
@@ -93,7 +93,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The course catalog: AI classification on create, covers, star ratings, and comments.",
     body: coursesApi,
-    lastModified: "2026-09-10T21:05:34-05:00",
+    lastModified: "2026-09-26T09:15:00-05:00",
   },
   {
     slug: "scoreboard-api",
@@ -101,7 +101,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The IRL game scoreboard: games, players, live matches, scoring, and the game-icons search.",
     body: scoreboardApi,
-    lastModified: "2026-09-05T09:05:20-05:00",
+    lastModified: "2026-09-26T09:15:00-05:00",
   },
   {
     slug: "trips-api",
@@ -109,7 +109,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Public trip HTML upload, update, and delete, plus the trip-groups planning surface.",
     body: tripsApi,
-    lastModified: "2026-09-21T03:08:35-05:00",
+    lastModified: "2026-09-26T09:15:00-05:00",
   },
   {
     slug: "knowledge-api",
