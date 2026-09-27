@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { PostBody } from "@/components/blog/post-body";
 import { coverSrc, getPost, type BlogPostDetail } from "@/lib/api/blog";
-import { readingTimeMinutes } from "@/lib/journal-text";
+import { readingTimeMinutes, stripLeadingTitleHeading } from "@/lib/journal-text";
 
 /**
  * SHAN-487. The draft reading surface.
@@ -92,7 +92,10 @@ export default function BlogPreviewPage() {
 
   const isAuthor = post.post.authorId === user?.id;
   const cover = coverSrc(post.post.coverImageUrl);
-  const minutes = readingTimeMinutes(post.content);
+  // Same title-echo strip the published page applies (SHAN-540), so a draft
+  // preview shows the author exactly what readers will get.
+  const body = stripLeadingTitleHeading(post.content, post.title);
+  const minutes = readingTimeMinutes(body);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -172,7 +175,7 @@ export default function BlogPreviewPage() {
       </header>
 
       <article className="mt-8">
-        <PostBody content={post.content} />
+        <PostBody content={body} />
       </article>
     </div>
   );

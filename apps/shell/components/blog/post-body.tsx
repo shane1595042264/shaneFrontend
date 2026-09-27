@@ -10,6 +10,11 @@ import { markdownComponents } from "@/lib/markdown-mermaid";
  * larger type. Kept separate rather than parameterizing EntryBody so a tweak to
  * daily-note density never silently restyles published posts. Mermaid blocks
  * still upgrade client-side through the shared markdownComponents (SHAN-439).
+ *
+ * Takes the body verbatim. Callers strip the echoed title first with
+ * stripLeadingTitleHeading (SHAN-540) because they need the stripped text for
+ * the reading time and the descriptions anyway, and doing it twice would be
+ * the same work for the same answer.
  */
 export function PostBody({ content }: { content: string }) {
   return (

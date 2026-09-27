@@ -1,6 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { toPlainExcerpt } from "@/lib/journal-text";
+import { stripLeadingTitleHeading, toPlainExcerpt } from "@/lib/journal-text";
 import { API_URL, BACKEND_ORIGIN } from "@/lib/api-url";
 
 // Shared data + rendering layer for the blog feeds (SHAN-491). Both the RSS
@@ -89,7 +89,10 @@ async function fetchPosts(): Promise<PostRow[]> {
 
 // Full body rendered to HTML. Returns null on any failure so a single bad
 // fetch degrades that item to excerpt-only instead of breaking the whole feed.
-async function fetchPostContentHtml(slug: string): Promise<string | null> {
+async function fetchPostContentHtml(
+  slug: string,
+  title: string,
+): Promise<string | null> {
   try {
     const res = await fetch(
       `${API_URL}/api/blog/posts/${encodeURIComponent(slug)}`,
@@ -97,7 +100,9 @@ async function fetchPostContentHtml(slug: string): Promise<string | null> {
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { content?: string };
-    const source = data.content ?? "";
+    // A feed item already carries the title in its own <title> element, so a
+    // body opening with `# <title>` repeats it in every reader (SHAN-540).
+    const source = stripLeadingTitleHeading(data.content ?? "", title);
     if (!source.trim()) return null;
     return await renderMarkdownToHtml(source);
   } catch {
@@ -136,13 +141,16 @@ function absoluteCover(coverImageUrl: string | null): string | null {
 export async function loadFeedItems(): Promise<BlogFeedItem[]> {
   const posts = await fetchPosts();
   const contentHtml = await Promise.all(
-    posts.map((p) => fetchPostContentHtml(p.slug)),
+    posts.map((p) => fetchPostContentHtml(p.slug, p.title)),
   );
   return posts.map((post, i) => ({
     slug: post.slug,
     title: post.title,
     url: `${SITE_URL}/blog/${post.slug}`,
-    excerpt: toPlainExcerpt(post.contentExcerpt ?? "", EXCERPT_LEN),
+    excerpt: toPlainExcerpt(
+      stripLeadingTitleHeading(post.contentExcerpt ?? "", post.title),
+      EXCERPT_LEN,
+    ),
     contentHtml: contentHtml[i],
     coverUrl: absoluteCover(post.coverImageUrl),
     tags: post.tags,

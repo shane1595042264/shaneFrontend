@@ -37,6 +37,78 @@ export function stripMarkdown(text: string): string {
   return out;
 }
 
+// Comparison form for "is this heading just the title again?": inline markdown
+// resolved, whitespace collapsed, case folded, and any trailing punctuation
+// dropped so "All Behavioral questions" still matches "All Behavioral
+// questions:". Deliberately conservative — it normalizes noise, it does not
+// fuzzy-match, so two genuinely different strings never collide.
+function headingKey(text: string): string {
+  return stripMarkdown(text)
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/[.,:;!?'"()[\]{}‘’“”]+$/u, "")
+    .trim();
+}
+
+/**
+ * Drops a leading level-1 heading from `content` when it is just `title` again.
+ *
+ * Anything pasted out of a doc or an LLM answer opens with its own `# Title`,
+ * and every page that renders one of these bodies already prints the title as
+ * the document h1 directly above. Left alone that ships two identical h1s and
+ * puts the title at the front of the excerpt, which then leads the meta
+ * description, the OG and Twitter descriptions, the JSON-LD description and
+ * the feed summary (SHAN-540).
+ *
+ * Scope is narrow on purpose:
+ * - Level 1 only. A leading `## Title` is a real section heading, and removing
+ *   it would be a guess about what the author meant.
+ * - First block only. A mid-document heading that happens to repeat the title
+ *   is the author's structure, not an artifact.
+ * - Nothing happens if the document opens with a code fence, so a `#` that is
+ *   a shell comment or a CSS id on line one of a fenced block is never eaten.
+ *
+ * Returns `content` untouched whenever it does not match, so every call site
+ * can apply it unconditionally.
+ */
+export function stripLeadingTitleHeading(content: string, title: string): string {
+  const source = content ?? "";
+  const wanted = headingKey(title ?? "");
+  if (!source.trim() || !wanted) return source;
+
+  const lines = source.split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length && lines[i].trim() === "") i += 1;
+  if (i >= lines.length) return source;
+
+  const first = lines[i];
+  if (/^\s{0,3}(?:```|~~~)/.test(first)) return source;
+
+  // ATX: "# Title", with the optional closing run of hashes GFM allows.
+  const atx = first.match(/^\s{0,3}#\s+(.*?)\s*#*\s*$/);
+  if (atx && headingKey(atx[1]) === wanted) return dropThrough(lines, i);
+
+  // Setext: the title on one line, "=====" underneath it.
+  const underline = lines[i + 1];
+  if (
+    underline !== undefined &&
+    /^\s{0,3}=+\s*$/.test(underline) &&
+    headingKey(first) === wanted
+  ) {
+    return dropThrough(lines, i + 1);
+  }
+
+  return source;
+}
+
+/** Everything after line `last`, with the blank lines it left behind removed. */
+function dropThrough(lines: string[], last: number): string {
+  let next = last + 1;
+  while (next < lines.length && lines[next].trim() === "") next += 1;
+  return lines.slice(next).join("\n");
+}
+
 export function toPlainExcerpt(content: string, maxLen: number, ellipsis = "..."): string {
   const plain = stripMarkdown(stripDataMarkers(content ?? "")).replace(/\s+/g, " ").trim();
   // String iteration walks by Unicode codepoint (not UTF-16 code unit), so a cutoff

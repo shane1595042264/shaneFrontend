@@ -6,7 +6,11 @@ import { PostActions } from "@/components/blog/post-actions";
 import { PostReactionBar } from "@/components/blog/post-reaction-bar";
 import { BlogComments } from "@/components/blog/blog-comments";
 import { coverSrc, type BlogPostDetail } from "@/lib/api/blog";
-import { readingTimeMinutes, toPlainExcerpt } from "@/lib/journal-text";
+import {
+  readingTimeMinutes,
+  stripLeadingTitleHeading,
+  toPlainExcerpt,
+} from "@/lib/journal-text";
 import { API_URL } from "@/lib/api-url";
 
 const SITE_URL = "https://shanejli.com";
@@ -84,8 +88,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!data) return { title: "Post not found", robots: { index: false, follow: true } };
 
   const title = `${data.title} — Blog — Shane`;
+  // SHAN-540: the body usually opens with its own `# <title>`, and a
+  // description that starts by repeating the headline above it burns ~15% of
+  // the ~155 characters a SERP snippet actually shows.
   const description =
-    toPlainExcerpt(data.content, 160, "…") || "A post on Shane's blog.";
+    toPlainExcerpt(stripLeadingTitleHeading(data.content, data.title), 160, "…") ||
+    "A post on Shane's blog.";
   const url = `${SITE_URL}/blog/${slug}`;
   return {
     title,
@@ -127,7 +135,10 @@ export default async function BlogPostPage({ params }: PageProps) {
   if (!data) notFound();
 
   const { post, author, title, content } = data;
-  const minutes = readingTimeMinutes(content);
+  // One strip, reused by the reading time, the JSON-LD description and the
+  // rendered body so all three agree on what the post actually says.
+  const body = stripLeadingTitleHeading(content, title);
+  const minutes = readingTimeMinutes(body);
   const cover = coverSrc(post.coverImageUrl);
 
   const jsonLd = {
@@ -140,7 +151,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     author: { "@type": "Person", name: author?.name ?? "Shane Li", url: SITE_URL },
     ...(cover ? { image: cover } : {}),
     ...(post.tags.length ? { keywords: post.tags.join(", ") } : {}),
-    description: toPlainExcerpt(content, 200, "…"),
+    description: toPlainExcerpt(body, 200, "…"),
     mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}/blog/${slug}` },
   };
 
@@ -223,7 +234,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       </header>
 
       <article className="mt-8">
-        <PostBody content={content} />
+        <PostBody content={body} />
       </article>
 
       {/* Both are client islands for the same reason PostActions is: the page

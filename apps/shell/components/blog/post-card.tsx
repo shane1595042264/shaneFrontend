@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { coverSrc, type BlogPost } from "@/lib/api/blog";
-import { readingTimeMinutes, toPlainExcerpt } from "@/lib/journal-text";
+import {
+  readingTimeMinutes,
+  stripLeadingTitleHeading,
+  toPlainExcerpt,
+} from "@/lib/journal-text";
 
 // Excerpt length is what varies a coverless tile's height, so it is left long
 // (the backend already caps its source at 500 chars) and deliberately not
@@ -41,12 +45,15 @@ function formatPublished(iso: string): string {
 export function PostCard({ post }: { post: BlogPost }) {
   const cover = coverSrc(post.coverImageUrl);
   const isDraft = post.status === "draft";
+  // The h2 below already prints the title, and a body that opens with its own
+  // `# Title` would otherwise make the blurb start by repeating it (SHAN-540).
+  const summarySource = stripLeadingTitleHeading(post.contentExcerpt ?? "", post.title);
   const excerpt = toPlainExcerpt(
-    post.contentExcerpt ?? "",
+    summarySource,
     cover ? EXCERPT_CHARS_WITH_COVER : EXCERPT_CHARS,
     "…"
   );
-  const minutes = readingTimeMinutes(post.contentExcerpt ?? "");
+  const minutes = readingTimeMinutes(summarySource);
 
   return (
     <article className="mb-5 break-inside-avoid">

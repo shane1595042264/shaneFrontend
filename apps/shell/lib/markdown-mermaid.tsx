@@ -30,6 +30,17 @@ function mermaidChild(node: HastNode | undefined): HastNode | null {
 // override on top of the shared responsive-table wrapper (SHAN-449).
 export const markdownComponents: Components = {
   ...responsiveTableComponents,
+  // SHAN-540. Every page that renders one of these bodies already owns the
+  // document `<h1>` (the post header on /blog/<slug>, the element bar on a
+  // journal date), so a body heading can only ever be subordinate to it. A
+  // pasted document opens with its own `# Title` and used to ship a literal
+  // second `<h1>` with identical text. Demoting is the fix rather than
+  // dropping, because a body h1 that ISN'T the title is real content.
+  // Rendered as h2 so `prose` styles it and the outline stays well-formed;
+  // the leading title echo is removed upstream by stripLeadingTitleHeading.
+  h1({ node, children, ...rest }) {
+    return <h2 {...rest}>{children}</h2>;
+  },
   pre(props) {
     const { node, children, ...rest } = props as {
       node?: HastNode;
