@@ -53,19 +53,32 @@ const NAV_LABEL_OVERRIDES: Record<string, string> = {
 };
 
 /**
- * Public, crawlable, and still kept out of the nav.
+ * Public, crawlable, and still kept out of the nav. Empty, and worth keeping
+ * empty.
  *
- * `/blog` passes every check below — internal, live, not crawler-disallowed —
- * but SHAN-524 deliberately marked it noindex and pulled it from the sitemap
- * while it holds zero posts, so pointing every page on the site at an empty
- * index would undo that. The sitemap can make this call from data because it
- * fetches the post count while generating; the NavBar renders on every page as
- * a client component and must not fetch, so the decision is static here.
+ * It held `/blog` from SHAN-526 until SHAN-538. SHAN-524 had marked the blog
+ * noindex and pulled it from the sitemap while it held zero posts, so pointing
+ * every page on the site at an empty index would have undone that. The entry
+ * carried the instruction "delete this when the blog has content" — and the
+ * blog got content on 2026-09-25 without anyone deleting it.
  *
- * Delete the entry when the blog has content. It needs no other change: the
- * derivation below will pick `/blog` up on its own.
+ * The lesson, since this is the second list in this file to go stale the same
+ * way: a static mirror of a data-driven decision drifts silently and in only
+ * one direction. `app/blog/page.tsx` and `app/sitemap.ts` made the same call
+ * from a fetched post count, so both reversed themselves the moment the post
+ * published; this constant could not, because the NavBar is a client component
+ * that renders on every page and must not fetch. That asymmetry is real and
+ * has no clean fix here — a build-time guard would have to reach the API and
+ * would turn a backend blip into a failed build — so the mitigation is to keep
+ * this list empty. An entry here is a promise someone has to remember to
+ * break, and the blog spent two days indexed, sitemapped, and linked from
+ * nowhere because that promise was forgotten.
+ *
+ * Prefer expressing "not in the nav" through CRAWLER_DISALLOW instead, which
+ * `publicNavLinks()` already honours and which is the same predicate the
+ * sitemap uses, so the two cannot disagree.
  */
-const NAV_EXCLUDE = new Set<string>(["/blog"]);
+const NAV_EXCLUDE = new Set<string>();
 
 /**
  * Reading order for the routes that have an opinion about it. Anything not
@@ -74,6 +87,13 @@ const NAV_EXCLUDE = new Set<string>(["/blog"]);
  * of in an arbitrary slot, and nothing has to be added here for it to appear.
  */
 const NAV_ORDER = [
+  // First since SHAN-538. Leaving `/blog` unlisted would have put it last:
+  // unlisted routes sort after every listed one, which is the right default for
+  // a new element nobody has an opinion about and the wrong slot for the site's
+  // only public long-form writing. It leads because it is the surface a
+  // stranger who liked the homepage is most likely to want next, and because
+  // the ordering below already runs roughly newest-interest to most-niche.
+  "/blog",
   "/courses",
   "/docs",
   "/knowledge",
