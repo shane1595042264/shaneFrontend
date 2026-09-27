@@ -24,8 +24,9 @@ export function AddWordForm({ onSubmit, loading }: AddWordFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
       <div className="flex-1 min-w-[200px]">
-        <label className="block text-xs text-gray-400 mb-1">Word / Phrase</label>
+        <label htmlFor="vocab-new-word" className="block text-xs text-gray-400 mb-1">Word / Phrase</label>
         <input
+          id="vocab-new-word"
           type="text"
           value={word}
           onChange={(e) => setWord(e.target.value)}

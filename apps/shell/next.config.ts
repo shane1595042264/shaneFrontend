@@ -4,7 +4,7 @@ import { COURSE_HOST } from "./lib/course-launch-url";
 import { assertCrawlerDisallowCoverage } from "./lib/seo-routes-guard";
 import { assertContrastFloor } from "./lib/contrast-guard";
 import { assertNoHardCodedOgImages } from "./lib/og-image-guard";
-import { assertSelectsAreNamed } from "./lib/select-name-guard";
+import { assertFormControlsAreNamed } from "./lib/form-control-name-guard";
 import { assertSingleMainLandmark } from "./lib/main-landmark-guard";
 import { assertCursorDocsUseCompoundShape } from "./lib/docs/cursor-doc-guard";
 
@@ -32,12 +32,16 @@ assertContrastFloor([
 // execution story as the two guards above: build-time only.
 assertNoHardCodedOgImages(path.join(process.cwd(), "app"));
 
-// SHAN-532: fail the build if a <select> ships with no accessible name. Unlike
-// the three guards above this one cannot be replaced by auditing the deployed
-// page: four of the seven offenders it first caught render only inside a
-// "+ Connect" form, and Lighthouse scores the tree it loads, so a control one
-// click away is invisible to it forever. Same build-time-only execution story.
-assertSelectsAreNamed([
+// SHAN-532 / SHAN-539: fail the build if a <select>, <input> or <textarea>
+// ships with no accessible name. Unlike the three guards above this one cannot
+// be replaced by auditing the deployed page, for two separate reasons. Four of
+// the seven selects it first caught render only inside a "+ Connect" form, and
+// Lighthouse scores the tree it loads, so a control one click away is invisible
+// to it forever. And axe-core's `label` rule counts a non-empty placeholder as
+// a name, so the 23 placeholder-only inputs SHAN-539 found had been scoring
+// green the whole time, including through the sweep that filed SHAN-532. Same
+// build-time-only execution story.
+assertFormControlsAreNamed([
   path.join(process.cwd(), "app"),
   path.join(process.cwd(), "components"),
   path.join(process.cwd(), "..", "..", "packages", "ui", "src"),

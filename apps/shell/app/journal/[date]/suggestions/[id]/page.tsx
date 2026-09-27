@@ -307,6 +307,7 @@ export default function SuggestionDetailPage() {
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
+              aria-label="Rejection reason"
               placeholder="Reason (optional)"
               disabled={busy}
               className="h-24 w-full resize-y rounded border border-white/10 bg-black/40 p-2 text-sm text-white/90 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/50 disabled:opacity-50"

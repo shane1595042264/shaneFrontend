@@ -314,6 +314,7 @@ function WhoOwesMeContent() {
           <input
             value={borrowerName}
             onChange={(e) => setBorrowerName(e.target.value)}
+            aria-label={DIRECTION_COPY[direction].namePlaceholder}
             placeholder={DIRECTION_COPY[direction].namePlaceholder}
             maxLength={255}
             required
@@ -322,6 +323,7 @@ function WhoOwesMeContent() {
           <input
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            aria-label="Amount"
             placeholder="Amount"
             inputMode="decimal"
             required
@@ -349,6 +351,7 @@ function WhoOwesMeContent() {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            aria-label="Note"
             placeholder="Note (optional)"
             rows={2}
             maxLength={2000}
@@ -635,7 +638,7 @@ function LoanRowEdit({
             onChange={(e) => setBorrowerName(e.target.value)}
             placeholder={DIRECTION_COPY[direction].namePlaceholder}
             maxLength={255}
-            aria-label="Borrower name"
+            aria-label={DIRECTION_COPY[direction].namePlaceholder}
             className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
           />
           <input

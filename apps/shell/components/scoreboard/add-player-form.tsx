@@ -157,6 +157,7 @@ export function AddPlayerForm({
           onChange={(e) => setName(e.target.value)}
           required
           maxLength={80}
+          aria-label="Player name"
           placeholder="Player name"
           className="w-full max-w-xs rounded-md border border-white/20 bg-black/30 px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:border-white/40 focus:outline-none"
         />

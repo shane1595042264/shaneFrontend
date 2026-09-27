@@ -527,6 +527,7 @@ export function KnowledgeBrowser({
         />
         <input
           type="text"
+          aria-label="Search knowledge"
           placeholder="Search..."
           value={search}
           maxLength={MAX_SEARCH_LEN}

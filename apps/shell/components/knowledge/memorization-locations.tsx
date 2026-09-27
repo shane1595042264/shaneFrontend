@@ -144,6 +144,7 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
                   add(input);
                 }
               }}
+              aria-label="Add a location"
               placeholder="Add a location…"
               disabled={saving}
               className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-white/20 disabled:opacity-50"

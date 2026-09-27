@@ -35,6 +35,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
               type="text"
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
+              aria-label="Product name"
               placeholder="Product name (e.g., Nintendo Switch)"
               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-400 focus:outline-none focus:border-orange-500"
               disabled={loading}
@@ -45,6 +46,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
+                aria-label="Price"
                 placeholder="Price"
                 className="flex-1 sm:flex-none sm:w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-400 focus:outline-none focus:border-orange-500"
                 disabled={loading}
@@ -83,6 +85,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          aria-label="Product link"
           placeholder="Paste a product link..."
           className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-400 focus:outline-none focus:border-orange-500"
           disabled={loading}

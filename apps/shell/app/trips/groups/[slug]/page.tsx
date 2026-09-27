@@ -835,6 +835,7 @@ function GroupDetail() {
           <textarea
             value={ideaBody}
             onChange={(e) => setIdeaBody(e.target.value)}
+            aria-label="Your idea"
             placeholder="What's on your mind? A restaurant, neighborhood, transit tip, vibe…"
             rows={3}
             maxLength={4000}

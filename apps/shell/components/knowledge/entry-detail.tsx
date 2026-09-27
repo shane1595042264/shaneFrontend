@@ -362,10 +362,11 @@ export function EntryDetail({
         {editing ? (
           <div className="mb-4 space-y-3">
             <div>
-              <label className="text-xs text-gray-400 uppercase mb-1 block">
+              <label htmlFor="knowledge-edit-title" className="text-xs text-gray-400 uppercase mb-1 block">
                 Title
               </label>
               <input
+                id="knowledge-edit-title"
                 type="text"
                 value={editWord}
                 onChange={(e) => setEditWord(e.target.value)}

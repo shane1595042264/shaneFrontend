@@ -105,6 +105,7 @@ function GroupsIndex() {
           <input
             value={joinSlug}
             onChange={(e) => setJoinSlug(e.target.value)}
+            aria-label="Group slug to join"
             placeholder="group-slug (e.g. tokyo-2026)"
             maxLength={80}
             className="block min-h-11 flex-1 rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm text-white/90 focus:border-white/40 focus:outline-none"

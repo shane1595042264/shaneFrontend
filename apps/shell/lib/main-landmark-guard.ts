@@ -50,7 +50,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 /**
- * Same two-step as lib/select-name-guard.ts, lib/og-image-guard.ts and
+ * Same two-step as lib/form-control-name-guard.ts, lib/og-image-guard.ts and
  * lib/seo-routes-guard.ts: block comments first, then line comments only where
  * the `//` is not preceded by a colon, so an `https://` inside a string literal
  * does not truncate its line.

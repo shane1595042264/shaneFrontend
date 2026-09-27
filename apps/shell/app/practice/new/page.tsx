@@ -238,6 +238,7 @@ function NewSessionContent() {
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
+                aria-label="Location"
                 placeholder="Type a location (e.g. Home, Café, Office)…"
                 className="mt-2 block w-full max-w-sm rounded border border-white/15 bg-black/30 px-3 py-1.5 text-sm focus:border-white/40 focus:outline-none"
               />

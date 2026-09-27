@@ -106,11 +106,12 @@ export function NoteInput({
         </>
       ) : (
         <>
-          <label className="block text-xs text-gray-400">
+          <p className="block text-xs text-gray-400">
             Add a card exactly as typed — no AI, so links and formatting are kept.
-          </label>
+          </p>
           <input
             type="text"
+            aria-label="Card title"
             value={word}
             onChange={(e) => setWord(e.target.value)}
             placeholder="Title — e.g. 5 step combo"
@@ -130,6 +131,7 @@ export function NoteInput({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               list="quick-add-categories"
+              aria-label="Category"
               placeholder="Category (pick or type, e.g. dance)"
               className="flex-1 min-w-[160px] px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
             />
@@ -142,6 +144,7 @@ export function NoteInput({
               type="text"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
+              aria-label="Language"
               placeholder="Language (optional)"
               className="w-36 px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
             />

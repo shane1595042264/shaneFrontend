@@ -111,8 +111,9 @@ export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProp
       <div className="bg-white/5 rounded-lg p-4">
         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
           <div className="flex-1">
-            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Balance</label>
+            <label htmlFor="rng-manual-balance" className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Balance</label>
             <input
+              id="rng-manual-balance"
               type="number"
               step="0.01"
               value={manualBalance}
@@ -122,8 +123,9 @@ export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProp
             />
           </div>
           <div className="flex-1">
-            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Last Month Spend</label>
+            <label htmlFor="rng-manual-spend" className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Last Month Spend</label>
             <input
+              id="rng-manual-spend"
               type="number"
               step="0.01"
               value={manualSpend}

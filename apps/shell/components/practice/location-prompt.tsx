@@ -54,6 +54,7 @@ export function LocationPrompt({ onPick, onSkip }: Props) {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          aria-label="New location"
           placeholder="Or type a new one…"
           disabled={saving}
           onKeyDown={(e) => { if (e.key === "Enter") submit(input); }}

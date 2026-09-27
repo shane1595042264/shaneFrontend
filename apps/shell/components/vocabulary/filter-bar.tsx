@@ -25,6 +25,7 @@ export function FilterBar({
     <div className="flex flex-wrap items-center gap-3">
       <input
         type="text"
+        aria-label="Search words"
         placeholder="Search words..."
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}

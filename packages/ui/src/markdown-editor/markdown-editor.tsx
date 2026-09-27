@@ -32,6 +32,15 @@ export interface MarkdownEditorProps {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  /**
+   * Accessible name for the textarea. Defaults to "Markdown editor". A
+   * placeholder is not a name (the browser erases it as soon as the field has
+   * content), and this textarea is the body field on every authoring surface in
+   * the site, so it needs a real one. Pass a specific string where the page has
+   * more than one editor. Enforced by apps/shell/lib/form-control-name-guard.ts,
+   * which scans this package too (SHAN-539).
+   */
+  ariaLabel?: string;
   minHeight?: string;
   /** Tailwind class applied to the textarea wrapper. */
   className?: string;
@@ -65,6 +74,7 @@ export function MarkdownEditor({
   value,
   onChange,
   placeholder = "Write in markdown. Use the toolbar or shortcuts (Ctrl+B, Ctrl+I, Ctrl+K…). Lists auto-continue on Enter.",
+  ariaLabel = "Markdown editor",
   minHeight = "20rem",
   className,
   showPreviewTab = true,
@@ -416,6 +426,7 @@ export function MarkdownEditor({
             onPaste={onPaste}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            aria-label={ariaLabel}
             placeholder={placeholder}
             autoFocus={autoFocus}
             spellCheck={true}
