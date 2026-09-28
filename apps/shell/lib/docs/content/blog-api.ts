@@ -17,7 +17,7 @@ A post is a slug plus an append-only chain of versions, exactly like a journal e
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | /posts | \`{posts, nextCursor}\`, newest \`publishedAt\` first, each with \`contentExcerpt\` and an \`author\` object. \`limit\` 1..100 (default 20), \`tag\` filters on the tags array, \`q\` searches title and body case-insensitively |
+| GET | /posts | \`{posts, nextCursor}\`, newest \`publishedAt\` first, each with \`contentExcerpt\`, \`wordCount\` and an \`author\` object. \`limit\` 1..100 (default 20), \`tag\` filters on the tags array, \`q\` searches title and body case-insensitively |
 | GET | /posts/:slug | \`{post, author, title, content, currentVersionNum, prev, next}\` |
 | GET | /posts/:slug/versions | \`{versions, nextCursor}\` newest first. Bodies are NOT included (versions are never pruned, so listing them would grow without bound); read one at a time below |
 | GET | /posts/:slug/versions/:num | \`{version}\` including the full body |
@@ -100,6 +100,14 @@ Two shape notes, both deliberate:
 \`emoji\` comes from the same site-wide vocabulary as journal reactions: \`+1\`, \`-1\`, \`laugh\`, \`heart\`, \`hooray\`, \`rocket\`, \`eyes\`, \`confused\`. Anything else is a 400. One row per (user, post, emoji): posting the same emoji twice removes it.
 
 Every post carries a \`commentCount\` on the list and detail payloads, maintained alongside the comments themselves so the index can show a count without a query per tile.
+
+## Reading time (SHAN-541)
+
+Every post also carries a \`wordCount\` on both payloads: the words in its current body with markdown control tokens excluded, recounted whenever the body is written. Divide by 225 and round up for a reading time.
+
+Use it rather than counting \`contentExcerpt\` yourself. That field is capped at 500 characters — about 80 words — so a reading time derived from it reports about one minute for every post no matter how long the post is. \`wordCount\` is 0 for a post whose body is nothing but markup, and for a row written before the column existed and not yet backfilled; render nothing in that case rather than a floored minimum.
+
+The count is not a whitespace split. A fenced code block contributes nothing, heading, list and blockquote markers are not words, and a link or image contributes its text and never its URL — which is also why it is served rather than computable from the body in SQL.
 
 ## Feeds (SHAN-491)
 

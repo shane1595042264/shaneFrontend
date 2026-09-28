@@ -39,6 +39,17 @@ export interface BlogPost {
    * rendered before that column existed will not carry it.
    */
   commentCount?: number;
+  /**
+   * Words in the current body, markdown control tokens excluded, counted by
+   * the backend when the body is written (SHAN-541). Read it through
+   * `readingTimeFromWords`. Do NOT derive a reading time from
+   * `contentExcerpt` instead: that field is capped at 500 chars, which is
+   * about 80 words, so it reports the 1-minute floor for every post.
+   * Optional for the same reason as commentCount (a cached payload predating
+   * the column), and 0 for a row that has not been counted yet — both render
+   * as no reading time rather than a made-up one.
+   */
+  wordCount?: number;
   /** Ordering key and keyset cursor. */
   publishedAt: string;
   createdAt: string;

@@ -6,7 +6,11 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { PostBody } from "@/components/blog/post-body";
 import { coverSrc, getPost, type BlogPostDetail } from "@/lib/api/blog";
-import { readingTimeMinutes, stripLeadingTitleHeading } from "@/lib/journal-text";
+import {
+  readingTimeFromWords,
+  readingTimeMinutes,
+  stripLeadingTitleHeading,
+} from "@/lib/journal-text";
 
 /**
  * SHAN-487. The draft reading surface.
@@ -95,7 +99,12 @@ export default function BlogPreviewPage() {
   // Same title-echo strip the published page applies (SHAN-540), so a draft
   // preview shows the author exactly what readers will get.
   const body = stripLeadingTitleHeading(post.content, post.title);
-  const minutes = readingTimeMinutes(body);
+  // Stored count first, same as the published page (SHAN-541), so a draft
+  // previews the number its tile will show. Counting the body is the fallback
+  // for a row written before the column existed.
+  const minutes = post.post.wordCount
+    ? readingTimeFromWords(post.post.wordCount)
+    : readingTimeMinutes(body);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">

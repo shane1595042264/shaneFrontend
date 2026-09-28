@@ -7,6 +7,7 @@ import { PostReactionBar } from "@/components/blog/post-reaction-bar";
 import { BlogComments } from "@/components/blog/blog-comments";
 import { coverSrc, type BlogPostDetail } from "@/lib/api/blog";
 import {
+  readingTimeFromWords,
   readingTimeMinutes,
   stripLeadingTitleHeading,
   toPlainExcerpt,
@@ -138,7 +139,13 @@ export default async function BlogPostPage({ params }: PageProps) {
   // One strip, reused by the reading time, the JSON-LD description and the
   // rendered body so all three agree on what the post actually says.
   const body = stripLeadingTitleHeading(content, title);
-  const minutes = readingTimeMinutes(body);
+  // The same stored count the /blog tile renders (SHAN-541), so the index and
+  // the post can never quote different numbers. Falls back to counting the body
+  // this page already holds when the count is missing — a row written before
+  // the column existed and not yet backfilled — which is what it always did.
+  const minutes = post.wordCount
+    ? readingTimeFromWords(post.wordCount)
+    : readingTimeMinutes(body);
   const cover = coverSrc(post.coverImageUrl);
 
   const jsonLd = {

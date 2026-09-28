@@ -129,8 +129,22 @@ export function countWords(text: string): number {
   return plain.split(/\s+/).length;
 }
 
-export function readingTimeMinutes(text: string, wpm = 225): number {
-  const words = countWords(text);
-  if (words === 0) return 0;
+/**
+ * Minutes for an already-counted body. Split out from readingTimeMinutes for
+ * blog posts (SHAN-541), which carry a denormalized `wordCount` from the
+ * backend: a tile only ever receives a 500-char excerpt, so counting on the
+ * client there pinned every post at the 1-minute floor no matter how long it
+ * was. Both surfaces render this, from the same stored number, so the index
+ * and the post itself cannot disagree.
+ *
+ * 0 words means "no count", and returns 0 so callers render nothing rather
+ * than falling back to the floor and inventing a minute.
+ */
+export function readingTimeFromWords(words: number, wpm = 225): number {
+  if (!Number.isFinite(words) || words <= 0) return 0;
   return Math.max(1, Math.ceil(words / wpm));
+}
+
+export function readingTimeMinutes(text: string, wpm = 225): number {
+  return readingTimeFromWords(countWords(text), wpm);
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { coverSrc, type BlogPost } from "@/lib/api/blog";
 import {
-  readingTimeMinutes,
+  readingTimeFromWords,
   stripLeadingTitleHeading,
   toPlainExcerpt,
 } from "@/lib/journal-text";
@@ -53,7 +53,11 @@ export function PostCard({ post }: { post: BlogPost }) {
     cover ? EXCERPT_CHARS_WITH_COVER : EXCERPT_CHARS,
     "…"
   );
-  const minutes = readingTimeMinutes(summarySource);
+  // From the post's stored word count, NOT from the excerpt above. The excerpt
+  // is 500 chars by the time it reaches here, so counting it said "1 min read"
+  // over a 16-minute post and got wronger as posts got longer (SHAN-541). A
+  // post with no count yet yields 0 and the label below is dropped entirely.
+  const minutes = readingTimeFromWords(post.wordCount ?? 0);
 
   return (
     <article className="mb-5 break-inside-avoid">
