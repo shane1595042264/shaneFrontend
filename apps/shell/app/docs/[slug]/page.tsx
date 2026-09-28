@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { responsiveTableComponents } from "@/lib/markdown-table";
-import { DocHashScroll } from "@/components/docs/hash-scroll";
+import { MarkdownHashScroll } from "@/components/markdown-hash-scroll";
 import type { Metadata } from "next";
 import { DOC_PAGES, getDocPage } from "@/lib/docs/registry";
 import {
@@ -12,6 +12,7 @@ import {
   tocHeadings,
   type DocHeading,
 } from "@/lib/docs/headings";
+import { nodeText } from "@/lib/markdown-headings";
 
 export const dynamicParams = false;
 
@@ -49,14 +50,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-/** Plain text of a hast node -- what the heading renders as, minus any markup. */
-function nodeText(node: unknown): string {
-  if (!node || typeof node !== "object") return "";
-  const n = node as { type?: string; value?: string; children?: unknown[] };
-  if (n.type === "text") return n.value ?? "";
-  return (n.children ?? []).map(nodeText).join("");
-}
-
 /**
  * SHAN-453: h2/h3 get a slug id plus a hover-revealed self-link, so a section
  * can be cited (/docs/journal-api#endpoints) and readers can discover that it
@@ -68,13 +61,18 @@ function nodeText(node: unknown): string {
 function headingComponents(headings: DocHeading[]): Components {
   function anchored(Tag: "h2" | "h3") {
     return function Heading({ node, children }: { node?: unknown; children?: ReactNode }) {
-      const id = docHeadingId(headings, nodeText(node));
+      const text = nodeText(node);
+      const id = docHeadingId(headings, text);
       return (
         <Tag id={id} className="group scroll-mt-24">
           {children}
+          {/* SHAN-542: named after the section. Every anchor on the page saying
+              "Link to this section" while pointing somewhere different is the
+              identical-links-same-purpose smell, and it made a screen reader's
+              link list a column of identical rows. */}
           <a
             href={`#${id}`}
-            aria-label="Link to this section"
+            aria-label={text ? `Link to section: ${text}` : "Link to this section"}
             className="ml-2 text-gray-400 no-underline opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 hover:text-gray-300"
           >
             #
@@ -121,7 +119,7 @@ export default async function DocPageView({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <DocHashScroll />
+      <MarkdownHashScroll />
       <nav className="mb-6 flex items-center justify-between gap-3 text-sm">
         <Link href="/docs" className="text-gray-400 hover:text-gray-300">
           &larr; Documentation

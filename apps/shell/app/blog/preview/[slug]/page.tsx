@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { PostBody } from "@/components/blog/post-body";
+import { PostToc, shouldShowToc } from "@/components/blog/post-toc";
+import { MarkdownHashScroll } from "@/components/markdown-hash-scroll";
+import { extractBodyHeadings } from "@/lib/markdown-headings";
 import { coverSrc, getPost, type BlogPostDetail } from "@/lib/api/blog";
 import {
   readingTimeFromWords,
@@ -105,9 +108,19 @@ export default function BlogPreviewPage() {
   const minutes = post.post.wordCount
     ? readingTimeFromWords(post.post.wordCount)
     : readingTimeMinutes(body);
+  // Anchored headings and the nav on the draft too (SHAN-542), so an author
+  // previewing a post sees the same shape readers will get. Extracted from the
+  // stripped `body` for the same reason as the published page: the ids are keyed
+  // on source lines.
+  const headings = extractBodyHeadings(body);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {/* In the ready branch, so its retry window opens when there is actually a
+          heading to scroll to: the draft arrives in a client fetch, long after
+          the browser has performed its one fragment scroll (SHAN-453). */}
+      <MarkdownHashScroll />
+
       <Link href="/blog" className="text-sm text-gray-400 hover:text-white">
         &larr; Back to blog
       </Link>
@@ -183,8 +196,10 @@ export default function BlogPreviewPage() {
         )}
       </header>
 
+      {shouldShowToc(headings) && <PostToc headings={headings} />}
+
       <article className="mt-8">
-        <PostBody content={body} />
+        <PostBody content={body} headings={headings} />
       </article>
     </div>
   );

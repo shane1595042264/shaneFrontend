@@ -12,6 +12,15 @@
 //
 // The markdown source is never mutated: /docs/raw/<slug>, /llms.txt and
 // /llms-full.txt keep serving the exact bytes in lib/docs/content/*.
+//
+// SHAN-542: the slug rule and the inline stripper moved to
+// lib/markdown-headings.ts when the blog needed anchors too, so a doc fragment
+// and a post fragment are spelled by one implementation. slugifyHeading is
+// re-exported here because callers of this module import it from here.
+
+import { slugifyHeading, stripInlineMarkdown } from "@/lib/markdown-headings";
+
+export { slugifyHeading };
 
 export interface DocHeading {
   /** 2 for `##`, 3 for `###`. Only these two levels get anchors. */
@@ -20,39 +29,6 @@ export interface DocHeading {
   text: string;
   /** URL fragment. */
   id: string;
-}
-
-/**
- * Fragment id for a heading. Lowercased, everything outside [a-z0-9 -] dropped,
- * whitespace collapsed to hyphens. `## Rate limits (PATs only, rolling 60s)`
- * becomes `rate-limits-pats-only-rolling-60s`.
- *
- * Returns "" for a heading that is entirely punctuation; extractDocHeadings()
- * substitutes a positional id in that case.
- */
-export function slugifyHeading(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-/**
- * Strips the inline markdown that appears in these docs' headings so the result
- * matches the heading's rendered textContent. Handles code spans (`x`), links
- * ([text](url)), and emphasis markers. Deliberately not a full inline parser --
- * the corpus is our own content modules, not arbitrary user markdown.
- */
-function stripInlineMarkdown(raw: string): string {
-  return raw
-    .replace(/`([^`]*)`/g, "$1")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/(\*\*|__)(.*?)\1/g, "$2")
-    .replace(/(\*|_)(.*?)\1/g, "$2")
-    .trim();
 }
 
 /**

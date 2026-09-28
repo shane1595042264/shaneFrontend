@@ -6,7 +6,7 @@ import { useEffect } from "react";
 const DEADLINE_MS = 3000;
 
 /**
- * SHAN-453: re-applies the URL fragment once the doc page is actually laid out.
+ * SHAN-453: re-applies the URL fragment once the page is actually laid out.
  *
  * A cold load of /docs/auth#scopes or /docs/scoreboard-api#players left the
  * viewport at scrollY 0 even though the anchor existed. The article arrives in
@@ -20,8 +20,14 @@ const DEADLINE_MS = 3000;
  * rendered (offsetParent is null while it is still inside the hidden
  * container), then jump once. In-page TOC clicks were always fine; this only
  * covers arriving with a hash.
+ *
+ * SHAN-542: moved out of components/docs/ and renamed when blog posts got
+ * anchored headings. Nothing about the problem is docs-specific -- the staging
+ * container swallows a fragment on any streamed markdown page, and a post body
+ * arriving late in a client fetch needs the same retry -- so both surfaces share
+ * this one rather than keeping a second copy of the workaround.
  */
-export function DocHashScroll() {
+export function MarkdownHashScroll() {
   useEffect(() => {
     const id = decodeURIComponent(window.location.hash.slice(1));
     if (!id) return;

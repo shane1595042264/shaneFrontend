@@ -5,7 +5,10 @@ import { PostBody } from "@/components/blog/post-body";
 import { PostActions } from "@/components/blog/post-actions";
 import { PostReactionBar } from "@/components/blog/post-reaction-bar";
 import { BlogComments } from "@/components/blog/blog-comments";
+import { PostToc, shouldShowToc } from "@/components/blog/post-toc";
+import { MarkdownHashScroll } from "@/components/markdown-hash-scroll";
 import { coverSrc, type BlogPostDetail } from "@/lib/api/blog";
+import { extractBodyHeadings } from "@/lib/markdown-headings";
 import {
   readingTimeFromWords,
   readingTimeMinutes,
@@ -146,6 +149,10 @@ export default async function BlogPostPage({ params }: PageProps) {
   const minutes = post.wordCount
     ? readingTimeFromWords(post.wordCount)
     : readingTimeMinutes(body);
+  // SHAN-542. Extracted from `body`, the same stripped string PostBody renders,
+  // because the ids are keyed on the source line and stripping the title echo
+  // shifts every line after it.
+  const headings = extractBodyHeadings(body);
   const cover = coverSrc(post.coverImageUrl);
 
   const jsonLd = {
@@ -168,6 +175,11 @@ export default async function BlogPostPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
       />
+
+      {/* Arriving at /blog/<slug>#section: the article streams in, so the
+          browser's one fragment scroll can find only the copy inside React's
+          hidden staging container and silently no-ops (SHAN-453). */}
+      <MarkdownHashScroll />
 
       <Link href="/blog" className="text-sm text-gray-400 hover:text-white">
         &larr; Back to blog
@@ -240,8 +252,10 @@ export default async function BlogPostPage({ params }: PageProps) {
         <PostActions slug={slug} authorId={post.authorId} />
       </header>
 
+      {shouldShowToc(headings) && <PostToc headings={headings} />}
+
       <article className="mt-8">
-        <PostBody content={body} />
+        <PostBody content={body} headings={headings} />
       </article>
 
       {/* Both are client islands for the same reason PostActions is: the page
