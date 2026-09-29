@@ -48,8 +48,6 @@ export interface PortfolioProject {
   blurb: string;
   /** Short lowercase facets rendered as chips. */
   tags: string[];
-  /** Ships as the "01", "02" ... index on the card. */
-  year: string;
 }
 
 export const FEATURED_PROJECTS: PortfolioProject[] = [
@@ -62,17 +60,52 @@ export const FEATURED_PROJECTS: PortfolioProject[] = [
     blurb:
       "Read anything in the browser. Every word you stop on gets defined in place, kept, and folded into a vocabulary you actually come back to. The reading is the input; the studying happens on its own.",
     tags: ["ai", "reading", "vocabulary"],
-    year: "01",
+  },
+  {
+    id: "blitz",
+    name: "Blitz",
+    host: "blitz.shanejli.com",
+    url: "https://blitz.shanejli.com",
+    tagline: "A focus timer and to-do list whose sync server can't read your tasks.",
+    blurb:
+      "A self-hosted fork of Super Productivity with my own sync server behind it. Tasks are encrypted end to end before they leave the device, so they follow me across machines and the server, mine included, never sees one.",
+    tags: ["productivity", "self-hosted", "sync"],
   },
 ];
 
 /**
- * Empty slots rendered after the real entries. They are decoration with a job:
- * one featured project on its own reads like the whole portfolio, and these
- * say the list is a selection rather than the total. Purely presentational —
- * aria-hidden at the call site, never focusable, no link.
+ * How many cards the "Selected work" row is sized for. Real projects fill it
+ * from the front; whatever is left over is drawn as an empty slot.
  */
-export const RESERVED_SLOTS = ["02", "03"] as const;
+export const PORTFOLIO_SLOT_COUNT = 3;
+
+/**
+ * The "01", "02" ... index a card wears, from its position in the row.
+ *
+ * Derived rather than stored (SHAN-544). This used to be a hand-written `year`
+ * field on each project plus a hardcoded `RESERVED_SLOTS = ["02", "03"]`, two
+ * lists with nothing tying them together — so adding a second project put a
+ * card numbered 02 directly above a reserved slot also numbered 02, on the page
+ * and on the share card both. Position is the only thing either number ever
+ * meant, so it is now the only thing either number is read from.
+ */
+export function portfolioSlotLabel(index: number): string {
+  return String(index + 1).padStart(2, "0");
+}
+
+/**
+ * Empty slots rendered after the real entries. They are decoration with a job:
+ * a short list with no open end reads like the whole portfolio, and these say
+ * it is a selection rather than the total. Purely presentational —
+ * aria-hidden at the call site, never focusable, no link.
+ *
+ * Length is whatever the real projects leave over, so shipping a third project
+ * empties this list and the row closes on its own with no second edit.
+ */
+export const RESERVED_SLOTS: string[] = Array.from(
+  { length: Math.max(0, PORTFOLIO_SLOT_COUNT - FEATURED_PROJECTS.length) },
+  (_, i) => portfolioSlotLabel(FEATURED_PROJECTS.length + i),
+);
 
 export interface ProfileLink {
   id: string;

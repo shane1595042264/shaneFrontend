@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   FEATURED_PROJECTS,
   PORTFOLIO_HERO,
+  portfolioSlotLabel,
   PROFILE_LINKS,
   RESERVED_SLOTS,
 } from "@/lib/portfolio";
@@ -140,7 +141,7 @@ export function PortfolioView({
                     aria-hidden="true"
                     className="font-mono text-[11px] tracking-widest text-gray-400"
                   >
-                    {project.year}
+                    {portfolioSlotLabel(index)}
                   </span>
                   <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-gray-400">
                     <span
@@ -186,31 +187,39 @@ export function PortfolioView({
           ))}
 
           {/*
-            Reserved slots. One card alone reads like the entire portfolio;
-            these say it is a selection. Decoration only — aria-hidden, not
-            focusable, no link, no text a screen reader would have to sit
-            through.
+            Reserved slots. A list with no open end reads like the entire
+            portfolio; these say it is a selection. Decoration only —
+            aria-hidden, not focusable, no link, no text a screen reader would
+            have to sit through.
+
+            Full-width rows rather than the half-width pair this used to be
+            (SHAN-544): the list is derived now, so its length changes with the
+            project count, and a lone slot in a two-column grid hung as a half
+            box under two full-width cards. The guard is what lets the row close
+            itself the day a third project ships.
           */}
-          <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2">
-            {RESERVED_SLOTS.map((slot) => (
-              <div
-                key={slot}
-                className="group/slot flex items-center justify-between rounded-2xl border border-dashed border-white/10 px-6 py-6 transition-colors duration-500 hover:border-white/20"
-              >
-                <span className="font-mono text-[11px] tracking-widest text-gray-400">
-                  {slot}
-                </span>
-                <span className="flex gap-1.5">
-                  {[0, 1, 2].map((dot) => (
-                    <span
-                      key={dot}
-                      className="h-1 w-1 rounded-full bg-white/25 transition-colors duration-500 group-hover/slot:bg-white/50"
-                    />
-                  ))}
-                </span>
-              </div>
-            ))}
-          </div>
+          {RESERVED_SLOTS.length > 0 && (
+            <div aria-hidden="true" className="flex flex-col gap-4">
+              {RESERVED_SLOTS.map((slot) => (
+                <div
+                  key={slot}
+                  className="group/slot flex items-center justify-between rounded-2xl border border-dashed border-white/10 px-6 py-6 transition-colors duration-500 hover:border-white/20"
+                >
+                  <span className="font-mono text-[11px] tracking-widest text-gray-400">
+                    {slot}
+                  </span>
+                  <span className="flex gap-1.5">
+                    {[0, 1, 2].map((dot) => (
+                      <span
+                        key={dot}
+                        className="h-1 w-1 rounded-full bg-white/25 transition-colors duration-500 group-hover/slot:bg-white/50"
+                      />
+                    ))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <motion.footer

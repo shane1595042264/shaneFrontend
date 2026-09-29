@@ -2,6 +2,8 @@ import { ImageResponse } from "next/og";
 import {
   FEATURED_PROJECTS,
   PORTFOLIO_HERO,
+  PORTFOLIO_SLOT_COUNT,
+  portfolioSlotLabel,
   RESERVED_SLOTS,
 } from "@/lib/portfolio";
 
@@ -69,20 +71,16 @@ if (PORTFOLIO_HERO.blurb.length > BLURB_CHAR_BUDGET) {
 }
 
 /**
- * One row, three tiles, always. Real projects first, then as many of the
- * page's dashed reserved slots as it takes to fill the row.
+ * One row, PORTFOLIO_SLOT_COUNT tiles, always. Real projects first, then the
+ * page's dashed reserved slots, which are already exactly the leftovers.
  *
- * The cap is what keeps the row inside 1200px when a fourth project is added,
- * and the padding with reserved slots is what stops today's single entry from
- * sitting alone in a third of the frame. It also carries the same meaning the
- * slots carry on the page: this is a selection, not the whole list.
+ * The slice is what keeps the row inside 1200px when a fourth project is added,
+ * and the padding with reserved slots is what stops a short list from sitting
+ * alone in a third of the frame. It also carries the same meaning the slots
+ * carry on the page: this is a selection, not the whole list.
  */
-const TILE_COUNT = 3;
-const CARD_PROJECTS = FEATURED_PROJECTS.slice(0, TILE_COUNT);
-const CARD_SLOTS = RESERVED_SLOTS.slice(
-  0,
-  Math.max(0, TILE_COUNT - CARD_PROJECTS.length),
-);
+const CARD_PROJECTS = FEATURED_PROJECTS.slice(0, PORTFOLIO_SLOT_COUNT);
+const CARD_SLOTS = RESERVED_SLOTS;
 
 export default async function Image() {
   return new ImageResponse(
@@ -199,7 +197,7 @@ export default async function Image() {
         </div>
 
         <div style={{ display: "flex", gap: 16, marginTop: 20, flexShrink: 0 }}>
-          {CARD_PROJECTS.map((project) => (
+          {CARD_PROJECTS.map((project, index) => (
             <div
               key={project.id}
               style={{
@@ -222,7 +220,7 @@ export default async function Image() {
                 }}
               >
                 <div style={{ display: "flex", letterSpacing: 3 }}>
-                  {project.year}
+                  {portfolioSlotLabel(index)}
                 </div>
                 <div
                   style={{
