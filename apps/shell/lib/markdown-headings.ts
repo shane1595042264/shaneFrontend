@@ -1,20 +1,26 @@
 // apps/shell/lib/markdown-headings.ts
 // SHAN-542: heading slugs and anchor ids for rendered markdown bodies.
+// SHAN-543: the only implementation of them. /docs used to have its own in
+// lib/docs/headings.ts; that module is gone and this one serves both surfaces.
 //
-// The slug rule and the inline-markdown stripper live here, shared with
-// lib/docs/headings.ts (which re-exports slugifyHeading), so a doc anchor and a
-// blog anchor can never be spelled by two different implementations.
+// Duplicate handling is the reason there is one rather than two. The old /docs
+// version slugged purely from heading text and matched a rendering heading to
+// its id the same way, which works only for as long as no page repeats a
+// heading. The first real blog post broke exactly that -- "Version A: the
+// render pipeline (verified)" appears twice -- and the failure was silent and
+// three-part: two elements with one id is invalid HTML, the fragment always
+// resolves to the first so the second section is unreachable, and the /docs
+// table of contents dropped the repeat's row rather than showing it.
 //
-// What this module adds on top of the /docs version is duplicate handling. The
-// docs corpus is ours and repeats no heading, so lib/docs/headings.ts matches a
-// rendering heading to its id by plain text. A post body is arbitrary markdown,
-// and the first real post already breaks that: "Version A: the render pipeline
-// (verified)" appears twice. Two elements with one id is invalid HTML and leaves
-// the second section unreachable, so repeats get a GitHub-style numeric suffix
-// and headings are resolved by their position in the source instead of by text.
+// So a repeat gets a GitHub-style numeric suffix and headings resolve by their
+// position in the source instead of by their text. That makes the collision
+// impossible rather than merely unlikely, which matters most for /docs: the
+// root CLAUDE.md requires a content module to be edited in the same commit as
+// the API it documents, and "Errors" / "Response" / "Rate limits" are the
+// headings an API reference page repeats first.
 //
-// The markdown source is never mutated -- feeds, /blog/raw-equivalents and the
-// API keep serving the exact body bytes.
+// The markdown source is never mutated -- feeds, /docs/raw/<slug>, /llms.txt
+// and the API keep serving the exact body bytes.
 
 /**
  * Fragment id for a heading. Lowercased, everything outside [a-z0-9 -] dropped,
@@ -79,11 +85,23 @@ export interface MarkdownHeading {
  * an outline of the whole document rather than a way into it.
  *
  * Fenced blocks are skipped so a `# comment` line inside a shell sample never
- * becomes a nav row. Setext headings (`Title` over `====`) are not recognised,
- * matching the /docs extractor -- nothing in this app's markdown writes them,
- * and one that appeared would simply render without an anchor.
+ * becomes a nav row. Setext headings (`Title` over `====`) are not recognised --
+ * nothing in this app's markdown writes them, and one that appeared would simply
+ * render without an anchor.
+ *
+ * `includeH1` (SHAN-543) is what lets /docs share this. A blog post body has no
+ * title heading of its own by the time it gets here -- the echoed title is
+ * stripped (SHAN-540) and any remaining `#` is demoted to an h2 by
+ * markdownComponents -- so `#` is content and belongs in the nav. A doc body is
+ * the opposite: every page in lib/docs/content opens with `# <Title>`, which IS
+ * the page title, renders as a real `<h1>`, and gets no anchor because the /docs
+ * heading overrides cover h2/h3 only. Counting it would put a row at the top of
+ * all 13 navs pointing at an id that does not exist on the page.
  */
-export function extractBodyHeadings(body: string): MarkdownHeading[] {
+export function extractBodyHeadings(
+  body: string,
+  { includeH1 = true }: { includeH1?: boolean } = {},
+): MarkdownHeading[] {
   const headings: MarkdownHeading[] = [];
   const usedIds = new Set<string>();
   let inFence = false;
@@ -105,6 +123,7 @@ export function extractBodyHeadings(body: string): MarkdownHeading[] {
     // Trailing hashes are ATX closing syntax, not content.
     const match = line.match(/^(#{1,3})\s+(.+?)\s*#*\s*$/);
     if (!match) return;
+    if (!includeH1 && match[1].length === 1) return;
 
     const text = stripInlineMarkdown(match[2]);
     const base = slugifyHeading(text) || `section-${headings.length + 1}`;

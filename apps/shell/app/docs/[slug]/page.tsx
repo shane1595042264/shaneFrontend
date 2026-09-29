@@ -7,12 +7,11 @@ import { MarkdownHashScroll } from "@/components/markdown-hash-scroll";
 import type { Metadata } from "next";
 import { DOC_PAGES, getDocPage } from "@/lib/docs/registry";
 import {
-  docHeadingId,
-  extractDocHeadings,
-  tocHeadings,
-  type DocHeading,
-} from "@/lib/docs/headings";
-import { nodeText } from "@/lib/markdown-headings";
+  bodyHeadingId,
+  extractBodyHeadings,
+  nodeText,
+  type MarkdownHeading,
+} from "@/lib/markdown-headings";
 
 export const dynamicParams = false;
 
@@ -57,12 +56,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  *
  * Scoped to this file on purpose: journal entries, comments and knowledge
  * entries share the markdown renderer but not this behaviour.
+ *
+ * SHAN-543: the id now comes from bodyHeadingId(), which keys on the heading's
+ * source line rather than on its text, so two identically-worded headings in one
+ * doc resolve to their own ids instead of both answering to the first one's.
+ * h1 is deliberately not overridden: the body's one `#` is the page title and
+ * is excluded from the heading list for that reason.
  */
-function headingComponents(headings: DocHeading[]): Components {
+function headingComponents(headings: MarkdownHeading[]): Components {
   function anchored(Tag: "h2" | "h3") {
     return function Heading({ node, children }: { node?: unknown; children?: ReactNode }) {
       const text = nodeText(node);
-      const id = docHeadingId(headings, text);
+      const id = bodyHeadingId(headings, node, text);
       return (
         <Tag id={id} className="group scroll-mt-24">
           {children}
@@ -84,7 +89,7 @@ function headingComponents(headings: DocHeading[]): Components {
   return { h2: anchored("h2"), h3: anchored("h3") };
 }
 
-function TableOfContents({ headings }: { headings: DocHeading[] }) {
+function TableOfContents({ headings }: { headings: MarkdownHeading[] }) {
   return (
     <nav
       aria-label="On this page"
@@ -111,8 +116,10 @@ export default async function DocPageView({ params }: PageProps) {
   const { slug } = await params;
   // dynamicParams=false guarantees a registered slug.
   const page = getDocPage(slug)!;
-  const headings = extractDocHeadings(page.body);
-  const toc = tocHeadings(headings);
+  // includeH1: the body's leading `# <Title>` is the page title, not a section.
+  // Every id here is unique by construction, so there is no longer a separate
+  // "which of these are safe to list" step before the nav (SHAN-543).
+  const headings = extractBodyHeadings(page.body, { includeH1: false });
   const index = DOC_PAGES.findIndex((p) => p.slug === page.slug);
   const prev = index > 0 ? DOC_PAGES[index - 1] : null;
   const next = index >= 0 && index < DOC_PAGES.length - 1 ? DOC_PAGES[index + 1] : null;
@@ -131,7 +138,7 @@ export default async function DocPageView({ params }: PageProps) {
           raw markdown
         </a>
       </nav>
-      {toc.length >= MIN_TOC_HEADINGS && <TableOfContents headings={toc} />}
+      {headings.length >= MIN_TOC_HEADINGS && <TableOfContents headings={headings} />}
       <article className="prose prose-invert prose-sm max-w-none prose-pre:overflow-x-auto prose-table:text-sm">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
