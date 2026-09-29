@@ -37,6 +37,14 @@ Validation failures (bad params, query, or body) return 400 and add a structured
 - Dates that key resources are \`YYYY-MM-DD\` strings, validated as real calendar dates (2026-02-30 is a 400, not a 500).
 - Free-text fields are trimmed before validation; whitespace-only input is a 400.
 
+## Text search
+
+Four endpoints take a free-text term: journal entries and blog posts as \`q\`, knowledge entries and vocabulary words as \`search\`. All four are case-insensitive **substring** matches, and the term is taken literally: send it raw.
+
+That last part is worth stating because it stopped being true twice. The match runs on Postgres \`ILIKE\`, where \`%\` and \`_\` are pattern syntax rather than characters, so a term wrapped straight into \`%...%\` turns \`_\` into "any one character" and \`%\` into "any run of characters". Until SHAN-545 the two vocabulary surfaces did exactly that, and \`?search=_\` returned the entire table (48 of 48 rows) instead of the rows containing an underscore, a plausible query against a word list full of \`snake_case\` and \`__init__\`. All four now escape the term server-side.
+
+So: **do not escape the term yourself.** Sending \`snake\\_case\` searches for a literal backslash. A term that finds nothing finds nothing; there is no pattern syntax to reach for.
+
 ## Pagination
 
 Most modules paginate by keyset, newest-first, via \`limit\` (1 to 100) and \`cursor\`. **Treat \`cursor\` as opaque: read \`nextCursor\` off a response and send it back verbatim.** Null means done.
