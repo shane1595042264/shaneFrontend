@@ -44,6 +44,40 @@ function getGsi(): GsiId | undefined {
 }
 
 /**
+ * The box the nav's auth slot stands in until a session resolves (SHAN-547).
+ *
+ * The slot is deliberately empty in the prerendered HTML and in the hydration
+ * render — putting a UserMenu there before the tree hydrates is the SHAN-492
+ * #418 shape — so before this existed the nav's flex row was 20px of text links
+ * tall on the server and 36px once the sign-in pill landed. The nav sits above
+ * <main>, so those 8px pushed the entire page down: one shift, measured at
+ * 0.1266 on prod, bit-identical on /, /blog, /blog/<slug> and /docs/overview,
+ * which put every page on the site over Google's 0.1 CLS threshold. The links
+ * also slid 177px left as the pill claimed its width.
+ *
+ * It reserves the space by being the pill, with `invisible` (visibility:
+ * hidden, which still occupies layout) instead of a hand-measured width. That
+ * matters: the real button is 157px wide only because of this font at this
+ * size, and a magic number here would drift the moment the copy or the type
+ * scale changed, silently re-opening the shift. Sharing PILL cannot drift.
+ *
+ * aria-hidden because it is a duplicate of a control that is about to exist,
+ * and a span rather than a button so it is never a tab stop (visibility:hidden
+ * would take it out of the tab order anyway).
+ *
+ * A signed-in visitor still gets a small horizontal shift when the narrower
+ * UserMenu replaces this: one person, on pages no crawler measures, and the
+ * alternative is flashing "Sign in with Google" at someone already signed in.
+ */
+export function LoginButtonPlaceholder() {
+  return (
+    <span aria-hidden="true" className={`${PILL} invisible`}>
+      Sign in with Google
+    </span>
+  );
+}
+
+/**
  * The sign-in control users actually see (SHAN-496).
  *
  * Google Identity is a facade until someone shows intent. Mounting

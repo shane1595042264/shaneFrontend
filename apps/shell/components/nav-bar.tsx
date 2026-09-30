@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
 import { UserMenu } from "@/components/user-menu";
-import { LoginButton } from "@/components/login-button";
+import { LoginButton, LoginButtonPlaceholder } from "@/components/login-button";
 import {
   HOME_LINK,
   PRIVATE_NAV_LINKS,
@@ -107,8 +107,22 @@ export function NavBar() {
           which puts a UserMenu here that the server HTML never had and makes
           React throw away the whole document (intermittent #418, signed in
           only). The local flag is always false during our own hydration render.
+
+          SHAN-547: the empty branch is a placeholder rather than nothing. The
+          gate above has to stay, but "render nothing until hydrated" left this
+          row 20px tall in every page's prerendered HTML and 36px a beat later,
+          and the nav is above <main>, so the whole page dropped 8px — CLS
+          0.1266 site-wide, over the 0.1 threshold, on an otherwise all-100
+          site. The placeholder is the same pill at visibility:hidden, so the
+          row is its final size from first paint and the real control lands in
+          a box that already exists. It renders identically on the server and
+          in the hydration render, so the #418 constraint is untouched.
         */}
-        {hydrated && !loading && (user ? <UserMenu user={user} /> : <LoginButton />)}
+        {hydrated && !loading ? (
+          user ? <UserMenu user={user} /> : <LoginButton />
+        ) : (
+          <LoginButtonPlaceholder />
+        )}
       </div>
 
       {/* Mobile hamburger button */}
@@ -168,6 +182,13 @@ export function NavBar() {
                     {link.label}
                   </Link>
                 ))}
+                {/*
+                  No SHAN-547 placeholder here, deliberately: this panel only
+                  exists after a tap on the hamburger, so anything that moves
+                  inside it carries hadRecentInput and is excluded from CLS by
+                  definition. Reserving space in a popover that cannot render
+                  before hydration would be dead markup.
+                */}
                 {!loading &&
                   (user ? <UserMenu user={user} /> : <LoginButton />)}
               </div>
