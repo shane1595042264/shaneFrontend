@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState, type CSSProperties } from "react";
 import {
   FEATURED_PROJECTS,
   PORTFOLIO_HERO,
@@ -8,6 +9,27 @@ import {
   PROFILE_LINKS,
   RESERVED_SLOTS,
 } from "@/lib/portfolio";
+
+/**
+ * How long to leave `.portfolio-rise` on the tree before dropping it.
+ *
+ * The longest entrance is the footer: a 0.3s delay plus a 0.7s fade. The extra
+ * 200ms is slack, so a slow frame cannot strip the class out from under an
+ * animation still in flight and snap the element to its end state.
+ */
+const ENTRANCE_SETTLED_MS = 1200;
+
+/**
+ * The stagger offset for one entrance, as the custom property
+ * `.portfolio-rise` reads its `animation-delay` from.
+ *
+ * A custom property rather than an inline `animationDelay` so the duration,
+ * curve and fill mode all stay in one place in app/globals.css and the markup
+ * only says when its own turn is.
+ */
+function riseDelay(seconds: number): CSSProperties {
+  return { "--portfolio-rise-delay": `${seconds}s` } as CSSProperties;
+}
 
 /**
  * The Portfolio view of the homepage (SHAN-517) — what a signed-out visitor
@@ -33,18 +55,37 @@ export function PortfolioView({
   active: boolean;
   onShowTable: () => void;
 }) {
-  // Everything below animates in. Honour the OS setting rather than assume a
-  // slow fade is harmless: this is the first thing a visitor sees, so it is
-  // also the worst place to ignore prefers-reduced-motion.
+  // Only the drifting glows below still ask JavaScript whether to move. The
+  // entrance animation does not: it is the `.portfolio-rise` class in
+  // app/globals.css, which rises without fading and honours
+  // prefers-reduced-motion through a media query. Both of those are measured
+  // decisions with the numbers written down at the class — this is the first
+  // thing a visitor sees, so it is the worst possible place to make the content
+  // wait on a hydration pass before it is allowed to be legible.
   const reduceMotion = useReducedMotion();
   const drift = active && !reduceMotion;
 
-  const rise = reduceMotion
-    ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
-    : {
-        initial: { opacity: 0, y: 16 },
-        animate: { opacity: 1, y: 0 },
-      };
+  /*
+    The entrance is a one-shot, and this is what keeps it one.
+
+    home-view.tsx keeps both homepage views mounted and hides the inactive one
+    with `display: none`. Per the CSS Animations spec, taking an element out of
+    `display: none` starts every animation on it again — so left alone, the
+    whole Portfolio would re-fade every time the visitor toggled back to it
+    from the table. Not replaying that animation on a switch is one of the
+    three reasons home-view.tsx gives for keeping both subtrees mounted, so it
+    is behaviour to preserve, not a detail.
+
+    Dropping the class once the entrance has played makes the animation
+    unrepeatable. The first client render still carries it, matching the server
+    HTML, so there is nothing here for hydration to disagree about.
+  */
+  const [entranceDone, setEntranceDone] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setEntranceDone(true), ENTRANCE_SETTLED_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  const rise = entranceDone ? "" : "portfolio-rise";
 
   return (
     <div className="relative w-full overflow-hidden px-5 pb-20 pt-16 sm:px-8 sm:pt-24 md:px-12">
@@ -70,11 +111,7 @@ export function PortfolioView({
       />
 
       <div className="relative mx-auto flex max-w-3xl flex-col gap-16 sm:gap-20">
-        <motion.header
-          {...rise}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="flex flex-col gap-5"
-        >
+        <header className={`flex flex-col gap-5 ${rise}`}>
           <span className="text-[11px] uppercase tracking-[0.4em] text-gray-400">
             {PORTFOLIO_HERO.eyebrow}
           </span>
@@ -92,7 +129,7 @@ export function PortfolioView({
           <p className="max-w-xl text-sm leading-relaxed text-gray-400 sm:text-base">
             {PORTFOLIO_HERO.blurb}
           </p>
-        </motion.header>
+        </header>
 
         <section aria-labelledby="featured-work" className="flex flex-col gap-5">
           <div className="flex items-center gap-4">
@@ -106,14 +143,9 @@ export function PortfolioView({
           </div>
 
           {FEATURED_PROJECTS.map((project, index) => (
-            <motion.a
+            <a
               key={project.id}
-              {...rise}
-              transition={{
-                duration: 0.7,
-                ease: "easeOut",
-                delay: reduceMotion ? 0 : 0.12 + index * 0.08,
-              }}
+              style={riseDelay(0.12 + index * 0.08)}
               href={project.url}
               target="_blank"
               rel="noopener noreferrer"
@@ -123,7 +155,7 @@ export function PortfolioView({
                 below use their own group, and an unnamed one would let a hover
                 anywhere in the section light up every card.
               */
-              className="group/project relative block overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 transition-colors duration-500 hover:border-white/25 focus-visible:border-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 sm:p-8"
+              className={`group/project relative block overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 transition-colors duration-500 hover:border-white/25 focus-visible:border-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 sm:p-8 ${rise}`}
             >
               {/*
                 The card's one flourish: a wash that is invisible at rest and
@@ -183,7 +215,7 @@ export function PortfolioView({
                   </span>
                 </div>
               </div>
-            </motion.a>
+            </a>
           ))}
 
           {/*
@@ -222,14 +254,9 @@ export function PortfolioView({
           )}
         </section>
 
-        <motion.footer
-          {...rise}
-          transition={{
-            duration: 0.7,
-            ease: "easeOut",
-            delay: reduceMotion ? 0 : 0.3,
-          }}
-          className="flex flex-col gap-6 border-t border-white/10 pt-8"
+        <footer
+          className={`flex flex-col gap-6 border-t border-white/10 pt-8 ${rise}`}
+          style={riseDelay(0.3)}
         >
           {/*
             SHAN-521: the four profiles the Person JSON-LD on this route
@@ -296,7 +323,7 @@ export function PortfolioView({
               </span>
             </button>
           </div>
-        </motion.footer>
+        </footer>
       </div>
     </div>
   );

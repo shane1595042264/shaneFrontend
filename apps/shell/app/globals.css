@@ -5,6 +5,63 @@ body { background: var(--background); color: var(--foreground); font-family: sys
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
+/*
+ * SHAN-549: the Portfolio view's entrance animation, in CSS rather than in JS,
+ * and as a rise rather than a fade. Both halves of that were forced.
+ *
+ * It used to be framer-motion `initial={{ opacity: 0, y: 16 }}`, which
+ * framer-motion serializes into the server HTML as an inline
+ * `style="opacity:0;transform:translateY(16px)"`. The markup was therefore
+ * delivered complete and then held invisible until the framer-motion chunk
+ * downloaded, React hydrated, and the animation ran. Portfolio is the default
+ * homepage view for a signed-out visitor, so that was the whole above-the-fold
+ * page. Traced on prod: TTFB 60ms but LCP 1018ms, 94% of it element render
+ * delay; on Slow 4G + 4x CPU, TTFB 63ms and LCP 1837ms, 96.6% render delay.
+ *
+ * Running it from CSS fixes the JS dependency: the animation starts at first
+ * paint instead of after hydration. It also gets prefers-reduced-motion right
+ * in a way the `useReducedMotion()` hook structurally cannot, because the media
+ * query is honoured before any JavaScript has run, which is exactly the window
+ * that was the problem.
+ *
+ * The opacity is gone for a separate reason, measured rather than assumed.
+ * Chrome ignores an element with `opacity: 0` when picking an LCP candidate,
+ * and it does NOT re-evaluate that while a compositor-driven opacity animation
+ * fades the element back in — no main-thread repaint, no new candidate. With
+ * the fade still in place, the observed candidates on this page were the
+ * "Selected work" H2 at 60ms (1,890px, the one block not inside an animated
+ * subtree) and then the real one, the card blurb, at 1,276ms (34,760px) only
+ * because dropping the class at the end of the entrance happened to force a
+ * repaint. So a fade-from-zero on the biggest text on the page cannot produce
+ * a good LCP honestly: either the metric misses the element entirely, or it
+ * lands wherever the next repaint falls. Starting the fade at 0.01 instead of
+ * 0 would have scored well while the visitor still could not read anything,
+ * which is gaming the measurement rather than fixing the page.
+ *
+ * Animating only the transform keeps an entrance, and the text is legible on
+ * the first frame, so the metric and the visitor agree. A 16px rise over 0.7s
+ * ease-out is the same movement the fade had.
+ *
+ * `both` fill mode is what holds an element at the `from` state through its
+ * own delay. The delay is a custom property so the stagger stays with the
+ * markup that owns it.
+ */
+@keyframes portfolio-rise {
+  from { transform: translateY(16px); }
+  to { transform: none; }
+}
+
+.portfolio-rise {
+  /* ease-out IS cubic-bezier(0, 0, 0.58, 1), the same curve framer-motion's
+     "easeOut" used, so the motion is unchanged. */
+  animation: portfolio-rise 0.7s ease-out both;
+  animation-delay: var(--portfolio-rise-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-rise { animation: none; }
+}
+
 @media print {
   html, body {
     background: #ffffff !important;
