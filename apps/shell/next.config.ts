@@ -7,6 +7,7 @@ import { assertNoHardCodedOgImages } from "./lib/og-image-guard";
 import { assertFormControlsAreNamed } from "./lib/form-control-name-guard";
 import { assertSingleMainLandmark } from "./lib/main-landmark-guard";
 import { assertCursorDocsUseCompoundShape } from "./lib/docs/cursor-doc-guard";
+import { assertHeadingsNameThemselves } from "./lib/heading-name-guard";
 
 // SHAN-497: fail the build if an auth-gated page is missing from
 // CRAWLER_DISALLOW, which would leak it into robots.txt and sitemap.xml as a
@@ -77,6 +78,23 @@ assertCursorDocsUseCompoundShape(
   path.join(process.cwd(), "lib", "docs", "content"),
   path.join(process.cwd(), "lib", "docs", "content", "conventions.ts"),
 );
+
+// SHAN-550: fail the build if a heading self-link's aria-label can be
+// concatenated into the accessible name of the heading around it. SHAN-542 and
+// SHAN-543 gave each `#` anchor a descriptive label so a screen reader's link
+// list is not 25 identical rows, which was right, and nobody checked the heading:
+// accname takes a descendant's own accessible name, and aria-label beats
+// content, so Chrome was reporting `heading "Endpoints Link to section:
+// Endpoints"` for 27 of 29 headings on the first real blog post and 7 of 8 on
+// /docs/journal-api. Unlike most of the guards above, auditing the deployed page
+// cannot replace this one: a doubled name is a correct name, so there is no axe
+// rule for it and that post scores accessibility 100 with 0 failed audits both
+// before and after the fix. Same build-time-only execution story.
+assertHeadingsNameThemselves([
+  path.join(process.cwd(), "app"),
+  path.join(process.cwd(), "components"),
+  path.join(process.cwd(), "..", "..", "packages", "ui", "src"),
+]);
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@shane/ui", "@shane/types"],

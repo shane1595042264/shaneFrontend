@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import { markdownComponents } from "@/lib/markdown-mermaid";
 import {
   bodyHeadingId,
+  headingLabelId,
   nodeText,
   type MarkdownHeading,
 } from "@/lib/markdown-headings";
@@ -26,9 +27,14 @@ function anchoredHeadings(headings: MarkdownHeading[]): Components {
     return function Heading({ node, children }: { node?: unknown; children?: ReactNode }) {
       const text = nodeText(node);
       const id = bodyHeadingId(headings, node, text);
+      const labelId = headingLabelId(id);
       return (
-        <Tag id={id} className="group scroll-mt-24">
-          {children}
+        // SHAN-550: named from the text span below, not from everything inside
+        // it. The anchor's aria-label would otherwise be concatenated into this
+        // heading's accessible name and every row of a screen reader's heading
+        // list would read its own text twice. See headingLabelId().
+        <Tag id={id} aria-labelledby={labelId} className="group scroll-mt-24">
+          <span id={labelId}>{children}</span>
           {/* not-prose so the typography plugin leaves it alone: this body sets
               prose-a:text-blue-400 for the author's own links, and the marker is
               chrome, not one of them.

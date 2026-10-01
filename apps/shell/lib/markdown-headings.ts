@@ -175,6 +175,38 @@ export function bodyHeadingId(
   return headings.find((h) => h.text === text)?.id ?? slugifyHeading(text);
 }
 
+/**
+ * Id for the span that wraps a heading's own text, which the heading then points
+ * `aria-labelledby` at (SHAN-550).
+ *
+ * The anchored headings on /blog and /docs put a self-link inside the heading,
+ * and that link carries a descriptive `aria-label` so a screen reader's link
+ * list is not 25 rows reading "Link to this section" (SHAN-542). But accessible
+ * name computation walks a heading's descendants and takes each one's own
+ * accessible name, and `aria-label` wins over content, so that label was being
+ * concatenated into the heading's name: Chrome reported
+ * `heading "Endpoints Link to section: Endpoints"` for 27 of the 29 headings on
+ * the first real blog post and 7 of the 8 on /docs/journal-api. Heading
+ * navigation is how a screen reader moves through a 29-section document, so
+ * every row of that list repeated itself. Naming the heading from the text span
+ * alone overrides the whole computation and leaves the link's label reaching only
+ * the link.
+ *
+ * `aria-labelledby` rather than `aria-label={text}` on the heading so the name
+ * still comes from the rendered text nodes: a browser's translate feature
+ * rewrites content and not attributes, and an attribute copy is a second source
+ * of truth for a string that is already on the page.
+ *
+ * The `_` is what makes this collision-proof rather than merely unlikely.
+ * slugifyHeading() drops everything outside [a-z0-9 -], so no heading id can
+ * ever contain an underscore, and `endpoints_label` therefore cannot be some
+ * other heading's id. A `-label` suffix could: a doc with an "Endpoints label"
+ * heading would slug to exactly that.
+ */
+export function headingLabelId(id: string): string {
+  return `${id}_label`;
+}
+
 /** Plain text of a hast node -- what the heading renders as, minus any markup. */
 export function nodeText(node: unknown): string {
   if (!node || typeof node !== "object") return "";

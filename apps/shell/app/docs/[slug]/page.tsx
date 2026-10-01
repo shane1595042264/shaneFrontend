@@ -9,6 +9,7 @@ import { DOC_PAGES, getDocPage } from "@/lib/docs/registry";
 import {
   bodyHeadingId,
   extractBodyHeadings,
+  headingLabelId,
   nodeText,
   type MarkdownHeading,
 } from "@/lib/markdown-headings";
@@ -68,9 +69,14 @@ function headingComponents(headings: MarkdownHeading[]): Components {
     return function Heading({ node, children }: { node?: unknown; children?: ReactNode }) {
       const text = nodeText(node);
       const id = bodyHeadingId(headings, node, text);
+      const labelId = headingLabelId(id);
       return (
-        <Tag id={id} className="group scroll-mt-24">
-          {children}
+        // SHAN-550: named from the text span below, not from everything inside
+        // it. The anchor's aria-label would otherwise be concatenated into this
+        // heading's accessible name and every row of a screen reader's heading
+        // list would read its own text twice. See headingLabelId().
+        <Tag id={id} aria-labelledby={labelId} className="group scroll-mt-24">
+          <span id={labelId}>{children}</span>
           {/* SHAN-542: named after the section. Every anchor on the page saying
               "Link to this section" while pointing somewhere different is the
               identical-links-same-purpose smell, and it made a screen reader's
