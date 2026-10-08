@@ -33,7 +33,7 @@ Highlights (all under \`/api/trip-groups/:slug\` unless noted):
 - Suggestions: \`GET /itinerary/suggestions\` (with conflict detection), owner-only approve/reject, race-safe 409 when already resolved.
 - Photos: multipart upload per day (5MB, sniffed types), public raw bytes at \`.../photos/:photoId/raw\`, owner-only \`unsplash-fill\`.
 - Notes and todo sections: member CRUD with creator-or-owner deletes.
-- \`POST /itinerary/export-calendar\`: exports to the CALLER's Google Calendar; 409 \`calendar_not_connected\` until they connect.
+- \`POST /itinerary/export-calendar\`: exports to the CALLER's Google Calendar; 409 \`calendar_not_connected\` until they connect. Only dated days export. An activity whose \`time\` is a 24h \`H:MM\` or \`HH:MM\` becomes a 1-hour event (one starting after 23:00 ends the next day); any other \`time\` text exports as untimed, listed with that text in the day's all-day event.
 
 Agents without a browser session cannot use trip-groups; use the plain trips API instead.
 `;
