@@ -109,8 +109,71 @@ function dropThrough(lines: string[], last: number): string {
   return lines.slice(next).join("\n");
 }
 
+const ATX_HEADING_RE = /^\s{0,3}#{1,6}(?:\s|$)/;
+const LIST_ITEM_RE = /^\s*(?:[-*+]|\d+[.)])\s+/;
+const QUOTE_RE = /^\s{0,3}>/;
+// A setext underline ("===" or "---" under a line) or a thematic break. Either
+// way the line ends whatever block is open and carries no text of its own.
+const BLOCK_RULE_RE = /^\s{0,3}(?:=+|-+|([-*_])(?:\s*\1){2,})\s*$/;
+const ENDS_IN_PUNCTUATION_RE = /[.!?…:;,]["'’”)\]*_]*$/u;
+
+/**
+ * The text of each markdown block (paragraph, heading, list item, quote), with
+ * inline markdown stripped and whitespace collapsed. Lines of a soft-wrapped
+ * paragraph stay in one block; anything markdown would render on its own line
+ * starts a new one.
+ */
+function plainBlocks(content: string): string[] {
+  const blocks: string[] = [];
+  let open: string[] = [];
+  let openIsQuote = false;
+  const flush = () => {
+    const text = stripMarkdown(open.join("\n")).replace(/\s+/g, " ").trim();
+    if (text) blocks.push(text);
+    open = [];
+    openIsQuote = false;
+  };
+
+  const source = stripDataMarkers(content ?? "").replace(/```[\s\S]*?```/g, "\n\n");
+  for (const line of source.split(/\r?\n/)) {
+    if (!line.trim() || BLOCK_RULE_RE.test(line)) {
+      flush();
+    } else if (ATX_HEADING_RE.test(line)) {
+      flush();
+      open.push(line);
+      flush();
+    } else if (QUOTE_RE.test(line)) {
+      // "> a" then "> b" is one wrapped quote; a bare ">" is a blank line in it.
+      if (!openIsQuote || !line.replace(QUOTE_RE, "").trim()) flush();
+      open.push(line);
+      openIsQuote = true;
+    } else if (LIST_ITEM_RE.test(line)) {
+      flush();
+      open.push(line.replace(LIST_ITEM_RE, ""));
+    } else {
+      open.push(line);
+    }
+  }
+  flush();
+  return blocks;
+}
+
+/**
+ * Plain-text excerpt of a markdown body, for meta descriptions, feed summaries
+ * and list tiles.
+ *
+ * Built block by block rather than by collapsing every newline: a heading or a
+ * list item has no closing punctuation, so flattening the whole body ran each
+ * one into the text after it, and "## How to use this" over "- Every answer is
+ * STAR" shipped as "How to use this Every answer is STAR" in the blog's meta
+ * description and link previews (SHAN-552). Blocks that do not already end in
+ * punctuation get a period before the next one.
+ */
 export function toPlainExcerpt(content: string, maxLen: number, ellipsis = "..."): string {
-  const plain = stripMarkdown(stripDataMarkers(content ?? "")).replace(/\s+/g, " ").trim();
+  const plain = plainBlocks(content).reduce(
+    (out, block) => (!out ? block : `${out}${ENDS_IN_PUNCTUATION_RE.test(out) ? "" : "."} ${block}`),
+    ""
+  );
   // String iteration walks by Unicode codepoint (not UTF-16 code unit), so a cutoff
   // landing inside a surrogate pair (emoji, non-BMP CJK) keeps the whole character
   // instead of leaving a lone surrogate that renders as U+FFFD.
