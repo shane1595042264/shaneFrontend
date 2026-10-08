@@ -79,6 +79,8 @@ export interface KnowledgeEntryFilters {
   category?: string;
   /** SHAN-485: match cards practiced at this memorization location (case-insensitive). */
   location?: string;
+  /** SHAN-555: match cards NOT yet memorized at this location (case-insensitive). */
+  excludeLocation?: string;
 }
 
 export async function fetchEntries(params?: KnowledgeEntryFilters & {
@@ -92,6 +94,7 @@ export async function fetchEntries(params?: KnowledgeEntryFilters & {
   if (params?.search) query.set("search", params.search);
   if (params?.category) query.set("category", params.category);
   if (params?.location) query.set("location", params.location);
+  if (params?.excludeLocation) query.set("excludeLocation", params.excludeLocation);
   if (params?.limit) query.set("limit", String(params.limit));
   if (params?.offset) query.set("offset", String(params.offset));
 

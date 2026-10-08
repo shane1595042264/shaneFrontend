@@ -30,11 +30,27 @@ const MAX_SEARCH_LEN = 255;
 const MAX_CATEGORY_LEN = 100;
 const MAX_LOCATION_LEN = 120;
 
+// SHAN-555: "" keeps cards memorized AT the location, "not" keeps the ones not
+// yet memorized there - what still needs practice wherever the reader is.
+type LocationMode = "" | "not";
+
 // "" means "no filter" / "no open entry", matching the state this page
 // already kept. `entry` is the id of the entry whose detail panel is open.
-type Filter = { category: string; location: string; q: string; entry: string };
+type Filter = {
+  category: string;
+  location: string;
+  locationMode: LocationMode;
+  q: string;
+  entry: string;
+};
 
-const EMPTY_FILTER: Filter = { category: "", location: "", q: "", entry: "" };
+const EMPTY_FILTER: Filter = {
+  category: "",
+  location: "",
+  locationMode: "",
+  q: "",
+  entry: "",
+};
 
 // Entry ids are database uuids. Anything else in ?entry= came from a hand-edit
 // or a truncated link, and is dropped rather than turned into a doomed fetch.
@@ -60,6 +76,7 @@ function readFilter(): Filter {
   return {
     category: read("category", MAX_CATEGORY_LEN),
     location: read("location", MAX_LOCATION_LEN),
+    locationMode: params.get("locationMode") === "not" ? "not" : "",
     q: read("q", MAX_SEARCH_LEN),
     entry: UUID_RE.test(entry) ? entry.toLowerCase() : "",
   };
@@ -71,6 +88,7 @@ function writeFilter(filter: Filter, mode: "push" | "replace") {
   for (const [key, value] of [
     ["category", filter.category],
     ["location", filter.location],
+    ["locationMode", filter.locationMode],
     ["q", filter.q.trim()],
     ["entry", filter.entry],
   ] as const) {
@@ -116,6 +134,7 @@ export function KnowledgeBrowser({
   const [selectedCategory, setSelectedCategory] = useState("");
   // SHAN-485: browse by the memorization locations recorded under SHAN-339.
   const [selectedLocation, setSelectedLocation] = useState("");
+  const [locationMode, setLocationMode] = useState<LocationMode>("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [adding, setAdding] = useState(false);
@@ -165,6 +184,7 @@ export function KnowledgeBrowser({
   const applyFilter = useCallback((next: Filter) => {
     setSelectedCategory(next.category);
     setSelectedLocation(next.location);
+    setLocationMode(next.locationMode);
     setSearch(next.q);
     setDebouncedSearch(next.q);
     setSelectedEntryId(next.entry || null);
@@ -190,12 +210,13 @@ export function KnowledgeBrowser({
       commitFilter({
         category: selectedCategory,
         location: selectedLocation,
+        locationMode,
         q: search,
         entry: id,
       });
       pushedEntryRef.current = true;
     },
-    [commitFilter, selectedCategory, selectedLocation, search]
+    [commitFilter, selectedCategory, selectedLocation, locationMode, search]
   );
 
   // Closing pops the entry we pushed so the close button and Back agree and no
@@ -211,22 +232,29 @@ export function KnowledgeBrowser({
     const next: Filter = {
       category: selectedCategory,
       location: selectedLocation,
+      locationMode,
       q: search,
       entry: "",
     };
     applyFilter(next);
     writeFilter(next, "replace");
-  }, [applyFilter, selectedCategory, selectedLocation, search]);
+  }, [applyFilter, selectedCategory, selectedLocation, locationMode, search]);
 
   // The open entry turned out to be gone (deleted, or a stale shared link).
   // The panel keeps showing its not-found message, but the param is dropped so
   // a reload or a re-share does not resurrect the dead id.
   const dropEntryParam = useCallback(() => {
     writeFilter(
-      { category: selectedCategory, location: selectedLocation, q: search, entry: "" },
+      {
+        category: selectedCategory,
+        location: selectedLocation,
+        locationMode,
+        q: search,
+        entry: "",
+      },
       "replace"
     );
-  }, [selectedCategory, selectedLocation, search]);
+  }, [selectedCategory, selectedLocation, locationMode, search]);
 
   // SHAN-509: the deep link the visitor actually arrived on, applied one commit
   // after hydration so the first client render still matches the unfiltered
@@ -255,7 +283,8 @@ export function KnowledgeBrowser({
       const data = await fetchAllEntries({
         category: selectedCategory || undefined,
         search: debouncedSearch || undefined,
-        location: selectedLocation || undefined,
+        location: (locationMode === "" && selectedLocation) || undefined,
+        excludeLocation: (locationMode === "not" && selectedLocation) || undefined,
         signal: controller.signal,
       });
       setEntries(data);
@@ -269,7 +298,7 @@ export function KnowledgeBrowser({
         setLoading(false);
       }
     }
-  }, [selectedCategory, debouncedSearch, selectedLocation]);
+  }, [selectedCategory, debouncedSearch, selectedLocation, locationMode]);
 
   useEffect(() => {
     if (skipInitialLoad.current) {
@@ -475,6 +504,7 @@ export function KnowledgeBrowser({
   const currentFilter: Filter = {
     category: selectedCategory,
     location: selectedLocation,
+    locationMode,
     q: search,
     entry: selectedEntryId ?? "",
   };
@@ -542,25 +572,45 @@ export function KnowledgeBrowser({
           className="px-3 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white placeholder:text-gray-400 focus:outline-none focus:border-blue-500/50 w-40"
         />
         {locationOptions.length > 0 && (
-          <select
-            aria-label="Filter by memorization location"
-            value={selectedLocation}
-            onChange={(e) =>
-              commitFilter({ ...currentFilter, location: e.target.value })
-            }
-            className={`px-3 py-1.5 bg-white/5 border rounded text-sm focus:outline-none focus:border-blue-500/50 max-w-[12rem] ${
-              selectedLocation
-                ? "border-emerald-500/40 text-emerald-300"
-                : "border-white/10 text-gray-400"
-            }`}
-          >
-            <option value="">All locations</option>
-            {locationOptions.map((loc) => (
-              <option key={loc} value={loc}>
-                {loc}
+          <div className="flex items-center gap-2">
+            <select
+              aria-label="Location filter mode"
+              value={locationMode}
+              onChange={(e) =>
+                commitFilter({
+                  ...currentFilter,
+                  locationMode: e.target.value === "not" ? "not" : "",
+                })
+              }
+              className="px-3 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-gray-300 focus:outline-none focus:border-blue-500/50"
+            >
+              <option value="">Memorized at</option>
+              <option value="not">Not memorized at</option>
+            </select>
+            <select
+              aria-label="Filter by memorization location"
+              value={selectedLocation}
+              onChange={(e) =>
+                commitFilter({ ...currentFilter, location: e.target.value })
+              }
+              className={`px-3 py-1.5 bg-white/5 border rounded text-sm focus:outline-none focus:border-blue-500/50 max-w-[12rem] ${
+                selectedLocation
+                  ? locationMode === "not"
+                    ? "border-amber-500/40 text-amber-300"
+                    : "border-emerald-500/40 text-emerald-300"
+                  : "border-white/10 text-gray-400"
+              }`}
+            >
+              <option value="">
+                {locationMode === "not" ? "Pick a location" : "All locations"}
               </option>
-            ))}
-          </select>
+              {locationOptions.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
         <div className="ml-auto">
           {editMode ? (
@@ -597,6 +647,7 @@ export function KnowledgeBrowser({
           search={debouncedSearch}
           category={selectedCategory}
           location={selectedLocation}
+          excludeLocation={locationMode === "not"}
           onClearSearch={() => commitFilter({ ...currentFilter, q: "" })}
           onClearCategory={() => commitFilter({ ...currentFilter, category: "" })}
           onClearLocation={() => commitFilter({ ...currentFilter, location: "" })}
@@ -616,8 +667,10 @@ export function KnowledgeBrowser({
               editMode={editMode}
               selected={selectedIds.has(entry.id)}
               onToggleSelect={toggleSelectAt}
+              // A chip names a place this card IS memorized at, so it always
+              // browses that way; in "not" mode it would hide the card clicked.
               onSelectLocation={(location) =>
-                commitFilter({ ...currentFilter, location })
+                commitFilter({ ...currentFilter, location, locationMode: "" })
               }
               actions={
                 <>
@@ -773,6 +826,7 @@ interface EmptyStateProps {
   search: string;
   category: string;
   location: string;
+  excludeLocation: boolean;
   onClearSearch: () => void;
   onClearCategory: () => void;
   onClearLocation: () => void;
@@ -783,6 +837,7 @@ function EmptyState({
   search,
   category,
   location,
+  excludeLocation,
   onClearSearch,
   onClearCategory,
   onClearLocation,
@@ -803,7 +858,9 @@ function EmptyState({
   }
   if (location) {
     active.push({
-      label: `location “${location}”`,
+      label: excludeLocation
+        ? `not yet memorized at “${location}”`
+        : `location “${location}”`,
       onClear: onClearLocation,
       clearLabel: "Clear location",
     });
