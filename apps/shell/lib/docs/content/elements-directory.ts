@@ -47,11 +47,6 @@ const API_FACTS: Record<string, ApiFacts> = {
     auth: "fully public",
     what: "these docs; /llms.txt, /llms-full.txt",
   },
-  blitz: {
-    mount: "/api/blitz (sync session) + sync.shanejli.com (SuperSync, its own service)",
-    auth: "Sign in with Google inside Blitz; browser JWT only, no PAT access",
-    what: "self-hosted Super Productivity fork: tasks, Pomodoro, planner, cross-device sync; see [Auth and Tokens](/docs/auth)",
-  },
   courses: {
     mount: "/api/courses",
     auth: "public reads; scoped writes",

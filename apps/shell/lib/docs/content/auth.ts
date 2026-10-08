@@ -56,6 +56,8 @@ Journal image uploads have a separate 100 per rolling 24h per-user quota (applie
 
 \`POST /api/blitz/sync-session\` with a browser JWT returns \`{ baseUrl, accessToken, encryptKey, email, expiresAt }\`: the SuperSync server URL, a 365-day SuperSync token, and the caller's encryption password (created on first call, identical on every device). PATs get 403. The Blitz app calls it through the popup at \`/blitz/connect\`; agents have no reason to call it.
 
+Blitz is retired: it is no longer an element on this site. The endpoint stays up only so existing Blitz installs keep syncing until the sync server is shut down, and it will be removed then.
+
 ## Admin-gated surfaces
 
 A few routes are JWT-plus-admin-email only (practice settings PATCH, activity ingest). PATs always get 403 there; agents should skip them.

@@ -61,16 +61,6 @@ export const FEATURED_PROJECTS: PortfolioProject[] = [
       "Read anything in the browser. Every word you stop on gets defined in place, kept, and folded into a vocabulary you actually come back to. The reading is the input; the studying happens on its own.",
     tags: ["ai", "reading", "vocabulary"],
   },
-  {
-    id: "blitz",
-    name: "Blitz",
-    host: "blitz.shanejli.com",
-    url: "https://blitz.shanejli.com",
-    tagline: "A focus timer and to-do list whose sync server can't read your tasks.",
-    blurb:
-      "A self-hosted fork of Super Productivity with my own sync server behind it. Tasks are encrypted end to end before they leave the device, so they follow me across machines and the server, mine included, never sees one.",
-    tags: ["productivity", "self-hosted", "sync"],
-  },
 ];
 
 /**
