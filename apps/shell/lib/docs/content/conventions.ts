@@ -36,6 +36,7 @@ Validation failures (bad params, query, or body) return 400 and add a structured
 - JSON bodies. Request field names are camelCase in most modules; the journal and comment surfaces use snake_case for multi-word request fields (\`parent_comment_id\`, \`base_version_num\`, \`target_version_num\`). Responses are camelCase everywhere.
 - Dates that key resources are \`YYYY-MM-DD\` strings, validated as real calendar dates (2026-02-30 is a 400, not a 500).
 - Free-text fields are trimmed before validation; whitespace-only input is a 400.
+- A NUL byte is a 400 everywhere: \`%00\` anywhere in the URL (\`details[].path\` is \`url\`), or \`\\u0000\` in any string or key of a JSON body (\`details[].path\` names the field). Postgres cannot store it, and before SHAN-553 it came back as a 500.
 
 ## Text search
 
