@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { TripActions } from "@/components/trips/trip-actions";
 import { RelativeTime } from "@/lib/format-time";
 import { API_URL } from "@/lib/api-url";
+import { tripSnippet } from "@/lib/trip-snippet";
 
 const SITE_URL = "https://shanejli.com";
 
@@ -11,24 +12,6 @@ const SITE_URL = "https://shanejli.com";
 // cannot break out of the JSON-LD tag. Mirrors journal/[date]/page.tsx.
 function jsonLdSafe(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c");
-}
-
-// Plain-text snippet from the uploaded trip HTML for the JSON-LD description:
-// strip tags, collapse whitespace, truncate on a word boundary.
-function buildTripSnippet(html: string, max = 155): string {
-  const text = html
-    // Drop <style>/<script> block *contents* first — otherwise stripping only
-    // the tags leaves raw CSS/JS text (e.g. "@page { size: A4 }") in the snippet.
-    .replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (text.length <= max) return text;
-  const cut = text.slice(0, max);
-  const lastSpace = cut.lastIndexOf(" ");
-  return `${(lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim()}…`;
 }
 
 interface TripFull {
@@ -70,9 +53,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const trip = await fetchTrip(slug).catch(() => null);
   if (!trip) return { title: "Trip not found" };
   const title = `${trip.title || slug} — Trips — Shane`;
-  const description = trip.title
-    ? `${trip.title} — uploaded ${new Date(trip.createdAt).toLocaleDateString()}`
-    : undefined;
+  // SHAN-560: what the itinerary says, not the title again. The title is only
+  // the fallback for a trip whose HTML has no body text.
+  const description = tripSnippet(trip.html) || trip.title || undefined;
   const url = `https://shanejli.com/trips/${slug}`;
   return {
     title,
@@ -104,7 +87,7 @@ export default async function TripPage({ params }: PageProps) {
 
   const name = trip.title || slug;
   const tripUrl = `${SITE_URL}/trips/${slug}`;
-  const description = buildTripSnippet(trip.html);
+  const description = tripSnippet(trip.html);
   const personEntity = {
     "@type": "Person" as const,
     name: "Shane Li",

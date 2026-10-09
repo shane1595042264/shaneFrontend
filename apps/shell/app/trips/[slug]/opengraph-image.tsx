@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { API_URL } from "@/lib/api-url";
+import { tripSnippet } from "@/lib/trip-snippet";
 
 export const alt = "Trip itinerary — Shane";
 export const size = { width: 1200, height: 630 };
@@ -16,23 +17,6 @@ interface TripCard {
   title: string | null;
   html: string;
   ownerName: string | null;
-}
-
-// Mirrors buildTripSnippet in trips/[slug]/page.tsx: drop <style>/<script>
-// block contents, strip remaining tags, decode a couple of entities, collapse
-// whitespace, truncate on a word boundary.
-function buildTripSnippet(html: string, max = 200): string {
-  const text = html
-    .replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (text.length <= max) return text;
-  const cut = text.slice(0, max);
-  const lastSpace = cut.lastIndexOf(" ");
-  return `${(lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim()}…`;
 }
 
 async function fetchTrip(slug: string): Promise<TripCard | null> {
@@ -55,7 +39,7 @@ export default async function Image({ params }: Props) {
   // Long trip titles (e.g. "Europe Trip — Greece, Italy, Spain — Jul 25 to
   // Aug 8 2026") overflow at 68px; scale the headline down as it grows.
   const headingSize = heading.length > 60 ? 48 : heading.length > 40 ? 58 : 68;
-  const body = trip ? buildTripSnippet(trip.html) : FALLBACK_BODY;
+  const body = (trip && tripSnippet(trip.html, 200)) || FALLBACK_BODY;
   const owner = trip?.ownerName?.trim() || "Shane Li";
 
   return new ImageResponse(
