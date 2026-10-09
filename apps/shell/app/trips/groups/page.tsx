@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/transition-link";
+import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { AuthGate } from "@/components/auth-gate";
 import { RelativeTime } from "@/lib/format-time";
 import {

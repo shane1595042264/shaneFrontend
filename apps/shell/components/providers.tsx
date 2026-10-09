@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthProvider } from "@/lib/auth-context";
+import { ViewTransitionProvider } from "@/lib/view-transition";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // No GoogleOAuthProvider here on purpose (SHAN-496). Mounting it injects
@@ -9,5 +10,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // never sign in included. It now lives on <LoginButton>, which mounts it when
   // someone actually reaches for sign-in, so activating it remounts one leaf
   // instead of the whole tree under this provider.
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <AuthProvider>
+      <ViewTransitionProvider>{children}</ViewTransitionProvider>
+    </AuthProvider>
+  );
 }

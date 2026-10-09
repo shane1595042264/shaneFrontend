@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/transition-link";
+import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { MarkdownEditor } from "@shane/ui";
 import { markdownComponents } from "@/lib/markdown-mermaid";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";

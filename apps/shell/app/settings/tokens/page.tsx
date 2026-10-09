@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useEffect, useRef, useState } from "react";
 import { listTokens, revokeToken, type ApiToken } from "@/lib/api/tokens";
 import { TokenList, TokenListSkeleton } from "@/components/settings/token-list";

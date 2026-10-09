@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { LoginButton } from "@/components/login-button";
 

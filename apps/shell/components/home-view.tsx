@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { ElementConfig } from "@shane/types";
 import { PeriodicTable } from "./periodic-table";
 import { PortfolioView } from "./portfolio-view";
 import { useAuth } from "@/lib/auth-context";
+import { withViewTransition } from "@/lib/view-transition";
 
 /**
  * The homepage's two faces (SHAN-517).
@@ -104,7 +106,11 @@ export function HomeView({ elements }: { elements: ElementConfig[] }) {
     ) => {
       settled.current = true;
       if (fromHiddenControl) handOverFocus.current = true;
-      setMode(next);
+      // SHAN-558: a visitor's switch animates (the pill glides, the views
+      // cross through each other); the opening decision in the effect above
+      // never does, so the first paint is untouched. flushSync because the
+      // transition captures the "after" state as soon as the callback returns.
+      withViewTransition(() => flushSync(() => setMode(next)));
       try {
         window.localStorage.setItem(STORAGE_KEY, next);
       } catch {
@@ -162,7 +168,7 @@ export function HomeView({ elements }: { elements: ElementConfig[] }) {
         <div
           role="group"
           aria-label="Homepage view"
-          className="inline-flex rounded-full border border-white/10 p-0.5"
+          className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.02] p-1 backdrop-blur-md"
         >
           <ModeButton
             active={mode === "portfolio"}
@@ -235,11 +241,11 @@ export function HomeView({ elements }: { elements: ElementConfig[] }) {
           <h1
             ref={tableHeadingRef}
             tabIndex={-1}
-            className="mb-1 text-xl font-bold tracking-tight outline-none sm:mb-2 sm:text-2xl md:text-4xl"
+            className="mb-2 text-2xl font-semibold tracking-[-0.04em] outline-none sm:mb-3 sm:text-4xl md:text-5xl"
           >
             Periodic Table of Life
           </h1>
-          <p className="text-xs text-gray-400 sm:text-sm">
+          <p className="font-mono text-xs text-gray-400 sm:text-[13px]">
             Navigate the elements of Shane&apos;s digital world.
           </p>
         </div>
@@ -263,13 +269,19 @@ function ModeButton({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full px-3.5 py-1.5 text-xs tracking-wide transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-        active
-          ? "bg-white/10 text-white"
-          : "text-gray-400 hover:text-gray-200"
+      className={`relative rounded-full px-4 py-1.5 text-xs font-medium transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+        active ? "text-white" : "text-gray-400 hover:text-gray-200"
       }`}
     >
-      {children}
+      {/* SHAN-558: the pill, named so a switch glides it across (globals.css). */}
+      {active && (
+        <span
+          aria-hidden="true"
+          style={{ viewTransitionName: "home-mode" }}
+          className="absolute inset-0 rounded-full bg-white/[0.09] ring-1 ring-inset ring-white/15"
+        />
+      )}
+      <span className="relative">{children}</span>
     </button>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
 import { getSettings, updateSettings, type PracticeSettings } from "@/lib/api/practice";

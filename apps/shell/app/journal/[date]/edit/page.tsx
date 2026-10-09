@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Link from "@/components/transition-link";
+import { useParams, useSearchParams } from "next/navigation";
+import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { useAuth } from "@/lib/auth-context";
 import { getEntry, createEntry, type EntryDetail } from "@/lib/api/journal";
 import { uploadImage } from "@/lib/api/images";

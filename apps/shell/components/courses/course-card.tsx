@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { motion } from "framer-motion";
 import type { Course } from "@/lib/api/courses";
 import { categoryStyle, DIFFICULTY_STYLES } from "./category-styles";
@@ -28,7 +28,7 @@ export function CourseCard({ course }: { course: Course }) {
     >
       <Link
         href={`/courses/${course.slug}`}
-        className={`block overflow-hidden rounded-lg border ${style.border} bg-black/20 hover:shadow-lg hover:shadow-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none`}
+        className={`spot block overflow-hidden rounded-xl border ${style.border} bg-white/[0.02] transition-shadow duration-500 hover:shadow-[0_18px_40px_-18px_rgb(45_212_191/0.35)] focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none`}
       >
         <div className="relative aspect-video">
           {course.coverUrl ? (
@@ -41,7 +41,7 @@ export function CourseCard({ course }: { course: Course }) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               <span className="absolute inset-x-0 bottom-0 p-4">
-                <span className="line-clamp-2 text-xl font-bold leading-tight tracking-tight text-white drop-shadow">
+                <span data-vt-title className="line-clamp-2 text-xl font-semibold leading-tight tracking-[-0.03em] text-white drop-shadow">
                   {course.title}
                 </span>
               </span>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 
 const TITLE = "Vocabulary — Shane";
 const DESCRIPTION = "Graph-based multilingual vocabulary system";
@@ -38,7 +38,8 @@ export default function VocabularyLayout({
           /vocabulary served 129 kB of words with no heading element in it. See
           the comment there for why the <h1> lives in the bar rather than in the
           content, and why this is visually a no-op. */}
-      <header className="flex items-center gap-4 px-6 py-4 border-b border-white/8">
+      <header className="relative flex items-center gap-4 px-6 py-4 md:px-8">
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
         {/* flex, so this <nav> does not establish a line box of its own.
             Before the bar was restructured the <a> was the flex item
             directly and sat in its own 20px text-sm line box; an unstyled
@@ -59,8 +60,8 @@ export default function VocabularyLayout({
         <h1 className="flex items-center gap-4">
           {/* aria-hidden for the same reason as /knowledge: otherwise the
               heading announces as "VcVocabulary". */}
-          <span aria-hidden="true" className="text-xl font-bold text-blue-400">Vc</span>
-          <span className="text-gray-300">Vocabulary</span>
+          <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-base font-semibold tracking-[-0.03em] text-blue-400">Vc</span>
+          <span data-vt-title className="text-lg font-semibold tracking-[-0.02em] text-white">Vocabulary</span>
         </h1>
       </header>
       {/* SHAN-533: <div>, not <main> — app/layout.tsx already renders

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { PostBody } from "@/components/blog/post-body";

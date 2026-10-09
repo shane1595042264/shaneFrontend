@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useEffect, useId, useRef } from "react";
 import { motion } from "framer-motion";
 import type { ElementConfig } from "@shane/types";
@@ -105,16 +105,19 @@ export function ElementCard({
   // keeps a tab stop legible when a running element search has dimmed it.
   const linkWrapperClass = `${wrapperClass} group/card focus-visible:outline-none focus-visible:opacity-100`;
 
+  // SHAN-558: dark glass tiles. The category lives in a thin stroke along the
+  // top, the symbol's tint and a tinted hover glow, and `.spot` (globals.css)
+  // lets the pointer light the tile's border from inside.
   const cardContent = (
     <motion.div
       variants={itemVariants}
-      whileHover={isComingSoon ? {} : { scale: 1.08, y: -2, zIndex: 10 }}
-      whileTap={isComingSoon ? {} : { scale: 0.95 }}
+      whileHover={isComingSoon ? {} : { scale: 1.06, y: -3, zIndex: 10 }}
+      whileTap={isComingSoon ? {} : { scale: 0.96 }}
       tabIndex={isComingSoon ? 0 : undefined}
       className={[
-        "relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded border select-none w-full aspect-square transition-shadow",
-        styles.bg,
+        "spot relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded-lg border select-none w-full aspect-square bg-white/[0.025] transition-[box-shadow,border-color,background-color] duration-500",
         styles.border,
+        isComingSoon ? "" : `hover:bg-white/[0.05] ${styles.glow}`,
         searchState ? SEARCH_RING_CLASSES[searchState] : "",
         // SHAN-506: `group/card` marks the focused node, not the card, because
         // Tailwind compiles `group-focus-visible/card:` to
@@ -132,7 +135,7 @@ export function ElementCard({
         <span
           ref={tooltipRef}
           id={tooltipId}
-          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/card:opacity-100 group-focus-visible/card:opacity-100 group-active/card:opacity-100 transition-opacity duration-150 z-50 whitespace-normal text-center break-words max-w-[12rem] rounded bg-gray-900 border border-white/10 px-2 py-1 text-[10px] leading-snug text-gray-200 shadow-lg"
+          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/card:opacity-100 group-focus-visible/card:opacity-100 group-active/card:opacity-100 transition-opacity duration-200 z-50 whitespace-normal text-center break-words max-w-[12rem] rounded-md bg-gray-950/90 backdrop-blur-md border border-white/10 px-2 py-1 text-[10px] leading-snug text-gray-200 shadow-lg"
         >
           {tooltipText}
         </span>
@@ -158,20 +161,27 @@ export function ElementCard({
 
       <span
         aria-hidden="true"
-        className="text-[7px] md:text-[9px] opacity-50 self-start leading-none"
+        className={`pointer-events-none absolute inset-x-1.5 top-0 h-px bg-gradient-to-r from-transparent to-transparent ${styles.line}`}
+      />
+
+      <span
+        aria-hidden="true"
+        className="font-mono text-[7px] md:text-[9px] text-gray-400 self-start leading-none"
       >
         {atomicNumber}
       </span>
 
       <span
         aria-hidden="true"
-        className={`text-sm md:text-xl font-bold text-center leading-none ${styles.text}`}
+        className={`text-sm md:text-xl font-semibold tracking-[-0.03em] text-center leading-none ${styles.text}`}
       >
         {element.symbol}
       </span>
 
+      {/* data-vt-title: the name morphs into the element page's heading on click. */}
       <span
         aria-hidden="true"
+        data-vt-title
         className="text-[6px] md:text-[9px] text-center text-gray-300 truncate w-full leading-none"
       >
         {element.name}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
@@ -70,18 +70,33 @@ export function NavBar() {
     ? [...PUBLIC_LINKS, ...PRIVATE_NAV_LINKS]
     : PUBLIC_LINKS;
 
+  function isActive(href: string, exact?: boolean) {
+    return exact ? pathname === href : pathname.startsWith(href);
+  }
+
   function linkClass(href: string, exact?: boolean) {
-    const isActive = exact ? pathname === href : pathname.startsWith(href);
-    return `transition-colors ${isActive ? "text-white" : "text-gray-400 hover:text-white"}`;
+    return `relative rounded-full px-3 py-1.5 transition-colors duration-300 ${
+      isActive(href, exact) ? "text-white" : "text-gray-400 hover:text-white"
+    }`;
   }
 
   return (
-    <nav className="relative flex items-center justify-between px-4 md:px-6 py-4 border-b border-white/10 print:hidden">
+    // SHAN-558: `site-nav` holds the bar still through page transitions, and
+    // the active link's pill carries `nav-indicator`, so on every navigation
+    // the pill glides from the old link to the new one (app/globals.css).
+    <nav
+      style={{ viewTransitionName: "site-nav" }}
+      className="relative z-30 flex h-16 items-center justify-between px-5 md:px-8 print:hidden"
+    >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"
+      />
       <Link
         href="/"
-        className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity"
+        className="text-[17px] font-semibold tracking-[-0.03em] transition-opacity duration-300 hover:opacity-80"
       >
-        Shane.
+        Shane<span className="text-teal-400">.</span>
       </Link>
 
       {/*
@@ -90,16 +105,25 @@ export function NavBar() {
         menu at 768px, so the hamburger now covers tablet widths too. The gap
         tightens to 5 for the same reason.
       */}
-      <div className="hidden lg:flex items-center gap-5 text-sm">
+      <div className="hidden lg:flex items-center gap-1 text-[13px]">
         {navLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}
             className={linkClass(link.href, link.exact)}
+            aria-current={isActive(link.href, link.exact) ? "page" : undefined}
           >
-            {link.label}
+            {isActive(link.href, link.exact) && (
+              <span
+                aria-hidden="true"
+                style={{ viewTransitionName: "nav-indicator" }}
+                className="absolute inset-0 rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/10"
+              />
+            )}
+            <span data-vt-title className="relative">{link.label}</span>
           </Link>
         ))}
+        <span aria-hidden="true" className="mx-2 h-4 w-px bg-white/10" />
         {/*
           SHAN-492: `hydrated` as well as `!loading`. Every page ships this nav
           in its prerendered HTML with this slot empty, and `loading` lives in a
@@ -170,14 +194,15 @@ export function NavBar() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
               id={MOBILE_MENU_ID}
-              className="absolute top-full left-0 right-0 z-50 lg:hidden border-b border-white/10 bg-zinc-950"
+              className="absolute top-full left-0 right-0 z-50 lg:hidden border-b border-white/10 bg-gray-950/90 backdrop-blur-xl"
             >
-              <div className="flex flex-col px-4 py-3 gap-3 text-sm">
+              <div className="flex flex-col px-3 py-4 gap-1 text-base">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`${linkClass(link.href, link.exact)} py-1`}
+                    className={`${linkClass(link.href, link.exact)} px-3 py-2 ${isActive(link.href, link.exact) ? "bg-white/[0.06]" : ""}`}
+                    aria-current={isActive(link.href, link.exact) ? "page" : undefined}
                   >
                     {link.label}
                   </Link>

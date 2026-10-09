@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, type FormEvent } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useParams } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { useAuth } from "@/lib/auth-context";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { TripActions } from "@/components/trips/trip-actions";
@@ -144,7 +144,7 @@ export default async function TripPage({ params }: PageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Link from "@/components/transition-link";
+import { useParams, useSearchParams } from "next/navigation";
+import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { listSuggestions, type Suggestion } from "@/lib/api/suggestions";
 import { RelativeTime } from "@/lib/format-time";
 import { humanizeError } from "@/lib/humanize-error";

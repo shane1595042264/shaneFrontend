@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { AuthGate } from "@/components/auth-gate";
 import { listPracticeableItems, type PracticeableItem } from "@/lib/api/practice";
 import { RelativeTime } from "@/lib/format-time";

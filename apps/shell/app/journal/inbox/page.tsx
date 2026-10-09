@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { fetchInbox, type InboxItem } from "@/lib/api/suggestions";
 import { RelativeTime } from "@/lib/format-time";

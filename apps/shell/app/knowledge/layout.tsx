@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 
 const TITLE = "Knowledge — Shane";
 const DESCRIPTION = "AI-powered knowledge manager with automatic classification.";
@@ -50,7 +50,8 @@ export default function KnowledgeLayout({
         was not quite: the back link moved, which is what the className on
         the <nav> below fixes.)
       */}
-      <header className="flex items-center gap-4 px-6 py-4 border-b border-white/8">
+      <header className="relative flex items-center gap-4 px-6 py-4 md:px-8">
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
         {/* flex, so this <nav> does not establish a line box of its own.
             Before the bar was restructured the <a> was the flex item
             directly and sat in its own 20px text-sm line box; an unstyled
@@ -73,8 +74,8 @@ export default function KnowledgeLayout({
               word beside it, and without this the heading announces as
               "KnKnowledge" — the two spans are adjacent inline nodes, so the
               accessible name concatenates them with no separator. */}
-          <span aria-hidden="true" className="text-xl font-bold text-emerald-400">Kn</span>
-          <span className="text-gray-300">Knowledge</span>
+          <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-base font-semibold tracking-[-0.03em] text-emerald-400">Kn</span>
+          <span data-vt-title className="text-lg font-semibold tracking-[-0.02em] text-white">Knowledge</span>
         </h1>
       </header>
       {/* SHAN-533: <div>, not <main>. app/layout.tsx already wraps {children}

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { HOME_LINK, publicNavLinks } from "@/lib/nav-links";
 
 /**

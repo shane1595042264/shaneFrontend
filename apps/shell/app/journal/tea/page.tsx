@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { AuthGate } from "@/components/auth-gate";
 import {

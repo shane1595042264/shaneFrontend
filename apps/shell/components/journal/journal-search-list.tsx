@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { toPlainExcerpt } from "@/lib/journal-text";
 import { useAuth } from "@/lib/auth-context";
 import { listEntries as apiListEntries, type JournalEntry as ApiJournalEntry } from "@/lib/api/journal";

@@ -10,10 +10,13 @@ interface PlaceholderCardProps {
   dimmed?: boolean;
 }
 
+// SHAN-558: an empty slot settles at 0.3, not 1. framer-motion writes the
+// variant's opacity inline, so this is the only place a resting opacity for the
+// motion node can live (an opacity-* class on it is always overridden).
 const itemVariants = {
   hidden: { opacity: 0, scale: 0.9 },
   visible: {
-    opacity: 1,
+    opacity: 0.3,
     scale: 1,
     transition: { type: "spring", stiffness: 300, damping: 25 },
   },
@@ -33,9 +36,9 @@ export function PlaceholderCard({ element, dimmed }: PlaceholderCardProps) {
     >
       <motion.div
         variants={itemVariants}
-        className="flex flex-col items-center justify-between p-1 rounded border border-gray-700/40 bg-gray-900/30 w-full aspect-square select-none cursor-default opacity-30"
+        className="flex flex-col items-center justify-between p-1 rounded-lg border border-white/[0.05] bg-white/[0.008] w-full aspect-square select-none cursor-default"
       >
-        <span aria-hidden="true" className="text-[7px] md:text-[9px] text-gray-400 self-start leading-none">
+        <span aria-hidden="true" className="font-mono text-[7px] md:text-[9px] text-gray-400 self-start leading-none">
           {element.atomicNumber}
         </span>
         <span aria-hidden="true" className="text-xs md:text-sm font-semibold text-gray-400 leading-none">

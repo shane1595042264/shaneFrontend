@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { listActivity, type JournalActivityRow } from "@/lib/api/journal-activity";
 import { ActivityList } from "@/components/journal/journal-activity-feed";

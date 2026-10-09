@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { fetchInbox } from "@/lib/api/suggestions";
 import { getMyJournalAccess, listAccessRequests } from "@/lib/api/journal-access";

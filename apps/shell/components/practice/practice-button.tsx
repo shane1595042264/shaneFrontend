@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { getPrescription, createSessionFromItemIds } from "@/lib/api/practice";
 import { PrescriptionModal } from "./prescription-modal";
 

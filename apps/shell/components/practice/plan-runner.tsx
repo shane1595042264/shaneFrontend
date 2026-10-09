@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { formatMMSS, playPing } from "@/lib/practice-timer";
 import { getTodayInTimezone, resolveViewerTimezone, weekdayLongLabel } from "@/lib/timezone";

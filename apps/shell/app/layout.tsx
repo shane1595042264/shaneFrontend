@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "@/components/nav-bar";
 import { Providers } from "@/components/providers";
+import { Aura } from "@/components/aura";
+
+// SHAN-558: Geist replaces system-ui site-wide. next/font self-hosts the files,
+// preloads them, and generates a size-adjusted fallback, so the swap does not
+// move layout (CLS) and no request leaves for fonts.googleapis.com.
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans", display: "swap" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://shanejli.com"),
@@ -59,8 +67,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
       <body>
+        <Aura />
         <Providers>
           <a
             href="#main-content"

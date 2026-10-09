@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { EntryBody } from "@/components/journal/entry-body";
 import { EntryActions } from "@/components/journal/entry-actions";
 import { EntryActivity } from "@/components/journal/entry-activity";

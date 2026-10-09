@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { RelativeTime } from "@/lib/format-time";
 import { API_URL } from "@/lib/api-url";
 

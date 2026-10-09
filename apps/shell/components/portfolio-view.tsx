@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState, type CSSProperties } from "react";
 import {
   FEATURED_PROJECTS,
@@ -13,7 +12,7 @@ import {
 /**
  * How long to leave `.portfolio-rise` on the tree before dropping it.
  *
- * The longest entrance is the footer: a 0.3s delay plus a 0.7s fade. The extra
+ * The longest entrance is the footer: a 0.3s delay plus a 0.7s rise. The extra
  * 200ms is slack, so a slow frame cannot strip the class out from under an
  * animation still in flight and snap the element to its end state.
  */
@@ -22,32 +21,34 @@ const ENTRANCE_SETTLED_MS = 1200;
 /**
  * The stagger offset for one entrance, as the custom property
  * `.portfolio-rise` reads its `animation-delay` from.
- *
- * A custom property rather than an inline `animationDelay` so the duration,
- * curve and fill mode all stay in one place in app/globals.css and the markup
- * only says when its own turn is.
  */
 function riseDelay(seconds: number): CSSProperties {
   return { "--portfolio-rise-delay": `${seconds}s` } as CSSProperties;
 }
 
 /**
- * The Portfolio view of the homepage (SHAN-517) — what a signed-out visitor
- * lands on. The periodic table is an index of everything Shane runs, which is
- * the wrong first impression for a stranger; this shows the short list.
+ * The Portfolio view of the homepage (SHAN-517): what a signed-out visitor
+ * lands on.
  *
- * Every muted tone here is text-gray-400 or lighter. That is the only Tailwind
- * gray that clears WCAG AA on this #0a0a0a background, and lib/contrast-guard.ts
- * fails the build on anything darker. The same reason is why the atmosphere
- * (the drifting glow, the hairline rules, the reserved slots) is built out of
- * backgrounds and borders rather than dim text.
+ * SHAN-558 restyled it for the site-wide redesign: layered ("double bezel")
+ * cards lit from inside by the pointer (the `.spot` class in app/globals.css),
+ * a breathing live dot, and a two-tone headline. The atmosphere is the
+ * site-wide aura (app/globals.css), CSS and transform-only. The two
+ * framer-motion glows that used to drift here are gone; a local glow inside
+ * this overflow-hidden container showed its clipped edge as a hard line.
+ *
+ * Two constraints carried over unchanged, both measured:
+ *  - SHAN-549: nothing above the fold fades in from opacity 0. The entrance is
+ *    the transform-only `.portfolio-rise`, so the hero text is legible, and
+ *    LCP-eligible, on the first frame.
+ *  - Every muted tone is text-gray-400 or lighter (lib/contrast-guard.ts).
  */
 export function PortfolioView({
   /**
    * False while the Table view is showing. This subtree stays mounted then
-   * (see components/home-view.tsx for why), and the two glows below loop
-   * forever, so without this they would keep driving a transform every frame
-   * on a `display: none` element for the whole session.
+   * (components/home-view.tsx explains why) inside a `display: none` parent,
+   * which already stops its CSS animations; the flag is surfaced as a data
+   * attribute for anything that wants to key off it.
    */
   active,
   onShowTable,
@@ -55,30 +56,12 @@ export function PortfolioView({
   active: boolean;
   onShowTable: () => void;
 }) {
-  // Only the drifting glows below still ask JavaScript whether to move. The
-  // entrance animation does not: it is the `.portfolio-rise` class in
-  // app/globals.css, which rises without fading and honours
-  // prefers-reduced-motion through a media query. Both of those are measured
-  // decisions with the numbers written down at the class — this is the first
-  // thing a visitor sees, so it is the worst possible place to make the content
-  // wait on a hydration pass before it is allowed to be legible.
-  const reduceMotion = useReducedMotion();
-  const drift = active && !reduceMotion;
-
   /*
-    The entrance is a one-shot, and this is what keeps it one.
-
-    home-view.tsx keeps both homepage views mounted and hides the inactive one
-    with `display: none`. Per the CSS Animations spec, taking an element out of
-    `display: none` starts every animation on it again — so left alone, the
-    whole Portfolio would re-fade every time the visitor toggled back to it
-    from the table. Not replaying that animation on a switch is one of the
-    three reasons home-view.tsx gives for keeping both subtrees mounted, so it
-    is behaviour to preserve, not a detail.
-
-    Dropping the class once the entrance has played makes the animation
-    unrepeatable. The first client render still carries it, matching the server
-    HTML, so there is nothing here for hydration to disagree about.
+    The entrance is a one-shot, and this is what keeps it one. Taking an
+    element out of `display: none` restarts its animations, so without this
+    the whole Portfolio would rise again every time the visitor toggled back
+    from the table. The first client render still carries the class, matching
+    the server HTML.
   */
   const [entranceDone, setEntranceDone] = useState(false);
   useEffect(() => {
@@ -88,58 +71,37 @@ export function PortfolioView({
   const rise = entranceDone ? "" : "portfolio-rise";
 
   return (
-    <div className="relative w-full overflow-hidden px-5 pb-20 pt-16 sm:px-8 sm:pt-24 md:px-12">
-      {/*
-        Atmosphere. Two very soft radial washes, drifting slowly past each
-        other. They sit behind everything, take no pointer events, and are
-        aria-hidden — they carry no information, only mood. Held completely
-        still rather than removed when the drift is off (reduced motion, or
-        this view not being the one on screen), so the page looks the same,
-        just not moving.
-      */}
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-purple-600/10 blur-[120px]"
-        animate={drift ? { x: [0, 60, 0], y: [0, 40, 0] } : undefined}
-        transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-40 top-20 h-[30rem] w-[30rem] rounded-full bg-teal-500/10 blur-[120px]"
-        animate={drift ? { x: [0, -50, 0], y: [0, 60, 0] } : undefined}
-        transition={{ duration: 34, repeat: Infinity, ease: "easeInOut" }}
-      />
-
+    <div
+      data-active={active ? "true" : "false"}
+      className="relative w-full overflow-hidden px-5 pb-20 pt-16 sm:px-8 sm:pt-24 md:px-12"
+    >
       <div className="relative mx-auto flex max-w-3xl flex-col gap-16 sm:gap-20">
         <header className={`flex flex-col gap-5 ${rise}`}>
-          <span className="text-[11px] uppercase tracking-[0.4em] text-gray-400">
+          <span className="flex items-center gap-2.5 font-mono text-xs text-gray-400">
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-teal-400" />
             {PORTFOLIO_HERO.eyebrow}
           </span>
           {/*
             The line break is data, not layout (SHAN-519): app/opengraph-image.tsx
             renders the same two lines so the share card breaks where the page
-            does. Hence the explicit <br /> between the array entries rather
-            than letting the container wrap wherever it lands.
+            does. The second line is the quieter tone of the pair.
           */}
-          <h1 className="text-3xl font-semibold leading-[1.15] tracking-tight text-white sm:text-5xl">
+          <h1 className="text-[2.1rem] font-semibold leading-[1.04] tracking-[-0.045em] text-white sm:text-6xl">
             {PORTFOLIO_HERO.headline[0]}
             <br />
-            {PORTFOLIO_HERO.headline[1]}
+            <span className="text-gray-400">{PORTFOLIO_HERO.headline[1]}</span>
           </h1>
-          <p className="max-w-xl text-sm leading-relaxed text-gray-400 sm:text-base">
+          <p className="max-w-xl text-[15px] leading-relaxed text-gray-400 sm:text-lg">
             {PORTFOLIO_HERO.blurb}
           </p>
         </header>
 
         <section aria-labelledby="featured-work" className="flex flex-col gap-5">
           <div className="flex items-center gap-4">
-            <h2
-              id="featured-work"
-              className="shrink-0 text-[11px] uppercase tracking-[0.3em] text-gray-400"
-            >
+            <h2 id="featured-work" className="shrink-0 font-mono text-xs text-gray-400">
               {PORTFOLIO_HERO.sectionLabel}
             </h2>
-            <span aria-hidden="true" className="h-px grow bg-white/10" />
+            <span aria-hidden="true" className="h-px grow bg-gradient-to-r from-white/10 to-transparent" />
           </div>
 
           {FEATURED_PROJECTS.map((project, index) => (
@@ -149,69 +111,49 @@ export function PortfolioView({
               href={project.url}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`${project.name} — ${project.tagline} Opens ${project.host} in a new tab.`}
-              /*
-                group/project rather than a bare `group`: the reserved slots
-                below use their own group, and an unnamed one would let a hover
-                anywhere in the section light up every card.
-              */
-              className={`group/project relative block overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 transition-colors duration-500 hover:border-white/25 focus-visible:border-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 sm:p-8 ${rise}`}
+              aria-label={`${project.name}: ${project.tagline} Opens ${project.host} in a new tab.`}
+              className={`spot group/project block rounded-[1.75rem] border border-white/[0.08] bg-white/[0.015] p-1.5 transition-[border-color,translate] duration-500 hover:-translate-y-0.5 hover:border-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/50 ${rise}`}
             >
-              {/*
-                The card's one flourish: a wash that is invisible at rest and
-                resolves on hover or keyboard focus. Slow on purpose — the
-                brief was nonchalant, and a fast reveal reads as eager.
-              */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-teal-500/10 opacity-0 transition-opacity duration-700 group-hover/project:opacity-100 group-focus-visible/project:opacity-100"
-              />
-
-              <div className="relative flex flex-col gap-4">
+              <div className="relative flex flex-col gap-5 rounded-[calc(1.75rem-0.375rem)] bg-gray-950/70 p-6 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] sm:p-8">
                 <div className="flex items-baseline justify-between gap-4">
-                  <span
-                    aria-hidden="true"
-                    className="font-mono text-[11px] tracking-widest text-gray-400"
-                  >
+                  <span aria-hidden="true" className="font-mono text-xs text-gray-400">
                     {portfolioSlotLabel(index)}
                   </span>
-                  <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-gray-400">
-                    <span
-                      aria-hidden="true"
-                      className="h-1.5 w-1.5 rounded-full bg-teal-400"
-                    />
-                    Live
+                  <span className="flex items-center gap-2 font-mono text-xs text-gray-400">
+                    <span aria-hidden="true" className="live-dot h-1.5 w-1.5 rounded-full bg-teal-400" />
+                    live
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  <span className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
                     {project.name}
                   </span>
-                  <span className="font-mono text-xs text-gray-400">
-                    {project.host}
-                  </span>
+                  <span className="font-mono text-xs text-gray-400">{project.host}</span>
                 </div>
 
                 <p className="max-w-2xl text-base leading-relaxed text-gray-200 sm:text-lg">
                   {project.tagline}
                 </p>
-                <p className="max-w-2xl text-sm leading-relaxed text-gray-400">
-                  {project.blurb}
-                </p>
+                <p className="max-w-2xl text-sm leading-relaxed text-gray-400">{project.blurb}</p>
 
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="mt-1 flex flex-wrap items-center gap-2">
                   {project.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] tracking-wide text-gray-400"
+                      className="rounded-md border border-white/[0.08] bg-white/[0.02] px-2 py-0.5 font-mono text-[11px] text-gray-400"
                     >
                       {tag}
                     </span>
                   ))}
-                  <span className="ml-auto text-sm text-gray-200 transition-transform duration-500 group-hover/project:translate-x-1">
-                    Open {project.host}{" "}
-                    <span aria-hidden="true">&#8599;</span>
+                  <span className="ml-auto inline-flex items-center gap-2.5 rounded-full border border-white/10 py-1 pl-4 pr-1 text-sm text-gray-200 transition-colors duration-500 group-hover/project:border-white/20 group-hover/project:text-white">
+                    Open {project.host}
+                    <span
+                      aria-hidden="true"
+                      className="grid h-7 w-7 place-items-center rounded-full bg-white/[0.07] transition-transform duration-500 group-hover/project:-translate-y-px group-hover/project:translate-x-0.5"
+                    >
+                      &#8599;
+                    </span>
                   </span>
                 </div>
               </div>
@@ -220,31 +162,23 @@ export function PortfolioView({
 
           {/*
             Reserved slots. A list with no open end reads like the entire
-            portfolio; these say it is a selection. Decoration only —
-            aria-hidden, not focusable, no link, no text a screen reader would
-            have to sit through.
-
-            Full-width rows rather than the half-width pair this used to be
-            (SHAN-544): the list is derived now, so its length changes with the
-            project count, and a lone slot in a two-column grid hung as a half
-            box under two full-width cards. The guard is what lets the row close
-            itself the day a third project ships.
+            portfolio; these say it is a selection. Decoration only: aria-hidden,
+            not focusable, no link. Full-width rows because the list is derived
+            and its length changes with the project count (SHAN-544).
           */}
           {RESERVED_SLOTS.length > 0 && (
             <div aria-hidden="true" className="flex flex-col gap-4">
               {RESERVED_SLOTS.map((slot) => (
                 <div
                   key={slot}
-                  className="group/slot flex items-center justify-between rounded-2xl border border-dashed border-white/10 px-6 py-6 transition-colors duration-500 hover:border-white/20"
+                  className="group/slot flex items-center justify-between rounded-[1.75rem] border border-dashed border-white/[0.08] px-7 py-6 transition-colors duration-500 hover:border-white/15"
                 >
-                  <span className="font-mono text-[11px] tracking-widest text-gray-400">
-                    {slot}
-                  </span>
+                  <span className="font-mono text-xs text-gray-400">{slot}</span>
                   <span className="flex gap-1.5">
                     {[0, 1, 2].map((dot) => (
                       <span
                         key={dot}
-                        className="h-1 w-1 rounded-full bg-white/25 transition-colors duration-500 group-hover/slot:bg-white/50"
+                        className="h-1 w-1 rounded-full bg-white/20 transition-colors duration-500 group-hover/slot:bg-teal-300/60"
                       />
                     ))}
                   </span>
@@ -255,25 +189,13 @@ export function PortfolioView({
         </section>
 
         <footer
-          className={`flex flex-col gap-6 border-t border-white/10 pt-8 ${rise}`}
+          className={`flex flex-col gap-6 border-t border-white/[0.08] pt-8 ${rise}`}
           style={riseDelay(0.3)}
         >
           {/*
-            SHAN-521: the four profiles the Person JSON-LD on this route
-            declares in `sameAs`. Until this shipped, Portfolio — the default
-            view since SHAN-517 — had exactly one outbound link, and it went to
-            a product rather than to Shane, so the structured data asserted an
-            identity graph the visible page never corroborated.
-
-            Read from lib/portfolio.ts, the same const app/page.tsx builds
-            `sameAs` from, so the two can never come to disagree about which
-            profiles exist. Real anchors, not a toggle: these leave the site.
-
-            The visible label is just the platform name, which is enough beside
-            three siblings but thin on its own in a screen reader's link list,
-            so aria-label spells out the destination and the new tab. `nav` with
-            a name rather than a bare div: this is a set of navigation links and
-            an assistive user should be able to jump to it.
+            SHAN-521: the four profiles the Person JSON-LD on this route declares
+            in `sameAs`, read from the same const app/page.tsx uses, so the two
+            can never disagree. Real anchors: these leave the site.
           */}
           <nav aria-label="Shane's profiles elsewhere">
             <ul className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -283,7 +205,7 @@ export function PortfolioView({
                     href={profile.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`${profile.label} — opens ${profile.host} in a new tab.`}
+                    aria-label={`${profile.label}: opens ${profile.host} in a new tab.`}
                     className="rounded text-sm text-gray-400 underline-offset-4 transition-colors duration-300 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                   >
                     {profile.label}
@@ -293,11 +215,6 @@ export function PortfolioView({
             </ul>
           </nav>
 
-          {/*
-            The paragraph and the switch keep their own tighter gap-3; the
-            footer's gap-6 is the separation between them and the profile links
-            above, which are a different kind of destination.
-          */}
           <div className="flex flex-col gap-3">
             <p className="text-sm text-gray-400">
               The rest of it is filed as a periodic table. Journals, trackers,
@@ -305,19 +222,17 @@ export function PortfolioView({
             </p>
             {/*
               A button, not a link: the table is already in this document and
-              switching is a client-side toggle. The table's own internal links
-              ship in the server HTML either way (see components/home-view.tsx),
-              so crawlers are not walled off by this being a button.
+              switching is a client-side toggle (components/home-view.tsx).
             */}
             <button
               type="button"
               onClick={onShowTable}
-              className="group/table inline-flex w-fit items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-200 transition-colors duration-300 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="group/table inline-flex w-fit items-center gap-3 rounded-full border border-white/10 bg-white/[0.02] py-1 pl-5 pr-1 text-sm text-gray-200 transition-colors duration-300 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               Open the periodic table
               <span
                 aria-hidden="true"
-                className="transition-transform duration-300 group-hover/table:translate-x-1"
+                className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.07] transition-transform duration-300 group-hover/table:translate-x-0.5"
               >
                 &#8594;
               </span>

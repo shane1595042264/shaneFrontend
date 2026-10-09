@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useTransitionRouter as useRouter } from "@/lib/view-transition";
+import Link from "@/components/transition-link";
 import { AuthGate } from "@/components/auth-gate";
 import { getItemProgress, getSettings, createSessionFromItemIds, type ItemProgressDetail, type PracticeSettings } from "@/lib/api/practice";
 import { RelativeTime } from "@/lib/format-time";

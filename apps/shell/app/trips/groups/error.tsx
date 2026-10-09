@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/transition-link";
 
 export default function GroupsError({
   error,

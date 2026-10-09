@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { DOC_PAGES } from "@/lib/docs/registry";
 
 // Static: content ships with the build.
@@ -37,7 +37,7 @@ export default function DocsIndexPage() {
           <li key={p.slug}>
             <Link
               href={`/docs/${p.slug}`}
-              className="block rounded-lg border border-white/10 bg-black/20 p-4 hover:border-white/25 hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none"
+              className="spot block rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 transition-colors duration-500 hover:border-white/20 hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none"
             >
               <span className="flex items-baseline justify-between gap-3">
                 <span className="font-semibold text-white">{p.title}</span>

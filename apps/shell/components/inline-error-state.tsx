@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/transition-link";
 
 /**
  * Recovery UI for client-fetch pages whose initial data load fails.

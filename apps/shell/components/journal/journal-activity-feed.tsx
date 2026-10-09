@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { RelativeTime } from "@/lib/format-time";
 import type {
   JournalActivityAction,

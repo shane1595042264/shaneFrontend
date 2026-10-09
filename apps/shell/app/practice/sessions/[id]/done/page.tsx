@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { AuthGate } from "@/components/auth-gate";
 import {
   getSession,

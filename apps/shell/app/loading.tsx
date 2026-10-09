@@ -19,7 +19,7 @@ export default function HomeLoading() {
     <div className="flex w-full flex-col items-center">
       {/* The Portfolio / Table switch that HomeView renders above both views. */}
       <div className="mx-auto flex w-full max-w-[1100px] justify-end px-5 pt-5 sm:px-8">
-        <div className="h-8 w-40 animate-pulse rounded-full bg-white/5" />
+        <div className="h-[38px] w-40 animate-pulse rounded-full border border-white/[0.08] bg-white/[0.02]" />
       </div>
 
       <div className="w-full px-5 pb-20 pt-16 sm:px-8 sm:pt-24 md:px-12">
@@ -39,13 +39,10 @@ export default function HomeLoading() {
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-4">
               <div className="h-3 w-28 shrink-0 animate-pulse rounded bg-white/8" />
-              <div className="h-px grow bg-white/10" />
+              <div className="h-px grow bg-gradient-to-r from-white/10 to-transparent" />
             </div>
-            <div className="h-72 w-full animate-pulse rounded-2xl border border-white/10 bg-white/[0.02] sm:h-64" />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="h-[4.75rem] animate-pulse rounded-2xl border border-dashed border-white/10" />
-              <div className="h-[4.75rem] animate-pulse rounded-2xl border border-dashed border-white/10" />
-            </div>
+            <div className="h-80 w-full animate-pulse rounded-[1.75rem] border border-white/[0.08] bg-white/[0.015] sm:h-72" />
+            <div className="h-[4.75rem] animate-pulse rounded-[1.75rem] border border-dashed border-white/[0.08]" />
           </div>
         </div>
       </div>

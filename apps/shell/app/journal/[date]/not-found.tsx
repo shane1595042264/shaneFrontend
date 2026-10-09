@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/transition-link";
 
 // Renders for `notFound()` thrown from journal/[date]/page.tsx — both
 // invalid-format dates and missing past-date entries. Server component so

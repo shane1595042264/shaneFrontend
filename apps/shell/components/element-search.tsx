@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import type { ElementConfig } from "@shane/types";
 import { CATEGORY_STYLES } from "@/lib/elements";
 
@@ -171,21 +171,21 @@ export function ElementSearch({
             showList && activeId ? `${listId}-${activeId}` : undefined
           }
           autoComplete="off"
-          className="min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 pr-9 text-sm text-white placeholder:text-gray-400 focus:border-white/40 focus:outline-none"
+          className="min-h-11 w-full rounded-full border border-white/10 bg-white/[0.03] px-4 pr-10 text-sm text-white backdrop-blur-md transition-colors duration-300 placeholder:text-gray-400 hover:border-white/20 focus:border-teal-300/40 focus:bg-white/[0.05] focus:outline-none"
         />
         {hasQuery ? (
           <button
             type="button"
             onClick={clear}
             aria-label="Clear search"
-            className="absolute right-1 top-1/2 flex h-9 w-8 -translate-y-1/2 items-center justify-center rounded text-gray-400 hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="absolute right-2 top-1/2 flex h-9 w-8 -translate-y-1/2 items-center justify-center rounded text-gray-400 hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             <span aria-hidden="true">&times;</span>
           </button>
         ) : (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-white/15 px-1.5 py-px text-[10px] leading-tight text-gray-400 sm:block"
+            className="pointer-events-none absolute right-3.5 top-1/2 hidden -translate-y-1/2 rounded-md border border-white/15 px-1.5 py-px text-[10px] leading-tight text-gray-400 sm:block"
           >
             /
           </span>
@@ -215,7 +215,7 @@ export function ElementSearch({
           id={listId}
           role="listbox"
           aria-label="Element search results"
-          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto rounded-md border border-white/15 bg-gray-950/95 py-1 shadow-xl backdrop-blur"
+          className="absolute left-0 right-0 top-full z-50 mt-2 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-gray-950/90 py-1 shadow-2xl shadow-black/40 backdrop-blur-xl"
         >
           {results.length === 0 && (
             <li className="px-3 py-2 text-xs text-gray-400">

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PostBody } from "@/components/blog/post-body";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { deleteEntry } from "@/lib/api/journal";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";

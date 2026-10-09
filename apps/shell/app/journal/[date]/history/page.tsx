@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { listVersions, getVersion, getEntry, revertEntry, type JournalVersion } from "@/lib/api/journal";

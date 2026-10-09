@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/transition-link";
 import { coverSrc, type BlogPost } from "@/lib/api/blog";
 import {
   readingTimeFromWords,
@@ -63,7 +63,7 @@ export function PostCard({ post }: { post: BlogPost }) {
     <article className="mb-5 break-inside-avoid">
       <Link
         href={isDraft ? `/blog/preview/${post.slug}` : `/blog/${post.slug}`}
-        className="block overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] transition-colors hover:border-white/25 hover:bg-white/[0.05] focus-visible:border-white/40 focus-visible:outline-none"
+        className="spot block overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] transition-colors duration-500 hover:border-white/20 hover:bg-white/[0.04] focus-visible:border-white/40 focus-visible:outline-none"
       >
         {cover && (
           // Plain <img>, not next/image: covers are served by the backend host,
@@ -100,7 +100,7 @@ export function PostCard({ post }: { post: BlogPost }) {
             )}
           </div>
 
-          <h2 className="mt-2 text-lg font-semibold leading-snug tracking-tight text-white">
+          <h2 data-vt-title className="mt-2 text-lg font-semibold leading-snug tracking-[-0.02em] text-white">
             {post.title}
           </h2>
 

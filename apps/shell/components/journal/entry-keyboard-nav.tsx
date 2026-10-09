@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 
 interface EntryKeyboardNavProps {
   prevDate: string | null;

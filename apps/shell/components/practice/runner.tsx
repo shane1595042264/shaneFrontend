@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/transition-link";
+import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import {
   syncSessionItem,
   beaconSync,

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/transition-link";
 
 const TITLE = "RNG Capitalist — Shane";
 const DESCRIPTION = "D20-based spending decision tool.";
@@ -39,7 +39,8 @@ export default function RngLayout({ children }: { children: React.ReactNode }) {
         h2 promotions in components/rng/{result-card,history-list,ban-list}.tsx
         or it would have traded a missing heading for a heading-order skip.
       */}
-      <header className="flex items-center gap-4 px-6 py-4 border-b border-white/8">
+      <header className="relative flex items-center gap-4 px-6 py-4 md:px-8">
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
         {/* flex, so this <nav> does not establish a line box of its own.
             Before the bar was restructured the <a> was the flex item
             directly and sat in its own 20px text-sm line box; an unstyled
@@ -55,8 +56,8 @@ export default function RngLayout({ children }: { children: React.ReactNode }) {
         <h1 className="flex items-center gap-4">
           {/* aria-hidden for the same reason as /knowledge: otherwise the
               heading announces as "RcRNG Capitalist". */}
-          <span aria-hidden="true" className="text-xl font-bold text-orange-400">Rc</span>
-          <span className="text-gray-300">RNG Capitalist</span>
+          <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-base font-semibold tracking-[-0.03em] text-orange-400">Rc</span>
+          <span data-vt-title className="text-lg font-semibold tracking-[-0.02em] text-white">RNG Capitalist</span>
         </h1>
       </header>
       {/* SHAN-533: <div>, not <main>. app/layout.tsx already wraps {children}
