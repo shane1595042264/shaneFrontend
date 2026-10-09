@@ -182,6 +182,9 @@ export async function updateEntry(
     exampleSentence?: string;
     labels?: string[];
     memorizationLocations?: string[];
+    /** SHAN-556: applied to the stored list under a row lock; prefer these to a full list. */
+    addMemorizationLocations?: string[];
+    removeMemorizationLocations?: string[];
   }
 ): Promise<KnowledgeEntry> {
   const res = await fetch(`${API_URL}/api/knowledge/entries/${id}`, {

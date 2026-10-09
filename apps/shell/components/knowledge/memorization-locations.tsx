@@ -36,11 +36,17 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
       });
   }, [canEdit]);
 
-  async function commit(next: string[]) {
+  // SHAN-556: send the change, not the whole list. `current` is the copy this
+  // panel loaded, so a full list would erase any place practice mode recorded
+  // since; the server applies the delta to the stored row and returns the merge.
+  async function commit(delta: {
+    addMemorizationLocations?: string[];
+    removeMemorizationLocations?: string[];
+  }) {
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateEntry(entry.id, { memorizationLocations: next });
+      const updated = await updateEntry(entry.id, delta);
       onUpdated(updated);
     } catch (e) {
       setError((e as Error)?.message ?? "Failed to update locations");
@@ -61,11 +67,11 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
     // later; tolerate failure — the card update below is what actually matters.
     upsertLocation(trimmed).catch(() => {});
     setInput("");
-    await commit([...current, trimmed]);
+    await commit({ addMemorizationLocations: [trimmed] });
   }
 
   function remove(name: string) {
-    void commit(current.filter((l) => l !== name));
+    void commit({ removeMemorizationLocations: [name] });
   }
 
   const unusedSuggestions = suggestions.filter(
