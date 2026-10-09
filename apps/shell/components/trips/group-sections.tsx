@@ -12,6 +12,11 @@ import {
   type SectionItem,
 } from "@/lib/api/trip-groups";
 
+type ItemDelta = Pick<
+  Parameters<typeof updateSection>[2],
+  "addItems" | "removeItemIds" | "setItemsDone"
+>;
+
 /**
  * Collaborative group sections (SHAN-283). First kind: "todo" — shared
  * checklists like "Remember to bring". Every member can add items,
@@ -62,13 +67,16 @@ export function GroupSections({
     }
   }
 
-  async function saveItems(section: TripGroupSection, items: SectionItem[]) {
+  async function saveItems(section: TripGroupSection, items: SectionItem[], delta: ItemDelta) {
     setSavingId(section.id);
     setError(null);
     // Optimistic: checklist toggles should feel instant.
     setSections((prev) => prev.map((s) => (s.id === section.id ? { ...s, items } : s)));
     try {
-      const updated = await updateSection(slug, section.id, { items });
+      // Send only what this click changed (SHAN-557). The full list is this
+      // tab's copy, so writing it undid whatever teammates changed since; the
+      // response is the merged section, which also pulls their edits in.
+      const updated = await updateSection(slug, section.id, delta);
       setSections((prev) => prev.map((s) => (s.id === section.id ? updated : s)));
     } catch (err) {
       setError((err as Error).message);
@@ -131,7 +139,7 @@ export function GroupSections({
               saving={savingId === s.id}
               canDeleteSection={isOwner || s.createdBy === user?.id}
               userName={user?.name ?? null}
-              onSaveItems={(items) => saveItems(s, items)}
+              onSaveItems={(items, delta) => saveItems(s, items, delta)}
               onDeleteSection={() => handleDeleteSection(s.id)}
             />
           ))}
@@ -153,7 +161,7 @@ function TodoSection({
   saving: boolean;
   canDeleteSection: boolean;
   userName: string | null;
-  onSaveItems: (items: SectionItem[]) => void;
+  onSaveItems: (items: SectionItem[], delta: ItemDelta) => void;
   onDeleteSection: () => void;
 }) {
   const [newItem, setNewItem] = useState("");
@@ -162,15 +170,13 @@ function TodoSection({
   function addItem(e: FormEvent) {
     e.preventDefault();
     if (!newItem.trim()) return;
-    onSaveItems([
-      ...section.items,
-      {
-        id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-        text: newItem.trim(),
-        done: false,
-        addedBy: userName,
-      },
-    ]);
+    const added: SectionItem = {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      text: newItem.trim(),
+      done: false,
+      addedBy: userName,
+    };
+    onSaveItems([...section.items, added], { addItems: [added] });
     setNewItem("");
   }
 
@@ -213,6 +219,7 @@ function TodoSection({
                 onChange={() =>
                   onSaveItems(
                     section.items.map((i) => (i.id === item.id ? { ...i, done: !i.done } : i)),
+                    { setItemsDone: [{ id: item.id, done: !item.done }] },
                   )
                 }
                 className="h-4 w-4 accent-green-500"
@@ -226,7 +233,12 @@ function TodoSection({
             </label>
             <button
               type="button"
-              onClick={() => onSaveItems(section.items.filter((i) => i.id !== item.id))}
+              onClick={() =>
+                onSaveItems(
+                  section.items.filter((i) => i.id !== item.id),
+                  { removeItemIds: [item.id] },
+                )
+              }
               disabled={saving}
               aria-label={`Remove ${item.text}`}
               className="shrink-0 text-xs text-gray-400 hover:text-red-300 disabled:opacity-50"

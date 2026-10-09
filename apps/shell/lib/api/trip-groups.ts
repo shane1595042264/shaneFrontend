@@ -400,7 +400,15 @@ export async function createSection(slug: string, title: string): Promise<TripGr
 export async function updateSection(
   slug: string,
   sectionId: string,
-  patch: { title?: string; items?: SectionItem[] },
+  patch: {
+    title?: string;
+    /** Replaces the whole list. Prefer the deltas below for item edits. */
+    items?: SectionItem[];
+    /** SHAN-557: applied to the stored list under a row lock, so teammates' edits survive. */
+    addItems?: SectionItem[];
+    removeItemIds?: string[];
+    setItemsDone?: { id: string; done: boolean }[];
+  },
 ): Promise<TripGroupSection> {
   const res = await fetch(`${API_URL}/api/trip-groups/${slug}/sections/${sectionId}`, {
     method: "PUT",
