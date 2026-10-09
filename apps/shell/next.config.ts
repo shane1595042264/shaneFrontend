@@ -8,6 +8,7 @@ import { assertFormControlsAreNamed } from "./lib/form-control-name-guard";
 import { assertSingleMainLandmark } from "./lib/main-landmark-guard";
 import { assertCursorDocsUseCompoundShape } from "./lib/docs/cursor-doc-guard";
 import { assertHeadingsNameThemselves } from "./lib/heading-name-guard";
+import { assertTransitionNavigation } from "./lib/transition-link-guard";
 
 // SHAN-497: fail the build if an auth-gated page is missing from
 // CRAWLER_DISALLOW, which would leak it into robots.txt and sitemap.xml as a
@@ -95,6 +96,22 @@ assertHeadingsNameThemselves([
   path.join(process.cwd(), "components"),
   path.join(process.cwd(), "..", "..", "packages", "ui", "src"),
 ]);
+
+// SHAN-559: fail the build if a file imports next/link, or useRouter from
+// next/navigation, instead of the SHAN-558 wrappers. The page transition is
+// wired by swapping those imports, so a file using the originals builds and
+// navigates fine and just cuts instead of animating: no error, no console line,
+// no audit, and the hidden Claude-in-Chrome tab never animates anyway, so an
+// E2E there passes either way. Same build-time-only execution story.
+assertTransitionNavigation(
+  [
+    path.join(process.cwd(), "app"),
+    path.join(process.cwd(), "components"),
+    path.join(process.cwd(), "lib"),
+  ],
+  path.join(process.cwd(), "components", "transition-link.tsx"),
+  path.join(process.cwd(), "lib", "view-transition.tsx"),
+);
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@shane/ui", "@shane/types"],
