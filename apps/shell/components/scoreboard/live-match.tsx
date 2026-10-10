@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   finishMatch,
@@ -39,17 +39,24 @@ export function LiveMatch({
   const [error, setError] = useState<string | null>(null);
   const settled = celebrating ?? (match.status === "final" ? match : null);
   const winnerIds = new Set(settled?.winnerPlayerIds ?? []);
+  // Taps still on the wire. Finish waits for them, so the winner is decided
+  // from the score on screen, not the one before the last tap (SHAN-564).
+  const inFlight = useRef(new Set<Promise<unknown>>());
 
   async function tap(playerId: string, delta: 1 | -1) {
     const prev = scores[playerId] ?? 0;
     const next = Math.max(prev + delta, 0);
     setScores((s) => ({ ...s, [playerId]: next }));
+    const request = scoreMatch(match.id, playerId, delta);
+    inFlight.current.add(request);
     try {
-      await scoreMatch(match.id, playerId, delta);
+      await request;
       setError(null);
     } catch (err) {
       setScores((s) => ({ ...s, [playerId]: prev }));
       setError(err instanceof Error ? err.message : "Score did not save");
+    } finally {
+      inFlight.current.delete(request);
     }
   }
 
@@ -77,6 +84,7 @@ export function LiveMatch({
     setError(null);
     setFinishing(true);
     try {
+      await Promise.allSettled(inFlight.current);
       setCelebrating(await finishMatch(match.id));
       await refresh();
     } catch (err) {
@@ -209,15 +217,17 @@ export function LiveMatch({
                 <div className="flex gap-3">
                   <button
                     onClick={() => tap(p.playerId, -1)}
+                    disabled={finishing}
                     aria-label={`Minus one for ${p.name}`}
-                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md bg-white/10 text-xl text-gray-200 hover:bg-white/15"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md bg-white/10 text-xl text-gray-200 hover:bg-white/15 disabled:opacity-60"
                   >
                     -1
                   </button>
                   <button
                     onClick={() => tap(p.playerId, 1)}
+                    disabled={finishing}
                     aria-label={`Plus one for ${p.name}`}
-                    className="inline-flex min-h-11 min-w-14 items-center justify-center rounded-md bg-white text-xl font-medium text-black hover:bg-gray-200"
+                    className="inline-flex min-h-11 min-w-14 items-center justify-center rounded-md bg-white text-xl font-medium text-black hover:bg-gray-200 disabled:opacity-60"
                   >
                     +1
                   </button>
