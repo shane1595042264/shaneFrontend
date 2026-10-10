@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "@/components/transition-link";
 import { HOME_LINK, publicNavLinks } from "@/lib/nav-links";
 
@@ -23,7 +24,16 @@ import { HOME_LINK, publicNavLinks } from "@/lib/nav-links";
  *
  * No <main> wrapper: app/layout.tsx already renders `{children}` inside
  * `<main id="main-content">`, and a second landmark would be a nesting error.
+ *
+ * SHAN-561: without its own metadata this page inherited the root layout's
+ * default title, so a missing URL's tab, history entry and screen-reader
+ * announcement read "Shane — Periodic Table of Life" and never said it was a
+ * 404. The title follows the edge 404s' "Not Found — <Section> — Shane" shape.
  */
+export const metadata: Metadata = {
+  title: "Not Found — Shane",
+};
+
 export default function NotFound() {
   const elsewhere = [HOME_LINK, ...publicNavLinks()].filter(
     (link) => link.href !== "/",
