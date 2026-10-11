@@ -22,7 +22,7 @@ Gotchas:
 
 ## Trip Groups (\`/api/trip-groups\`)
 
-Group trip planning. Everything requires a browser session (requireAuth; no PAT scope exists for this module), except raw photo bytes which are public. Membership is join-by-slug: \`POST /:slug/join\`.
+Group trip planning. Everything requires a browser session, except raw photo bytes which are public. There is no PAT scope for this module: any PAT, whatever its scopes, gets 403 \`{"error":"Trip groups requires a browser session, not a PAT"}\`, reads included. Membership is join-by-slug: \`POST /:slug/join\`.
 
 Highlights (all under \`/api/trip-groups/:slug\` unless noted):
 
