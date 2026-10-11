@@ -262,10 +262,15 @@ export async function unsplashFill(slug: string): Promise<{
 /**
  * Manual itinerary edit (SHAN-276). Owner result carries `itinerary`
  * (direct write); member result carries `suggestion` (pending approval).
+ *
+ * `base` is the itinerary the edit started from (SHAN-565): the server
+ * applies only the days that differ from it, so days another member changed
+ * after this tab loaded are kept. The owner result is the merged itinerary.
  */
 export async function updateItinerary(
   slug: string,
   itinerary: TripItinerary,
+  base: TripItinerary | null,
 ): Promise<{
   itinerary?: TripItinerary;
   itineraryGeneratedAt?: string;
@@ -274,7 +279,7 @@ export async function updateItinerary(
   const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-    body: JSON.stringify({ itinerary }),
+    body: JSON.stringify({ itinerary, base }),
   });
   if (!res.ok) await unwrap(res, "Failed to save itinerary");
   return res.json();

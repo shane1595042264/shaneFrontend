@@ -138,7 +138,7 @@ function DayDetail() {
     setError(null);
     setNotice(null);
     try {
-      const result = await updateItinerary(slug, next);
+      const result = await updateItinerary(slug, next, detail.itinerary);
       if (result.itinerary && result.itineraryGeneratedAt) {
         setDetail((prev) =>
           prev

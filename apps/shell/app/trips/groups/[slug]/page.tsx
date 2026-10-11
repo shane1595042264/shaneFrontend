@@ -424,6 +424,8 @@ function GroupDetail() {
   const [filling, setFilling] = useState(false);
 
   const [draft, setDraft] = useState<TripItinerary | null>(null);
+  // The itinerary the draft was copied from (SHAN-565), sent as the edit's base.
+  const [draftBase, setDraftBase] = useState<TripItinerary | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [view, setView] = useState<"list" | "calendar">("list");
 
@@ -589,7 +591,7 @@ function GroupDetail() {
     setConsolidateError(null);
     setConsolidateNotice(null);
     try {
-      const result = await updateItinerary(slug, next);
+      const result = await updateItinerary(slug, next, detail?.itinerary ?? null);
       if (result.itinerary && result.itineraryGeneratedAt) {
         setDetail((prev) =>
           prev
@@ -646,7 +648,7 @@ function GroupDetail() {
     setConsolidateError(null);
     setConsolidateNotice(null);
     try {
-      const result = await updateItinerary(slug, draft);
+      const result = await updateItinerary(slug, draft, draftBase);
       if (result.itinerary && result.itineraryGeneratedAt) {
         setDetail((prev) =>
           prev
@@ -937,9 +939,10 @@ function GroupDetail() {
             {detail.itinerary && !draft && (
               <button
                 type="button"
-                onClick={() =>
-                  setDraft(JSON.parse(JSON.stringify(detail.itinerary)) as TripItinerary)
-                }
+                onClick={() => {
+                  setDraftBase(detail.itinerary);
+                  setDraft(JSON.parse(JSON.stringify(detail.itinerary)) as TripItinerary);
+                }}
                 className="inline-flex min-h-9 items-center justify-center rounded border border-white/20 px-3 text-xs font-medium text-gray-300 hover:bg-white/10"
               >
                 Edit
