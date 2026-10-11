@@ -24,9 +24,9 @@ Free-text note ingest with AI classification, plus structured entries, connectio
 | GET | /entries | public | \`?language=&label=&search=&category=&app=&location=&excludeLocation=&limit=1..500&offset=0..1000000\`; returns \`{entries, total, limit, offset}\` (offset pagination, unlike most modules) |
 | GET | /entries/:id | public | \`{entry, connections, connectedEntries}\` |
 | POST | /entries | knowledge:write | word + language required; 409 \`{error, existingEntry}\` on (word, language, category) duplicate; auto-enriches vocabulary entries via LLM unless \`autoEnrich:false\` (enrich failure never blocks) |
-| PUT | /entries/:id | auth only | owner-only (legacy ownerless rows editable by anyone authed); \`memorizationLocations\` replaces the whole list; \`addMemorizationLocations\` / \`removeMemorizationLocations\` change it in place (sending both shapes is a 400); either feeds the long-term-memorized derivation |
-| DELETE | /entries/:id | auth only | same ownership rule |
-| POST | /entries/bulk-delete | auth only | \`{ids: [1..100]}\`; always 200 with per-id \`{deleted, denied, notFound}\` |
+| PUT | /entries/:id | knowledge:write | owner-only (legacy ownerless rows editable by anyone authed); \`memorizationLocations\` replaces the whole list; \`addMemorizationLocations\` / \`removeMemorizationLocations\` change it in place (sending both shapes is a 400); either feeds the long-term-memorized derivation |
+| DELETE | /entries/:id | knowledge:write | same ownership rule |
+| POST | /entries/bulk-delete | knowledge:write | \`{ids: [1..100]}\`; always 200 with per-id \`{deleted, denied, notFound}\` |
 | POST | /entries/:id/enrich | knowledge:write | re-run AI enrichment; 502 on LLM exhaustion |
 
 \`?location=\` matches cards whose \`memorizationLocations\` array contains that place, case-insensitively (max 120 chars, same bound as a single location on PUT). \`?excludeLocation=\` is the inverse with the same bounds: cards NOT yet memorized at that place, including cards with no locations at all, so a place nothing has been memorized at returns every card. \`GET /api/knowledge/locations\` (public) returns \`{locations: string[]}\`: every distinct location across all cards, deduped case-insensitively and sorted. That list is what the browse filter's dropdown is built from. Its siblings \`GET /labels\`, \`GET /languages\` and \`GET /categories\` return the same shape for their dimensions.
