@@ -70,6 +70,12 @@ export interface MarkdownHeading {
    * record 2 here and only `###` records 3.
    */
   depth: 2 | 3;
+  /**
+   * The `#` count in the source, before any demotion. `depth` is what renders;
+   * this is what the author wrote, which is what the journal's table of contents
+   * nests by (a part's lone `#` is its title, its `##`s sit under that).
+   */
+  level: 1 | 2 | 3;
   /** Heading text with inline markdown stripped -- what the browser renders. */
   text: string;
   /** URL fragment, unique across the body. */
@@ -97,13 +103,22 @@ export interface MarkdownHeading {
  * the page title, renders as a real `<h1>`, and gets no anchor because the /docs
  * heading overrides cover h2/h3 only. Counting it would put a row at the top of
  * all 13 navs pointing at an id that does not exist on the page.
+ *
+ * `usedIds` is for a page that renders several bodies into one document. A
+ * journal date shows the entry plus every append under it, and today's prep
+ * notes repeat "1. The 3-line cheat sheet" in three of them; sharing the set
+ * across those calls is what keeps the ids unique across the page rather than
+ * only within each body. Pre-seed it with ids the page already uses so a
+ * heading can never take one of those either.
  */
 export function extractBodyHeadings(
   body: string,
-  { includeH1 = true }: { includeH1?: boolean } = {},
+  {
+    includeH1 = true,
+    usedIds = new Set<string>(),
+  }: { includeH1?: boolean; usedIds?: Set<string> } = {},
 ): MarkdownHeading[] {
   const headings: MarkdownHeading[] = [];
-  const usedIds = new Set<string>();
   let inFence = false;
   let fenceChar = "";
 
@@ -137,6 +152,7 @@ export function extractBodyHeadings(
     headings.push({
       line: index + 1,
       depth: match[1].length === 3 ? 3 : 2,
+      level: match[1].length as 1 | 2 | 3,
       text,
       id,
     });

@@ -8,6 +8,7 @@ import { RelativeTime } from "@/lib/format-time";
 import { useAuth } from "@/lib/auth-context";
 import { uploadImage } from "@/lib/api/images";
 import { deleteAppend, editAppend, type JournalAppend } from "@/lib/api/journal";
+import type { MarkdownHeading } from "@/lib/markdown-headings";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface Props {
@@ -16,6 +17,11 @@ interface Props {
   /** Parent owns the entry payload, so edits and deletes are reported upward. */
   onEdited: (append: JournalAppend) => void;
   onDeleted: (id: string) => void;
+  /**
+   * Per-append heading ids from buildJournalToc(), keyed by append id, so the
+   * table of contents can scroll to a section inside a sub-entry (SHAN-571).
+   */
+  headingsByAppend?: Record<string, MarkdownHeading[]>;
 }
 
 /**
@@ -27,7 +33,7 @@ interface Props {
  * user-facing story. Every mutation is also recorded in the entry's activity
  * trail, which is what makes a wrong agent edit traceable afterwards.
  */
-export function EntryAppends({ date, appends, onEdited, onDeleted }: Props) {
+export function EntryAppends({ date, appends, onEdited, onDeleted, headingsByAppend }: Props) {
   const { user } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -195,7 +201,7 @@ export function EntryAppends({ date, appends, onEdited, onDeleted }: Props) {
                   </div>
                 </div>
               ) : (
-                <EntryBody content={a.content} />
+                <EntryBody content={a.content} headings={headingsByAppend?.[a.id]} />
               )}
             </li>
           );

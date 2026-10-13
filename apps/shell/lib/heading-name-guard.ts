@@ -242,7 +242,7 @@ export function assertHeadingsNameThemselves(roots: string[]): void {
         "that list repeated itself. Lighthouse scores all of it 100 either way: a doubled " +
         "name is a correct name, so no audit fires and only the accessibility tree shows it. " +
         "Fix: point the heading's aria-labelledby at a span wrapping its own text, the way " +
-        "components/blog/post-body.tsx and app/docs/[slug]/page.tsx do with headingLabelId(). " +
+        "components/markdown-anchored-headings.tsx and app/docs/[slug]/page.tsx do with headingLabelId(). " +
         "Do not instead drop the link's label -- 25 links reading \"Link to this section\" " +
         "while pointing somewhere different is the smell SHAN-542 removed. Do not aria-hidden " +
         "the link either: it is focusable on purpose (focus:opacity-100), so hiding it would " +

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/transition-link";
 import { EntryBody } from "@/components/journal/entry-body";
 import { EntryActions } from "@/components/journal/entry-actions";
@@ -11,7 +11,10 @@ import { ShareActions } from "@/components/journal/share-actions";
 import { CommentsThread } from "@/components/journal/comments-thread";
 import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
 import { MissingEntryCta } from "@/components/journal/missing-entry-cta";
+import { JournalToc } from "@/components/journal/journal-toc";
+import { MarkdownHashScroll } from "@/components/markdown-hash-scroll";
 import { readingTimeMinutes } from "@/lib/journal-text";
+import { buildJournalToc, ENTRY_BODY_ANCHOR, shouldShowJournalToc } from "@/lib/journal-toc";
 import {
   getEntry,
   getNeighbors,
@@ -64,6 +67,38 @@ export function JournalEntryView({ date, sidebar }: Props) {
     next: null,
   });
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const articleRef = useRef<HTMLElement>(null);
+
+  // SHAN-571. The outline for the whole date: the entry and each append as a
+  // timestamped part, with that part's own headings under it. Built from the
+  // exact strings EntryBody renders, because heading ids are keyed on source
+  // lines, and rebuilt whenever an append is edited or deleted in place.
+  const toc = useMemo(
+    () =>
+      data?.entry
+        ? buildJournalToc([
+            {
+              key: "entry",
+              anchorId: ENTRY_BODY_ANCHOR,
+              content: data.content,
+              createdAt: data.entry.createdAt,
+              timezone: data.entry.authorTimezone,
+            },
+            ...data.appends.map((a) => ({
+              key: a.id,
+              anchorId: `append-${a.id}`,
+              content: a.content,
+              createdAt: a.createdAt,
+              timezone: a.authorTimezone,
+            })),
+          ])
+        : [],
+    [data]
+  );
+  const headingsByAppend = useMemo(
+    () => Object.fromEntries(toc.slice(1).map((p) => [p.key, p.headings])),
+    [toc]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -206,15 +241,22 @@ export function JournalEntryView({ date, sidebar }: Props) {
   // Appends render on the same page, so the reader-facing "N min read"
   // estimate must cover them too — otherwise it under-reports.
   const fullContent = [data.content, ...data.appends.map((a) => a.content)].join("\n\n");
+  const minutes = readingTimeMinutes(fullContent);
   const entryUrl = `${SITE_URL}/journal/${date}`;
+  const showToc = shouldShowJournalToc(toc);
 
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-8 py-6">
+      {/* The entry arrives in a client fetch, so the browser's own fragment
+          scroll on /journal/<date>#<section> found nothing to land on. Mounted
+          here, with the content, so its retry window starts when there is
+          something to scroll to. */}
+      <MarkdownHashScroll />
       {backLink}
 
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0">
-          <article className="pb-8">
+          <article ref={articleRef} className="pb-8">
             <h2 className="text-base font-semibold text-white/80 tracking-tight mb-3 flex items-center gap-2">
               <time dateTime={data.entry.date}>{formatDate(data.entry.date)}</time>
               {relLabel && <span className={relChipClass}>{relLabel}</span>}
@@ -228,7 +270,7 @@ export function JournalEntryView({ date, sidebar }: Props) {
                 </Link>
               )}
               <span className="ml-auto text-xs font-normal text-gray-400">
-                {readingTimeMinutes(fullContent)} min read
+                {minutes} min read
               </span>
             </h2>
             <div className="mb-4 flex items-center gap-2 text-xs text-gray-400">
@@ -255,8 +297,8 @@ export function JournalEntryView({ date, sidebar }: Props) {
                 </Link>
               )}
             </div>
-            <div className="mt-4">
-              <EntryBody content={data.content} />
+            <div id={ENTRY_BODY_ANCHOR} className="mt-4 scroll-mt-6">
+              <EntryBody content={data.content} headings={toc[0]?.headings} />
             </div>
             {data.appends && data.appends.length > 0 && (
               <EntryAppends
@@ -264,6 +306,7 @@ export function JournalEntryView({ date, sidebar }: Props) {
                 appends={data.appends}
                 onEdited={applyAppendEdit}
                 onDeleted={applyAppendDelete}
+                headingsByAppend={headingsByAppend}
               />
             )}
           </article>
@@ -288,7 +331,22 @@ export function JournalEntryView({ date, sidebar }: Props) {
 
           <EntryActivity date={data.entry.date} />
         </div>
-        {sidebar}
+        {showToc ? (
+          <div className="min-w-0 space-y-8">
+            {/* Wrapped so the activity aside's own `sticky` has no room to
+                move: the contents rail below is the one thing in this column
+                that should follow the reader down a long day. */}
+            <div>{sidebar}</div>
+            <JournalToc
+              parts={toc}
+              entryDate={data.entry.date}
+              minutes={minutes}
+              articleRef={articleRef}
+            />
+          </div>
+        ) : (
+          sidebar
+        )}
       </div>
     </div>
   );
