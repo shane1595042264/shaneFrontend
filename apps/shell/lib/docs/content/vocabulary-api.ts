@@ -37,7 +37,7 @@ Ownership: you may modify only words you created. Legacy rows with no creator (\
 | POST | /words | \`{word, language, definition?, pronunciation?, partOfSpeech?, exampleSentence?, labels?, autoEnrich?}\` | 201 \`{word}\`. **409 \`{error, existingWord}\`** when (word, language) already exists. A two-part key, unlike the knowledge module's (word, language, category). Caps: word 255, language 50, definition 20000, pronunciation 255, partOfSpeech 50, exampleSentence 2000, labels 50 entries of 100 |
 | PUT | /words/:id | same fields, all optional, no \`autoEnrich\` | **Despite the PUT verb this is a partial update**: only the keys you send change; omitted fields are left alone. 404 unknown, 403 not yours |
 | DELETE | /words/:id | none | \`{ok: true}\`. **Cascades: the word's connections are deleted with it**, with no 409 guard. 404/403 as above |
-| POST | /words/:id/enrich | none | re-runs the LLM pass over the stored word and language. Each field is overwritten only when enrichment returns something for it, so a blank result keeps the old value. **502** (retryable) when every LLM provider is exhausted, 500 on anything else |
+| POST | /words/:id/enrich | none | re-runs the LLM pass over the stored word and language. Same ownership rule as PUT: **403** on a word someone else created, checked before any LLM spend. Only the fields enrichment returns something for are written; the rest are left out of the update, so a blank result keeps whatever is stored when the write lands, including an edit saved while the pass ran. **502** (retryable) when every LLM provider is exhausted, 500 on anything else |
 
 ### Connections
 

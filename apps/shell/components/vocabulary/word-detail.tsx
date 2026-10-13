@@ -69,10 +69,13 @@ export function WordDetail({
 
   async function handleEnrich() {
     setEnriching(true);
+    setError(null);
     try {
       await enrichWordApi(wordId);
       await loadWord();
       onWordUpdated();
+    } catch (err: any) {
+      setError(err.message || "Failed to enrich word.");
     } finally {
       setEnriching(false);
     }

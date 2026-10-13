@@ -27,7 +27,7 @@ Free-text note ingest with AI classification, plus structured entries, connectio
 | PUT | /entries/:id | knowledge:write | owner-only (legacy ownerless rows editable by anyone authed); \`memorizationLocations\` replaces the whole list; \`addMemorizationLocations\` / \`removeMemorizationLocations\` change it in place (sending both shapes is a 400); either feeds the long-term-memorized derivation |
 | DELETE | /entries/:id | knowledge:write | same ownership rule |
 | POST | /entries/bulk-delete | knowledge:write | \`{ids: [1..100]}\`; always 200 with per-id \`{deleted, denied, notFound}\` |
-| POST | /entries/:id/enrich | knowledge:write | re-run AI enrichment; 502 on LLM exhaustion |
+| POST | /entries/:id/enrich | knowledge:write | re-run AI enrichment; 403 on an entry someone else created (same rule as PUT); writes only the fields enrichment returned, so blank fields keep their stored value; 502 on LLM exhaustion |
 
 \`?location=\` matches cards whose \`memorizationLocations\` array contains that place, case-insensitively (max 120 chars, same bound as a single location on PUT). \`?excludeLocation=\` is the inverse with the same bounds: cards NOT yet memorized at that place, including cards with no locations at all, so a place nothing has been memorized at returns every card. \`GET /api/knowledge/locations\` (public) returns \`{locations: string[]}\`: every distinct location across all cards, deduped case-insensitively and sorted. That list is what the browse filter's dropdown is built from. Its siblings \`GET /labels\`, \`GET /languages\` and \`GET /categories\` return the same shape for their dimensions.
 

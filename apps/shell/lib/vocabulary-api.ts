@@ -110,7 +110,10 @@ export async function enrichWordApi(id: string): Promise<VocabWord> {
     method: "POST",
     headers: { ...getAuthHeaders() },
   });
-  if (!res.ok) throw new Error("Failed to enrich word");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to enrich word");
+  }
   const data = await res.json();
   return data.word;
 }
