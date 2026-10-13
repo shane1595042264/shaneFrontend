@@ -12,22 +12,28 @@ export type SlotMap = Record<number, string>; // atomicNumber -> appId
 
 // ---- API client ----
 
-export async function fetchSlotAssignments(): Promise<SlotMap> {
+/**
+ * Returns null when the saved layout could not be loaded, which is not the
+ * same as {} (no saved layout). The PUT replaces the whole map, so a caller
+ * that saved after a failed load would overwrite the real arrangement with
+ * the default one (SHAN-569).
+ */
+export async function fetchSlotAssignments(): Promise<SlotMap | null> {
   // Slot assignments are per-user data behind requireAuth, so without a token
   // the request is a guaranteed 401 that shows up as a console error on every
   // signed-out homepage load. Same early return fetchCurrentUser() uses.
-  if (!getStoredToken()) return {};
+  if (!getStoredToken()) return null;
 
   try {
     const res = await fetch(`${API_URL}/api/slot-assignments`, {
       headers: { ...getAuthHeaders() },
       cache: "no-store",
     });
-    if (!res.ok) return {};
+    if (!res.ok) return null;
     const data = await res.json();
     return data.assignments ?? {};
   } catch {
-    return {};
+    return null;
   }
 }
 

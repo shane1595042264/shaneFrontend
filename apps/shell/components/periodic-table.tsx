@@ -31,7 +31,13 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   // signed-in visitors. Otherwise the save 401s and the toast reads as a broken
   // site rather than "you aren't signed in".
   const { user, loading: authLoading } = useAuth();
-  const canRearrange = user !== null;
+  const signedIn = user !== null;
+  // True only once the visitor's saved layout has actually arrived. The grid
+  // can be revealed at the default order before that (failed fetch, or the
+  // 2s timeout below), and since the PUT replaces the whole map, a drop then
+  // would save the default order over the real one (SHAN-569).
+  const [layoutLoaded, setLayoutLoaded] = useState(false);
+  const canRearrange = signedIn && layoutLoaded;
   const [slotMap, setSlotMap] = useState<SlotMap>(() => resolveSlots(elements, {}));
   // False until we know which arrangement to draw. The first render can only
   // use the default registry order, and a signed-in visitor's saved order
@@ -65,7 +71,8 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
     // still-loading state as signed out would mark the slots resolved and
     // reveal the default arrangement a moment before the saved one arrives.
     if (authLoading) return;
-    if (!canRearrange) {
+    setLayoutLoaded(false);
+    if (!signedIn) {
       setSlotMap(resolveSlots(elements, {}));
       setSlotsResolved(true);
       return;
@@ -73,13 +80,14 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
     let cancelled = false;
     fetchSlotAssignments().then((saved) => {
       if (cancelled) return;
-      setSlotMap(resolveSlots(elements, saved));
+      setSlotMap(resolveSlots(elements, saved ?? {}));
       setSlotsResolved(true);
+      setLayoutLoaded(saved !== null);
     });
     return () => {
       cancelled = true;
     };
-  }, [elements, canRearrange, authLoading]);
+  }, [elements, signedIn, authLoading]);
 
   // The grid is invisible until resolution, so a request that never settles
   // (accepted but unanswered; fetchSlotAssignments already swallows outright
@@ -119,7 +127,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
 
   const handleDrop = useCallback(
     (targetAtomic: number) => {
-      if (!draggedAppId) return;
+      if (!draggedAppId || !canRearrange) return;
       setDropTarget(null);
 
       const sourceAtomic = appToSlot.get(draggedAppId);
@@ -154,7 +162,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
           setTimeout(() => setSaveToast(null), 4000);
         });
     },
-    [draggedAppId, slotMap, appToSlot]
+    [draggedAppId, canRearrange, slotMap, appToSlot]
   );
 
   const handleDragEnd = useCallback(() => {
@@ -205,7 +213,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
             // animates a move when the previous render also had them (it needs
             // the earlier measurement). Withholding them until the saved slots
             // land means the settle render has no snapshot to animate from.
-            // Drags, which can only happen well after resolution, still animate.
+            // Drags, which wait for the saved layout itself, still animate.
             layout={slotsResolved}
             layoutId={slotsResolved ? assignedApp.id : undefined}
             data-element-id={assignedApp.id}
