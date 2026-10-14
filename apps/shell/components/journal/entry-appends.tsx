@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MarkdownEditor } from "@shane/ui";
-import { EntryBody } from "@/components/journal/entry-body";
+import { NotedEntryBody } from "@/components/journal/noted-entry-body";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { RelativeTime } from "@/lib/format-time";
 import { useAuth } from "@/lib/auth-context";
@@ -201,7 +201,7 @@ export function EntryAppends({ date, appends, onEdited, onDeleted, headingsByApp
                   </div>
                 </div>
               ) : (
-                <EntryBody content={a.content} headings={headingsByAppend?.[a.id]} />
+                <NotedEntryBody target={a.id} content={a.content} headings={headingsByAppend?.[a.id]} />
               )}
             </li>
           );

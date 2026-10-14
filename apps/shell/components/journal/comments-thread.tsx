@@ -49,7 +49,10 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
     setLoading(true);
     try {
       const list = await listComments(date);
-      setComments(list);
+      // SHAN-577: inline notes and their replies live on the words they are
+      // about (components/journal/inline-notes), not in this general thread.
+      const noteRoots = new Set(list.filter((c) => c.anchor && c.parentCommentId === null).map((c) => c.id));
+      setComments(list.filter((c) => !noteRoots.has(c.id) && !(c.parentCommentId && noteRoots.has(c.parentCommentId))));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load comments");
     } finally {

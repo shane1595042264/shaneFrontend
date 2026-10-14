@@ -293,3 +293,52 @@ body::after {
   a { color: #000000 !important; text-decoration: none; }
   body::before, body::after, .site-light { display: none !important; }
 }
+
+/*
+ * SHAN-577: journal inline notes (components/journal/inline-notes.tsx).
+ *
+ * The underline is a background gradient, not text-decoration, for two
+ * reasons: it can be drawn in (background-size 0 -> 100%) when a note is
+ * saved, and with the default box-decoration-break (slice) a note that wraps
+ * draws across its lines in reading order, as one stroke. Amber because a note
+ * is a highlighter mark, kept at half strength because the words are still
+ * the point; the wash only arrives on hover or while the thread is open.
+ */
+mark.note-mark {
+  color: inherit;
+  background-color: transparent;
+  background-image: linear-gradient(rgb(252 211 77 / 0.55), rgb(252 211 77 / 0.55));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 1.5px;
+  padding-bottom: 1px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition:
+    background-color 220ms var(--ease-out-expo),
+    background-size 220ms var(--ease-out-expo);
+}
+mark.note-mark:hover,
+mark.note-mark[data-active] {
+  background-color: rgb(252 211 77 / 0.1);
+  background-size: 100% 2px;
+}
+mark.note-mark:focus-visible {
+  outline: 2px solid rgb(252 211 77 / 0.6);
+  outline-offset: 2px;
+}
+mark.note-mark[data-fresh] {
+  animation: note-ink 900ms var(--ease-out-expo) both;
+}
+@keyframes note-ink {
+  from { background-size: 0% 1.5px; background-color: rgb(252 211 77 / 0.16); }
+  to { background-size: 100% 1.5px; background-color: transparent; }
+}
+/* The words being noted while focus is in the composer (Custom Highlight API). */
+::highlight(note-pending) {
+  background-color: rgb(252 211 77 / 0.2);
+}
+@media (prefers-reduced-motion: reduce) {
+  mark.note-mark { transition: none; }
+  mark.note-mark[data-fresh] { animation: none; }
+}

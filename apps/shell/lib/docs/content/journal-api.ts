@@ -58,15 +58,25 @@ Writes:
 | PATCH | /suggestions/:id/reject | suggestions:write | \`{reason?}\` max 2000 | 403 not entry author; 409 \`{currentStatus}\` if it was decided since you read it |
 | PATCH | /suggestions/:id/withdraw | suggestions:write | none | 404 no such suggestion; 403 not the proposer; 409 \`{currentStatus}\` if the author decided it since you read it (SHAN-536) |
 | GET | /inbox | auth only | none | pending suggestions on entries you author |
-| POST | /entries/:date/comments | comments:write | \`{content, parent_comment_id?}\` 1..10k | one reply level; the parent must be a top-level comment on this entry, else 400 |
-| PATCH | /comments/:id | comments:write | \`{content}\` | author only |
-| DELETE | /comments/:id | comments:write | none | comment author or entry author; 204. Its replies are kept and become top-level comments |
+| POST | /entries/:date/comments | comments:write | \`{content, parent_comment_id?, anchor?}\` 1..10k | one reply level; the parent must be a top-level comment on this entry, else 400. \`anchor\` makes it an inline note (below) |
+| PATCH | /comments/:id | comments:write | \`{content}\` | author only; an anchor cannot be changed |
+| DELETE | /comments/:id | comments:write | none | comment author or entry author; 204. Its replies are kept and become top-level comments, except under an inline note: there the earliest reply becomes the note, inheriting its anchor, and the rest reply to it |
 | POST | /entries/:date/reactions | reactions:write | \`{emoji}\` | toggle; shortcodes only |
 | POST | /comments/:id/reactions | reactions:write | \`{emoji}\` | toggle |
 
 The two If-Match writes (revert, suggestion approve) take the version number as a plain integer, seeded from \`currentVersionNum\` on \`GET /entries/:date\`. **From a browser, send it as \`X-If-Match\`** (SHAN-489): shanejli.com requests are same-origin and ride a rewrite through Vercel's edge, which evaluates a real \`If-Match\` against the response ETag. Ours are weak validators, a weak validator can never satisfy \`If-Match\`'s strong comparison, and the edge therefore turns the origin's 200 into a 412 *after* the write has committed: a success reported as a failure, and a retry that writes it twice. Measured on 2026-09-13, the edge does this to \`PATCH\` (so the approve call) and lets \`POST\` through, but send \`X-If-Match\` on both rather than tracking which methods it intercepts. \`If-Match\` stays correct for direct callers hitting Railway with a PAT, and wins if both are sent. Full writeup in [Conventions](/docs/conventions).
 
 Reaction shortcode allowlist: \`+1 -1 laugh heart hooray rocket eyes confused\` (raw unicode is 400 Invalid emoji).
+
+### Inline notes
+
+An inline note is a top-level comment pinned to words on the page: \`anchor\` is \`{target, quote, prefix?, suffix?}\`, strict.
+
+- \`target\` is \`"entry"\` for the entry body or the id of a live append on the same entry; anything else is 400.
+- \`quote\` (trimmed, 1..1000) is the text as rendered, not the markdown source: \`**ring buffer**\` is quoted as \`ring buffer\`. \`prefix\` and \`suffix\` (each 0..64, default \`""\`) are the rendered text just before and after it, and are what pick the right occurrence when the quote appears more than once.
+- Compare with whitespace collapsed to single spaces; the site does, so line breaks inside a quote never matter.
+- An anchor on a reply (\`parent_comment_id\` set) is 400. Reply to a note with \`parent_comment_id\` and no anchor, like any comment.
+- Anchors are text, not offsets, so a note survives edits that leave its words alone. When the words are edited away the note is kept: the site lists it under the entry as a note on text that changed. \`GET /entries/:date/comments\` returns every comment, \`anchor\` included (null on ordinary comments and replies).
 
 ## Access (invite-only membership)
 

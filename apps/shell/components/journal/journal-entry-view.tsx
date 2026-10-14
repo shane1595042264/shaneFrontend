@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/transition-link";
-import { EntryBody } from "@/components/journal/entry-body";
 import { EntryActions } from "@/components/journal/entry-actions";
 import { EntryActivity } from "@/components/journal/entry-activity";
 import { EntryAppends } from "@/components/journal/entry-appends";
@@ -12,6 +11,8 @@ import { CommentsThread } from "@/components/journal/comments-thread";
 import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
 import { MissingEntryCta } from "@/components/journal/missing-entry-cta";
 import { JournalToc } from "@/components/journal/journal-toc";
+import { NotesProvider, OrphanNotes } from "@/components/journal/inline-notes";
+import { NotedEntryBody } from "@/components/journal/noted-entry-body";
 import { MarkdownHashScroll } from "@/components/markdown-hash-scroll";
 import { readingTimeMinutes } from "@/lib/journal-text";
 import { buildJournalToc, ENTRY_BODY_ANCHOR, shouldShowJournalToc } from "@/lib/journal-toc";
@@ -254,6 +255,10 @@ export function JournalEntryView({ date, sidebar }: Props) {
       <MarkdownHashScroll />
       {backLink}
 
+      {/* SHAN-577: inline notes. The provider spans the whole grid so the
+          selection pill, the composer and the hover threads (all portalled)
+          share one state with the marks in the entry and every append. */}
+      <NotesProvider date={data.entry.date} entryAuthorId={data.entry.authorId}>
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0">
           <article ref={articleRef} className="pb-8">
@@ -298,7 +303,7 @@ export function JournalEntryView({ date, sidebar }: Props) {
               )}
             </div>
             <div id={ENTRY_BODY_ANCHOR} className="mt-4 scroll-mt-6">
-              <EntryBody content={data.content} headings={toc[0]?.headings} />
+              <NotedEntryBody target="entry" content={data.content} headings={toc[0]?.headings} />
             </div>
             {data.appends && data.appends.length > 0 && (
               <EntryAppends
@@ -310,6 +315,8 @@ export function JournalEntryView({ date, sidebar }: Props) {
               />
             )}
           </article>
+
+          <OrphanNotes />
 
           <div className="mt-6">
             <EntryReactionBar date={data.entry.date} />
@@ -348,6 +355,7 @@ export function JournalEntryView({ date, sidebar }: Props) {
           sidebar
         )}
       </div>
+      </NotesProvider>
     </div>
   );
 }

@@ -51,8 +51,12 @@ export function anchoredHeadings(
               every heading. 25 links reading the same and pointing somewhere
               different is the identical-links-same-purpose smell, and a
               screen-reader link list of 25 identical rows is useless. */}
+          {/* data-anno-skip: the "#" is page chrome, not the author's words, so
+              journal inline notes (SHAN-577) leave it out of the text they
+              anchor against. */}
           <a
             href={`#${id}`}
+            data-anno-skip=""
             aria-label={text ? `Link to section: ${text}` : "Link to this section"}
             className="not-prose ml-2 text-gray-400 no-underline opacity-0 transition-opacity hover:text-gray-300 focus:opacity-100 group-hover:opacity-100"
           >

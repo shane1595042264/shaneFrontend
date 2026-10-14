@@ -41,7 +41,10 @@ export function MermaidDiagram({ code }: { code: string }) {
 
   if (svg) {
     return (
+      // data-anno-skip: SHAN-577 inline notes count page text the way the
+      // markdown source has it, and a rendered diagram's labels are not that.
       <div
+        data-anno-skip=""
         className="not-prose my-4 overflow-x-auto rounded-lg border border-white/10 bg-black/20 p-4 [&_svg]:mx-auto [&_svg]:max-w-full"
         dangerouslySetInnerHTML={{ __html: svg }}
       />
@@ -50,11 +53,11 @@ export function MermaidDiagram({ code }: { code: string }) {
 
   return (
     <>
-      <pre>
+      <pre data-anno-skip="">
         <code className="language-mermaid">{code}</code>
       </pre>
       {error && (
-        <p role="note" className="not-prose -mt-2 mb-4 text-xs text-gray-400">
+        <p role="note" data-anno-skip="" className="not-prose -mt-2 mb-4 text-xs text-gray-400">
           Diagram failed to render: {error}
         </p>
       )}
