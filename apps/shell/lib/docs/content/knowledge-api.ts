@@ -35,7 +35,7 @@ To mark or unmark a place, send \`addMemorizationLocations\` or \`removeMemoriza
 
 Connections (synonym, antonym, related, translation, root): \`GET/POST /connections\`, \`DELETE /connections/:id\`, scope \`knowledge:write\`. POST returns 201 \`{connection}\`; 400 connecting an entry to itself, 404 unknown entry id, **403 unless you own both entries**, 409 if that typed edge already exists. DELETE returns \`{ok: true}\`; 404 unknown, 403 unless you own both endpoint entries. Entries with no recorded creator (legacy rows) count as yours for this check. Both modules enforce the same rule on the same table, so neither path can link or unlink someone else's entries.
 
-Comments: same shape as journal comments (\`GET/POST /entries/:id/comments\`, \`PATCH/DELETE /comments/:id\`, scope \`comments:write\`, snake_case \`parent_comment_id\`, one reply level).
+Comments: same shape as journal comments (\`GET/POST /entries/:id/comments\`, \`PATCH/DELETE /comments/:id\`, scope \`comments:write\`, snake_case \`parent_comment_id\`, one reply level). The parent must be a top-level comment on the same entry, or the POST is a 400; deleting a comment keeps its replies as top-level comments.
 
 ## Vocabulary module differences
 

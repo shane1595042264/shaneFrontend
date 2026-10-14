@@ -58,9 +58,9 @@ Writes:
 | PATCH | /suggestions/:id/reject | suggestions:write | \`{reason?}\` max 2000 | 403 not entry author; 409 \`{currentStatus}\` if it was decided since you read it |
 | PATCH | /suggestions/:id/withdraw | suggestions:write | none | 404 no such suggestion; 403 not the proposer; 409 \`{currentStatus}\` if the author decided it since you read it (SHAN-536) |
 | GET | /inbox | auth only | none | pending suggestions on entries you author |
-| POST | /entries/:date/comments | comments:write | \`{content, parent_comment_id?}\` 1..10k | one reply level renders |
+| POST | /entries/:date/comments | comments:write | \`{content, parent_comment_id?}\` 1..10k | one reply level; the parent must be a top-level comment on this entry, else 400 |
 | PATCH | /comments/:id | comments:write | \`{content}\` | author only |
-| DELETE | /comments/:id | comments:write | none | comment author or entry author; 204 |
+| DELETE | /comments/:id | comments:write | none | comment author or entry author; 204. Its replies are kept and become top-level comments |
 | POST | /entries/:date/reactions | reactions:write | \`{emoji}\` | toggle; shortcodes only |
 | POST | /comments/:id/reactions | reactions:write | \`{emoji}\` | toggle |
 

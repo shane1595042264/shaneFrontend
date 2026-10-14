@@ -31,9 +31,9 @@ All writes share PAT bucket \`courses-write\` (60/min). Course mutations are own
 | DELETE | /:id/cover | entries:write | none | back to the generated cover |
 | PUT | /:id/rating | reactions:write | \`{stars}\` int 1..5 | Upsert per (user, course); returns \`{rating:{average, count, mine}}\` |
 | DELETE | /:id/rating | reactions:write | none | clears yours, returns fresh aggregate |
-| POST | /:id/comments | comments:write | \`{content, parent_comment_id?}\` 1..10k | markdown, one reply level |
+| POST | /:id/comments | comments:write | \`{content, parent_comment_id?}\` 1..10k | markdown, one reply level; the parent must be a top-level comment on this course, else 400 |
 | PATCH | /comments/:id | comments:write | \`{content}\` | author only |
-| DELETE | /comments/:id | comments:write | none | comment author or course owner; 204 |
+| DELETE | /comments/:id | comments:write | none | comment author or course owner; 204. Its replies are kept and become top-level comments |
 
 ## Launching a course (SHAN-477)
 
