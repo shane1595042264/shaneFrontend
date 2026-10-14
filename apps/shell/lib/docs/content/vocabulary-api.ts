@@ -46,7 +46,7 @@ Ownership: you may modify only words you created. Legacy rows with no creator (\
 | POST | /connections | \`{fromWordId, toWordId, connectionType, note?}\` | 201 \`{connection}\`. **400** connecting a word to itself, **404** unknown word id (the message names which one), **403** unless you own *both* words, **409** that typed edge already exists. \`note\` <= 1000 chars |
 | DELETE | /connections/:id | none | \`{ok: true}\`; 404 unknown, 403 unless you own both endpoint words |
 
-**Ownership on connections is the real behavioral difference from the knowledge module**, whose \`/api/knowledge/connections\` twins do not check word ownership at all. Use this path when you want the check enforced, the knowledge path when you deliberately want to link words you did not create.
+The \`/api/knowledge/connections\` twins write the same table and enforce the same ownership rule, so switching paths does not let you link or unlink words you did not create.
 
 ## Example
 

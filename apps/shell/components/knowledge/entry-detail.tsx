@@ -185,8 +185,8 @@ export function EntryDetail({
     try {
       await deleteConnection(connId);
       await loadEntry();
-    } catch {
-      setError("Failed to delete connection.");
+    } catch (err: any) {
+      setError(err.message || "Failed to delete connection.");
     }
   }
 

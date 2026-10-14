@@ -33,7 +33,7 @@ Free-text note ingest with AI classification, plus structured entries, connectio
 
 To mark or unmark a place, send \`addMemorizationLocations\` or \`removeMemorizationLocations\` (each up to 50 names of up to 120 chars) rather than a full \`memorizationLocations\` list. The deltas are applied to the card as it is stored at that moment, under a row lock that practice mode also takes when it records a newly memorized place, so a place recorded after you read the card is kept. Removal is case-insensitive and adding a place the card already holds, in any casing, changes nothing. A full list overwrites whatever is stored, so only send it when you mean to replace the set.
 
-Connections (synonym, antonym, related, translation, root): \`GET/POST /connections\`, \`DELETE /connections/:id\`. The knowledge-module versions do NOT check word ownership; the vocabulary-module twins DO (403 unless you own both words). Pick the path matching the permission behavior you want.
+Connections (synonym, antonym, related, translation, root): \`GET/POST /connections\`, \`DELETE /connections/:id\`, scope \`knowledge:write\`. POST returns 201 \`{connection}\`; 400 connecting an entry to itself, 404 unknown entry id, **403 unless you own both entries**, 409 if that typed edge already exists. DELETE returns \`{ok: true}\`; 404 unknown, 403 unless you own both endpoint entries. Entries with no recorded creator (legacy rows) count as yours for this check. Both modules enforce the same rule on the same table, so neither path can link or unlink someone else's entries.
 
 Comments: same shape as journal comments (\`GET/POST /entries/:id/comments\`, \`PATCH/DELETE /comments/:id\`, scope \`comments:write\`, snake_case \`parent_comment_id\`, one reply level).
 
