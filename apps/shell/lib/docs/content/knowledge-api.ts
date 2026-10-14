@@ -33,6 +33,20 @@ Free-text note ingest with AI classification, plus structured entries, connectio
 
 To mark or unmark a place, send \`addMemorizationLocations\` or \`removeMemorizationLocations\` (each up to 50 names of up to 120 chars) rather than a full \`memorizationLocations\` list. The deltas are applied to the card as it is stored at that moment, under a row lock that practice mode also takes when it records a newly memorized place, so a place recorded after you read the card is kept. Removal is case-insensitive and adding a place the card already holds, in any casing, changes nothing. A full list overwrites whatever is stored, so only send it when you mean to replace the set.
 
+## Recite
+
+Recite your own cards from memory, one place at a time. Both routes need scope \`knowledge:write\` and work on the caller's cards: ones they created, plus legacy rows with no recorded creator (the same set \`PUT /entries/:id\` lets them write).
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | /recite/deck | \`{location: 1..120, categories?: string[] (max 50)}\`, strict. Saves the place to your practice locations (\`GET /api/practice/locations\`; a new name creates it, an existing one in any casing reuses it). Returns \`{location: {id, name}, cards, total, categories: [{category, total, remaining}]}\`: your cards that have a definition and are not yet memorized at that place, in random order (max 500), plus per-category counts of all your cards. \`categories\` filters \`cards\` only; the counts always cover every category |
+| POST | /entries/:id/recite | \`{location, answer: 1..5000, attempt?: 1..50 (default 1)}\`, strict. Grades \`answer\` against the card's definition for meaning, not wording. Pass: 200 \`{correct: true, score, feedback, judge, memorizedAt, entry}\`, and \`location\` is added to the card's \`memorizationLocations\` under its saved name. Miss: 200 \`{correct: false, score, feedback, judge, hint, hintNumber, hintsTotal}\`, nothing written. 403 on someone else's card, 404 unknown, 422 when the card has no definition, 503 when no grader is reachable |
+
+- \`judge\` says what decided: \`match\` (near-verbatim, no model call), \`ai\` (a small free model; Groq \`gpt-oss-20b\` first) or \`similarity\` (local embeddings, used only when every model provider is down).
+- \`hint\` is \`{kind, label, text}\`; send the attempt number and attempt N gets hint N, gentlest first: \`example\` (or \`topics\` when the card has no example, or its example contains the answer), \`opening\` (the first few words, skipped for answers under four words), then \`shape\` (each word's first letter, the rest masked). Past the last hint, the last one repeats.
+- Miss \`feedback\` never names what is missing. Feedback that would is replaced server-side; the hints are the only part of a miss that reveals the answer.
+- Rate (PATs): 30/min deck, 60/min attempts.
+
 Connections (synonym, antonym, related, translation, root): \`GET/POST /connections\`, \`DELETE /connections/:id\`, scope \`knowledge:write\`. POST returns 201 \`{connection}\`; 400 connecting an entry to itself, 404 unknown entry id, **403 unless you own both entries**, 409 if that typed edge already exists. DELETE returns \`{ok: true}\`; 404 unknown, 403 unless you own both endpoint entries. Entries with no recorded creator (legacy rows) count as yours for this check. Both modules enforce the same rule on the same table, so neither path can link or unlink someone else's entries.
 
 Comments: same shape as journal comments (\`GET/POST /entries/:id/comments\`, \`PATCH/DELETE /comments/:id\`, scope \`comments:write\`, snake_case \`parent_comment_id\`, one reply level). The parent must be a top-level comment on the same entry, or the POST is a 400; deleting a comment keeps its replies as top-level comments.

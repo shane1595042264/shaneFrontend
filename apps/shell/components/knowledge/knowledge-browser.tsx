@@ -13,6 +13,7 @@ import {
   bulkDeleteEntries,
   type KnowledgeEntry,
 } from "@/lib/knowledge-api";
+import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
 import { NoteInput, type QuickAddInput } from "@/components/knowledge/note-input";
@@ -542,14 +543,29 @@ export function KnowledgeBrowser({
         </div>
       )}
 
-      <NoteInput
-        onSubmit={handleSubmitNote}
-        onQuickAdd={handleQuickAdd}
-        loading={adding}
-        categories={categories}
-      />
+      {/* SHAN-575/576: adding and reviewing side by side. Recite is a plain
+          link on purpose, rendered for everyone: branching on useAuth() here
+          would put a different tree in this prerendered page's hydration
+          render (SHAN-492), and /knowledge/recite has its own sign-in gate. */}
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-start">
+        <div className="min-w-0 flex-1">
+          <NoteInput
+            onSubmit={handleSubmitNote}
+            onQuickAdd={handleQuickAdd}
+            loading={adding}
+            categories={categories}
+          />
+        </div>
+        <Link
+          href="/knowledge/recite"
+          className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-medium text-black transition-[background-color,transform] hover:bg-gray-200 active:scale-[0.98]"
+        >
+          Recite
+          <span aria-hidden="true">&rarr;</span>
+        </Link>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3">
         <CategoryTabs
           categories={categories}
           selected={selectedCategory}
@@ -569,7 +585,7 @@ export function KnowledgeBrowser({
             // to the debounce effect so typing still coalesces into one fetch.
             writeFilter({ ...currentFilter, q }, "replace");
           }}
-          className="px-3 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white placeholder:text-gray-400 focus:outline-none focus:border-blue-500/50 w-40"
+          className="h-8 w-44 rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 text-[13px] text-white placeholder:text-gray-400 transition-colors focus:border-white/25 focus:outline-none"
         />
         {locationOptions.length > 0 && (
           <div className="flex items-center gap-2">
@@ -582,7 +598,7 @@ export function KnowledgeBrowser({
                   locationMode: e.target.value === "not" ? "not" : "",
                 })
               }
-              className="px-3 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-gray-300 focus:outline-none focus:border-blue-500/50"
+              className="h-8 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 text-[13px] text-gray-300 focus:border-white/25 focus:outline-none"
             >
               <option value="">Memorized at</option>
               <option value="not">Not memorized at</option>
@@ -593,12 +609,12 @@ export function KnowledgeBrowser({
               onChange={(e) =>
                 commitFilter({ ...currentFilter, location: e.target.value })
               }
-              className={`px-3 py-1.5 bg-white/5 border rounded text-sm focus:outline-none focus:border-blue-500/50 max-w-[12rem] ${
+              className={`h-8 max-w-[12rem] rounded-lg border bg-white/[0.025] px-2.5 text-[13px] focus:border-white/25 focus:outline-none ${
                 selectedLocation
                   ? locationMode === "not"
                     ? "border-amber-500/40 text-amber-300"
                     : "border-emerald-500/40 text-emerald-300"
-                  : "border-white/10 text-gray-400"
+                  : "border-white/[0.08] text-gray-400"
               }`}
             >
               <option value="">
@@ -616,7 +632,7 @@ export function KnowledgeBrowser({
           {editMode ? (
             <button
               onClick={exitEditMode}
-              className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-300 transition-colors"
+              className="inline-flex h-8 items-center rounded-full px-3.5 text-[13px] text-gray-300 ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.06] hover:text-white"
             >
               Done
             </button>
@@ -624,7 +640,7 @@ export function KnowledgeBrowser({
             <button
               onClick={() => setEditMode(true)}
               disabled={!currentUserId || entries.length === 0}
-              className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed border border-white/10 rounded text-gray-300 transition-colors"
+              className="inline-flex h-8 items-center rounded-full px-3.5 text-[13px] text-gray-300 ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               title={currentUserId ? "Edit (select multiple)" : "Sign in to edit"}
             >
               Edit
@@ -633,8 +649,8 @@ export function KnowledgeBrowser({
         </div>
       </div>
 
-      <div className="text-xs text-gray-400">
-        {entries.length} entr{entries.length !== 1 ? "ies" : "y"}
+      <div className="font-mono text-xs tabular-nums text-gray-400">
+        {entries.length} card{entries.length !== 1 ? "s" : ""}
         {editMode && (
           <span className="ml-3 text-gray-400">
             (click to select, shift-click for range)
@@ -909,24 +925,24 @@ function EmptyState({
 function KnowledgeSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="rounded bg-white/8 animate-pulse h-24 w-full" />
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex gap-2">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row">
+        <div className="h-12 flex-1 animate-pulse rounded-xl bg-white/[0.05]" />
+        <div className="h-12 w-full animate-pulse rounded-full bg-white/[0.08] sm:w-28" />
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1.5">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded bg-white/8 animate-pulse h-8 w-20"
-            />
+            <div key={i} className="h-8 w-20 animate-pulse rounded-full bg-white/[0.05]" />
           ))}
         </div>
-        <div className="rounded bg-white/8 animate-pulse h-8 w-40" />
+        <div className="h-8 w-44 animate-pulse rounded-lg bg-white/[0.05]" />
       </div>
       <div className="rounded bg-white/8 animate-pulse h-4 w-16" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="p-4 bg-white/5 border border-white/8 rounded-lg space-y-3"
+            className="space-y-3 rounded-xl border border-white/[0.08] bg-white/[0.025] p-4"
           >
             <div className="flex items-baseline gap-2">
               <div className="rounded bg-white/8 animate-pulse h-6 w-24" />

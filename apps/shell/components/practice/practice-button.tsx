@@ -50,9 +50,12 @@ export function PracticeButton({ itemId, itemName, className }: Props) {
         type="button"
         onClick={handleClick}
         disabled={busy}
-        className={className ?? "inline-flex items-center gap-1 rounded border border-white/20 px-2.5 py-1 text-xs hover:bg-white/5 disabled:opacity-50"}
+        className={
+          className ??
+          "inline-flex h-7 items-center rounded-full px-3 text-xs text-gray-300 ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-50"
+        }
       >
-        🎯 Practice
+        {busy ? "Opening..." : "Practice"}
       </button>
       {showModal && (
         <PrescriptionModal itemId={itemId} itemName={itemName} onSaved={onConfigured} onCancel={() => setShowModal(false)} />

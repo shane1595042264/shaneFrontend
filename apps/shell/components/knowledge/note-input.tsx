@@ -27,6 +27,11 @@ export function NoteInput({
   categories,
 }: NoteInputProps) {
   const [mode, setMode] = useState<Mode>("ai");
+  // SHAN-576: the composer starts as one line. Open, it is a full markdown
+  // editor with a toolbar, and it used to sit open above the collection on
+  // every visit, pushing the cards below the fold of a page that is mostly
+  // for reading them.
+  const [open, setOpen] = useState(false);
 
   // AI mode state
   const [text, setText] = useState("");
@@ -65,8 +70,35 @@ export function NoteInput({
     else submitManual();
   }
 
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="group flex h-12 w-full items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 text-left text-[15px] text-gray-400 transition-[background-color,border-color] hover:border-white/15 hover:bg-white/[0.04]"
+      >
+        <span
+          aria-hidden="true"
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/[0.06] text-gray-300 transition-colors group-hover:text-white"
+        >
+          +
+        </span>
+        <span className="min-w-0 flex-1 truncate">What did you learn?</span>
+        <span className="hidden font-mono text-[11px] text-gray-400 sm:block">AI files it for you</span>
+      </button>
+    );
+  }
+
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-2">
+    <form
+      onSubmit={handleFormSubmit}
+      onKeyDown={(e) => {
+        // Esc folds an empty composer back to one line; with text in it, Esc
+        // does nothing rather than throw a draft away.
+        if (e.key === "Escape" && !text.trim() && !word.trim() && !definition.trim()) setOpen(false);
+      }}
+      className="space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3"
+    >
       <div className="flex items-center gap-1">
         <ModeTab active={mode === "ai"} onClick={() => setMode("ai")}>
           AI note
@@ -74,6 +106,13 @@ export function NoteInput({
         <ModeTab active={mode === "manual"} onClick={() => setMode("manual")}>
           Quick add (no AI)
         </ModeTab>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="ml-auto rounded-full px-3 py-1.5 text-xs text-gray-400 transition-colors hover:bg-white/[0.06] hover:text-white"
+        >
+          Close
+        </button>
       </div>
 
       {mode === "ai" ? (
@@ -86,6 +125,7 @@ export function NoteInput({
             onChange={setText}
             placeholder='e.g. "gracias means thank you in Spanish" — or paste/drop an image to attach it'
             minHeight="6rem"
+            autoFocus
             onImageUpload={uploadImage}
             onSubmit={submitAi}
           />
@@ -182,10 +222,11 @@ function ModeTab({
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 text-xs border rounded-full transition-colors ${
+      aria-pressed={active}
+      className={`rounded-full px-3 py-1.5 text-xs transition-colors ${
         active
-          ? "bg-white/15 border-white/30 text-white"
-          : "bg-white/5 border-white/10 text-gray-400 hover:text-gray-200 hover:bg-white/10"
+          ? "bg-white/[0.08] text-white ring-1 ring-inset ring-white/15"
+          : "text-gray-400 hover:bg-white/[0.05] hover:text-gray-200"
       }`}
     >
       {children}

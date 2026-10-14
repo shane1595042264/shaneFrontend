@@ -58,6 +58,9 @@ export const CRAWLER_DISALLOW: string[] = [
   "/blog/new",
   "/blog/preview",
   "/blog/*/edit",
+  // SHAN-575: recite works on the signed-in reader's own cards, so a crawler
+  // gets only AuthGate's sign-in prompt. /knowledge itself stays crawlable.
+  "/knowledge/recite",
   "/blog/*/history",
   // SHAN-477: transport alias, not a page. /learn/:slug proxies the course deck
   // hosted on the supermassive-courses origin so corporate DNS filters never

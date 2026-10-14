@@ -301,3 +301,75 @@ export async function fetchCategories(): Promise<string[]> {
   const data = await res.json();
   return data.categories;
 }
+
+// ---------------------------------------------------------------------------
+// SHAN-575: recite
+// ---------------------------------------------------------------------------
+
+export interface ReciteCategoryCount {
+  category: string;
+  /** Your cards in this category that have something to recite. */
+  total: number;
+  /** Of those, the ones not yet memorized at the deck's location. */
+  remaining: number;
+}
+
+export interface ReciteDeck {
+  /** The saved location, under its canonical name ("MIRRA" comes back "Mirra"). */
+  location: { id: string; name: string };
+  /** Not memorized at the location, already shuffled. */
+  cards: KnowledgeEntry[];
+  total: number;
+  categories: ReciteCategoryCount[];
+}
+
+export interface ReciteHint {
+  kind: "example" | "topics" | "opening" | "shape";
+  label: string;
+  text: string;
+}
+
+interface ReciteVerdict {
+  score: number;
+  feedback: string;
+  judge: "match" | "ai" | "similarity";
+}
+
+export type ReciteResult =
+  | (ReciteVerdict & { correct: true; memorizedAt: string; entry: KnowledgeEntry })
+  | (ReciteVerdict & {
+      correct: false;
+      hint: ReciteHint | null;
+      hintNumber: number;
+      hintsTotal: number;
+    });
+
+async function reciteFetch<T>(path: string, body: unknown, fallback: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(typeof err.error === "string" ? err.error : fallback);
+  }
+  return res.json();
+}
+
+/** Saves the location if it is new, then returns your cards not yet memorized there. */
+export function fetchReciteDeck(location: string, categories?: string[]): Promise<ReciteDeck> {
+  return reciteFetch(
+    "/api/knowledge/recite/deck",
+    categories?.length ? { location, categories } : { location },
+    "Couldn't load your cards"
+  );
+}
+
+/** Grades one recital. A pass records the location on the card; a miss returns the next hint. */
+export function submitRecital(
+  id: string,
+  input: { location: string; answer: string; attempt: number }
+): Promise<ReciteResult> {
+  return reciteFetch(`/api/knowledge/entries/${id}/recite`, input, "Couldn't grade that");
+}

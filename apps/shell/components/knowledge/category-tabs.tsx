@@ -1,16 +1,15 @@
 "use client";
 
-const CATEGORY_COLORS: Record<string, string> = {
-  vocabulary: "bg-blue-500/20 border-blue-500/40 text-blue-400",
-  coding: "bg-green-500/20 border-green-500/40 text-green-400",
-  general: "bg-gray-500/20 border-gray-500/40 text-gray-400",
-};
-
-function getCategoryStyle(category: string, active: boolean) {
-  if (active) {
-    return CATEGORY_COLORS[category] || "bg-purple-500/20 border-purple-500/40 text-purple-400";
-  }
-  return "bg-white/5 border-white/10 text-gray-400 hover:text-gray-300 hover:bg-white/8";
+// SHAN-576: one active style for every category, the same quiet pill the site
+// nav uses, instead of a different colour per category. The colours encoded
+// nothing the label did not already say, and four hues in one row of filters
+// was the loudest thing on the page.
+function pillClass(active: boolean) {
+  return `inline-flex h-8 items-center rounded-full px-3.5 text-[13px] capitalize transition-[background-color,color,transform] active:scale-[0.98] ${
+    active
+      ? "bg-white/[0.08] text-white ring-1 ring-inset ring-white/15"
+      : "text-gray-400 ring-1 ring-inset ring-white/[0.07] hover:bg-white/[0.04] hover:text-white"
+  }`;
 }
 
 interface CategoryTabsProps {
@@ -21,25 +20,22 @@ interface CategoryTabsProps {
 
 export function CategoryTabs({ categories, selected, onSelect }: CategoryTabsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5" role="group" aria-label="Category">
       <button
+        type="button"
+        aria-pressed={selected === ""}
         onClick={() => onSelect("")}
-        className={`px-3 py-1.5 text-xs border rounded-full transition-colors ${
-          selected === ""
-            ? "bg-white/15 border-white/30 text-white"
-            : "bg-white/5 border-white/10 text-gray-400 hover:text-gray-300 hover:bg-white/8"
-        }`}
+        className={pillClass(selected === "")}
       >
         All
       </button>
       {categories.map((cat) => (
         <button
           key={cat}
+          type="button"
+          aria-pressed={selected === cat}
           onClick={() => onSelect(cat)}
-          className={`px-3 py-1.5 text-xs border rounded-full transition-colors capitalize ${getCategoryStyle(
-            cat,
-            selected === cat
-          )}`}
+          className={pillClass(selected === cat)}
         >
           {cat}
         </button>
