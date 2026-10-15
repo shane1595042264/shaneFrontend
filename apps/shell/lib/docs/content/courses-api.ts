@@ -23,8 +23,8 @@ All writes share PAT bucket \`courses-write\` (60/min). Course mutations are own
 
 | Method | Path | Scope | Body | Notes |
 |---|---|---|---|---|
-| POST | / | entries:write | \`{url, title?}\` | Fetches the page server-side and classifies it with an LLM. 502 if the URL is unreachable; classification failure falls back to safe defaults (never blocks). 409 duplicate url. Slug generated from title, stable forever |
-| PATCH | /:id | entries:write | any of title, description, category, difficulty, durationMinutes, tags (max 8), url | 409 on url clash |
+| POST | / | entries:write | \`{url, title?}\` | Fetches the page server-side and classifies it with an LLM. \`url\` must be http or https (400 otherwise). 502 if the URL is unreachable or resolves to a private, loopback or link-local address (redirects are checked hop by hop, 10s timeout); classification failure falls back to safe defaults (never blocks). 409 duplicate url. Slug generated from title, stable forever |
+| PATCH | /:id | entries:write | any of title, description, category, difficulty, durationMinutes, tags (max 8), url | url must be http or https (400 otherwise). 409 on url clash |
 | POST | /:id/reclassify | entries:write | none | Re-runs the AI; overwrites description/category/difficulty/duration/tags but PRESERVES title and slug |
 | DELETE | /:id | entries:write | none | 204, cascades ratings and comments |
 | PUT | /:id/cover | entries:write | multipart \`file\` | Same image ladder as journal: sniffed png/jpeg/gif/webp, 5MB 413, 415 otherwise |
