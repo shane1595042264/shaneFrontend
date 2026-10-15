@@ -53,7 +53,7 @@ Every write needs scope \`entries:write\` and shares PAT bucket \`scoreboard-wri
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | /matches | \`{gameId, playerIds, location?}\` | 2..8 player ids, must be unique (400 on duplicates) and must all exist (400 \`Unknown player id\`). Scores start at 0 |
+| POST | /matches | \`{gameId, playerIds, location?}\` | 2..8 player ids, must be unique (400 on duplicates) and must all exist (400 \`Unknown player id\`). \`gameId\` must name an existing game (400 \`Unknown game id\`). Either check also holds if the game or a player is deleted mid-request: the match is created whole or not at all. Scores start at 0 |
 | PATCH | /matches/:id | \`{location}\` | the only editable match field, and the only edit still allowed on a final match (where the game happened is a record, not a score) |
 | PATCH | /matches/:id/score | \`{playerId, delta}\` | \`delta\` is exactly \`1\` or \`-1\`; anything else fails validation. **409** if the match is already final, **404** if the player is not in this match |
 | POST | /matches/:id/finish | none | the winner is derived from the scores, so there is nothing to send; a body is accepted but ignored. Finish and score calls take turns on the match: a score that reaches the server first is counted in the result, one that arrives after it gets a 409, so await your last score before you finish. **409** if the match is already final, **404** if you do not own it |
