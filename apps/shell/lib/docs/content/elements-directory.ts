@@ -148,8 +148,8 @@ const UNTILED: Array<{ name: string; where: string } & ApiFacts> = [
     name: "Activities",
     where: "(journal sidebar)",
     mount: "/api/activities/:date",
-    auth: "public read only",
-    what: "daily activity feed; ingest is cron/admin only",
+    auth: "invite-only: journal membership to read",
+    what: "daily activity feed (calendar, commits, chat, location); ingest is cron/admin only",
   },
 ];
 

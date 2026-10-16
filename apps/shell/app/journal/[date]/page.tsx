@@ -23,6 +23,10 @@ interface PageProps {
 // Making it ISR would mean giving the activity sidebar a revalidate window,
 // which is a deliberate staleness decision about a shared helper, not a
 // caching tidy-up — scope it as its own ticket if it is ever wanted.
+//
+// SHAN-583 update: ActivitySidebar is now a client component (the feed went
+// members-only), so that particular no-store fetch is no longer in the server
+// tree. Re-audit the whole tree per the rule above before trusting that.
 
 /** Validate YYYY-MM-DD format */
 function isValidDate(date: string): boolean {

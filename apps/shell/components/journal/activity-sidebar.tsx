@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getActivities, type Activity } from "@/lib/api/activities";
 import { DEFAULT_TIMEZONE } from "@/lib/timezone";
 
@@ -187,8 +190,32 @@ function summarizeLocations(items: Activity[]): { rows: Row[]; backgroundPings: 
   return { rows, backgroundPings: droppedPings };
 }
 
-export async function ActivitySidebar({ date }: Props) {
-  const acts = await getActivities(date);
+// A client component since SHAN-583. The feed carries calendar events, chat
+// messages and GPS, so the backend only serves it to journal members, and a
+// server component cannot send the viewer's token (it lives in localStorage).
+export function ActivitySidebar({ date }: Props) {
+  const [acts, setActs] = useState<Activity[] | null>(null);
+
+  useEffect(() => {
+    // Reset so a previous date's feed never shows under a different date.
+    setActs(null);
+    const controller = new AbortController();
+    getActivities(date, controller.signal).then((rows) => {
+      if (!controller.signal.aborted) setActs(rows);
+    });
+    return () => controller.abort();
+  }, [date]);
+
+  if (acts === null) {
+    return (
+      <aside
+        className="sticky top-6 rounded border border-white/10 bg-black/10 p-3 text-xs text-gray-400"
+        aria-busy="true"
+      >
+        Loading activity…
+      </aside>
+    );
+  }
 
   if (acts.length === 0) {
     return (
