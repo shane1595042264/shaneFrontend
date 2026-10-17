@@ -100,7 +100,7 @@ Every route under \`/access\` is additionally **browser-session only**. A PAT ge
 | POST | /access/requests/:id/reject | owner | 404 if the request is missing or already decided |
 | GET | /access/members | owner | owner row first |
 | POST | /access/members | owner | \`{email}\`; 404 if nobody has signed in with that address (identity comes from Google OAuth, so invitees must log in once first) |
-| DELETE | /access/members/:userId | owner | 204; 404 for a non-member, and the owner row can never be revoked |
+| DELETE | /access/members/:userId | owner | 204; also clears their access request, so they read as "no access, no request" and can ask again. 404 for a non-member, and the owner row can never be revoked |
 
 Re-requesting after a rejection flips the same row back to pending rather than creating a second request — there is exactly one request row per user.
 
