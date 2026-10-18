@@ -84,7 +84,7 @@ const API_FACTS: Record<string, ApiFacts> = {
   },
   "rng-capitalist": {
     mount: "/api/rng",
-    auth: "authed (any PAT), no scope",
+    auth: "authed (any PAT), no scope; Plaid bank linking is browser-session only",
     what: "AI purchase-decision roulette; evaluate costs an LLM call, 10/min",
   },
   "who-owes-me": {
@@ -197,7 +197,7 @@ const body = [
   SKINCARE_GOTCHA,
   SCOREBOARD_GOTCHA,
   "- RNG evaluate auto-bans a denied category for 30 days; there is no unban endpoint.",
-  "- Admin-gated or machine-only surfaces (practice settings PATCH, activity ingest, wechat ingest, calendar connect, slot assignments) are not usable with PATs; skip them.",
+  "- Admin-gated or machine-only surfaces (practice settings PATCH, activity ingest, wechat ingest, calendar connect, slot assignments, RNG Plaid bank linking) are not usable with PATs; skip them.",
   "",
 ].join("\n");
 

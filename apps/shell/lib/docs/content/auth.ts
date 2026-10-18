@@ -48,7 +48,9 @@ A PAT without the required scope gets 403 \`Token missing required scope: <scope
 | knowledge-entries-write | 30 | knowledge entry writes |
 | vocabulary-writes / vocabulary-enrich | 30 / 10 | vocabulary writes / enrich |
 | practice-* | 30 (sync and vocab reviews 120) | practice writes |
-| rng-capitalist-evaluate / -plaid | 10 / 10 | rng evaluate / Plaid |
+| rng-capitalist-evaluate / -plaid | 10 / 10 | rng evaluate / budget |
+
+RNG Capitalist bank linking (\`POST /api/rng/plaid/link-token\` and \`/plaid/exchange\`) needs a session JWT: any PAT gets 403 \`Bank linking requires a browser session, not a PAT\`. The rest of \`/api/rng\` accepts any PAT.
 
 Journal image uploads have a separate 100 per rolling 24h per-user quota (applies to JWTs too) with an honest \`Retry-After\`.
 
