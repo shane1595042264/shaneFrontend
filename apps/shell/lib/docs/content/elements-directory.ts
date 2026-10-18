@@ -141,7 +141,7 @@ const UNTILED: Array<{ name: string; where: string } & ApiFacts> = [
     name: "Slot assignments",
     where: "(homepage)",
     mount: "/api/slot-assignments",
-    auth: "authed",
+    auth: "browser session only (PATs 403)",
     what: "periodic-table layout persistence; PUT replaces the whole map",
   },
   {
@@ -197,7 +197,7 @@ const body = [
   SKINCARE_GOTCHA,
   SCOREBOARD_GOTCHA,
   "- RNG evaluate auto-bans a denied category for 30 days; there is no unban endpoint.",
-  "- Admin-gated or machine-only surfaces (practice settings PATCH, activity ingest, wechat ingest, calendar connect) are not usable with PATs; skip them.",
+  "- Admin-gated or machine-only surfaces (practice settings PATCH, activity ingest, wechat ingest, calendar connect, slot assignments) are not usable with PATs; skip them.",
   "",
 ].join("\n");
 
