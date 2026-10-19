@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 import { COURSE_HOST } from "./lib/course-launch-url";
+import { SETTINGS_SECTIONS } from "./lib/settings-sections";
 import { assertCrawlerDisallowCoverage } from "./lib/seo-routes-guard";
 import { assertContrastFloor } from "./lib/contrast-guard";
 import { assertNoHardCodedOgImages } from "./lib/og-image-guard";
@@ -141,6 +142,15 @@ const nextConfig: NextConfig = {
   // the remaining suspect. Do not re-litigate auth: the error reproduces with
   // auth_token removed from localStorage and zero /api/auth/me requests.
   htmlLimitedBots: /.*/,
+  async redirects() {
+    return [
+      // SHAN-598: /settings has no page of its own (it 404'd), but the settings
+      // layout's canonical URL points at it. A page-level redirect() would be
+      // prerendered as a 200 carrying a client-side NEXT_REDIRECT, because the
+      // layout above it is a client shell; this answers a real 307 at the edge.
+      { source: "/settings", destination: SETTINGS_SECTIONS[0].href, permanent: false },
+    ];
+  },
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/:path*` },
