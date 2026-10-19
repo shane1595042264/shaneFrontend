@@ -28,7 +28,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 
 /**
  * Where "currently reading" sits: a quarter of the way down the viewport. A
- * heading the rail scrolled to lands 1.5rem from the top (scroll-mt-6), which is
+ * heading the rail scrolled to lands 1.5rem from the top (scroll-mt-under-header), which is
  * comfortably above this line, so the row you clicked is the row that lights up.
  */
 const ACTIVE_LINE = 0.25;
@@ -610,7 +610,7 @@ export function JournalToc({ parts, entryDate, minutes, articleRef }: Props) {
       <nav
         id="journal-toc"
         aria-label="Entry contents"
-        className="sticky top-6 hidden max-h-[calc(100dvh-3rem)] flex-col md:flex print:hidden"
+        className="sticky top-under-header hidden max-h-[calc(100dvh-3rem-var(--site-header-offset))] flex-col transition-[top] duration-[420ms] ease-[var(--ease-glide)] motion-reduce:transition-none md:flex print:hidden"
       >
         <div className="mb-1 flex items-baseline justify-between gap-3">
           {/* A <p>, not a heading, for the reason PostToc gives: the entry's own

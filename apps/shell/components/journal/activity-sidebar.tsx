@@ -209,7 +209,7 @@ export function ActivitySidebar({ date }: Props) {
   if (acts === null) {
     return (
       <aside
-        className="sticky top-6 rounded border border-white/10 bg-black/10 p-3 text-xs text-gray-400"
+        className="sticky top-under-header transition-[top] duration-[420ms] ease-[var(--ease-glide)] motion-reduce:transition-none rounded border border-white/10 bg-black/10 p-3 text-xs text-gray-400"
         aria-busy="true"
       >
         Loading activity…
@@ -219,7 +219,7 @@ export function ActivitySidebar({ date }: Props) {
 
   if (acts.length === 0) {
     return (
-      <aside className="sticky top-6 rounded border border-white/10 bg-black/10 p-3 text-xs text-gray-400">
+      <aside className="sticky top-under-header transition-[top] duration-[420ms] ease-[var(--ease-glide)] motion-reduce:transition-none rounded border border-white/10 bg-black/10 p-3 text-xs text-gray-400">
         No activity recorded for this date.
       </aside>
     );
@@ -234,7 +234,7 @@ export function ActivitySidebar({ date }: Props) {
   }
 
   return (
-    <aside className="sticky top-6 space-y-3 text-sm">
+    <aside className="sticky top-under-header transition-[top] duration-[420ms] ease-[var(--ease-glide)] motion-reduce:transition-none space-y-3 text-sm">
       <h2 className="text-xs font-medium uppercase tracking-wider text-gray-400">
         Activity
       </h2>

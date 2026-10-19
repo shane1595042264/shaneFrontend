@@ -184,7 +184,7 @@ function TodoSection({
     <details
       id={`sec-${section.id}`}
       open
-      className="group/todo scroll-mt-6 rounded-md border border-white/10 bg-black/20 p-3"
+      className="group/todo scroll-mt-under-header rounded-md border border-white/10 bg-black/20 p-3"
     >
       <summary className="flex cursor-pointer select-none items-baseline justify-between gap-2 [&::-webkit-details-marker]:hidden">
         <h3 className="text-sm font-medium text-white/90">

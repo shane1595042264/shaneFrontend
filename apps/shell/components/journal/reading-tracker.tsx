@@ -371,7 +371,8 @@ export function ReadingTracker({ date, articleRef }: Props) {
   const pct = Math.round(progress * 100);
 
   return createPortal(
-    <div className="pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-40 flex justify-center px-4 print:hidden">
+    // Below the site header while it is showing (SHAN-599), at the top edge otherwise.
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--site-header-offset,0px)+max(1rem,env(safe-area-inset-top)))] z-40 flex justify-center px-4 transition-[top] duration-[420ms] ease-[var(--ease-glide)] motion-reduce:transition-none print:hidden">
       <AnimatePresence>
         {pill && (
           <motion.div

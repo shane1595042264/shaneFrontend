@@ -18,7 +18,7 @@ export function PageToc({ entries }: { entries: TocEntry[] }) {
   return (
     <nav
       aria-label="Table of contents"
-      className="hidden lg:sticky lg:top-6 lg:block lg:self-start"
+      className="hidden lg:sticky lg:top-under-header lg:block lg:self-start lg:transition-[top] lg:duration-[420ms] lg:ease-[var(--ease-glide)] lg:motion-reduce:transition-none"
     >
       <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-gray-400">
         Contents
@@ -67,7 +67,7 @@ export function CollapsibleSection({
   children: React.ReactNode;
 }) {
   return (
-    <details id={id} open className="group/sec mb-8 scroll-mt-6">
+    <details id={id} open className="group/sec mb-8 scroll-mt-under-header">
       <summary className="mb-2 flex cursor-pointer select-none items-baseline justify-between gap-3 text-sm font-medium text-gray-300 [&::-webkit-details-marker]:hidden">
         <span>
           <span className="mr-1.5 inline-block transition-transform group-open/sec:rotate-90">

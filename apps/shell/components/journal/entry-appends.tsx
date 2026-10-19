@@ -124,7 +124,7 @@ export function EntryAppends({ date, appends, onEdited, onDeleted, headingsByApp
           const mine = !!user && user.id === a.authorId;
           const isEditing = editingId === a.id;
           return (
-            <li key={a.id} id={`append-${a.id}`} className="relative scroll-mt-6">
+            <li key={a.id} id={`append-${a.id}`} className="relative scroll-mt-under-header">
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-400">
                 <span
                   aria-hidden

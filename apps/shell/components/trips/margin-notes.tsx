@@ -67,7 +67,7 @@ export function NotesMargin({
   }
 
   return (
-    <aside aria-label="Notes" className="lg:sticky lg:top-6 lg:self-start">
+    <aside aria-label="Notes" className="lg:sticky lg:top-under-header lg:self-start lg:transition-[top] lg:duration-[420ms] lg:ease-[var(--ease-glide)] lg:motion-reduce:transition-none">
       <h2 className="mb-2 text-sm font-medium text-gray-300">
         Notes
         {notes.length > 0 && (

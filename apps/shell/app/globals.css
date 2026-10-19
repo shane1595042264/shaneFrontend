@@ -197,6 +197,53 @@ body::after {
 @media (prefers-reduced-motion: reduce) { .live-dot::after { animation: none; } }
 
 /*
+ * SHAN-599: the site header follows the reader (lib/use-site-header.ts sets
+ * data-mode). At rest at the top of the page it is transparent, exactly as
+ * before; once content passes under it it sits on glass; reading downward
+ * slides it away, and an upward scroll, the pointer at the top edge, or
+ * keyboard focus brings it back. Transform and opacity only.
+ *
+ * --site-header-offset is the header's height while it is showing over the
+ * content and 0 otherwise. Sticky rails (top-under-header), the reading pill
+ * and anchor targets (scroll-mt-under-header) read it, so the header never
+ * covers the top of a rail or the heading a link jumped to.
+ *
+ * Not scroll-padding-top on html, which looks like the obvious tool: it marks
+ * the top 64px of the viewport as obscured, the header's own links live in
+ * exactly that band, and Chrome then scrolls the page half a screen every time
+ * Tab lands on one of them. Measured: 450px per Tab at a 900px viewport.
+ */
+:root { --site-header-offset: 0px; }
+.site-header { transition: transform 420ms var(--ease-glide); }
+/* Past its own height, so the shadow goes too. */
+.site-header[data-mode="hidden"] { transform: translateY(calc(-100% - 1.5rem)); }
+.site-header-glass {
+  opacity: 0;
+  background: rgb(7 8 10 / 0.72);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.06), 0 18px 40px -24px rgb(0 0 0 / 0.8);
+  transition: opacity 240ms var(--ease-out-expo);
+}
+.site-header:not([data-mode="top"]) .site-header-glass { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .site-header, .site-header-glass { transition: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .site-header-glass { background: var(--background); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+@utility top-under-header {
+  top: calc(var(--site-header-offset, 0px) + 1.5rem);
+}
+@utility top-under-header-8 {
+  top: calc(var(--site-header-offset, 0px) + 2rem);
+}
+@utility scroll-mt-under-header {
+  scroll-margin-top: calc(var(--site-header-offset, 0px) + 1.5rem);
+}
+
+/*
  * SHAN-558: navigation transitions (components/transition-link.tsx and
  * lib/view-transition.tsx). Every in-app link runs inside
  * document.startViewTransition: the old page sinks back and blurs out, the

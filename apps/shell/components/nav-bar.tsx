@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useSiteHeader } from "@/lib/use-site-header";
 import { UserMenu } from "@/components/user-menu";
 import { LoginButton, LoginButtonPlaceholder } from "@/components/login-button";
 import {
@@ -30,6 +31,12 @@ export function NavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const toggleRef = useRef<HTMLButtonElement>(null);
+  // SHAN-599: the header follows the reader down the page. It stays out while
+  // the menu is open or the pointer or keyboard focus is inside it.
+  const [focusInside, setFocusInside] = useState(false);
+  const [pointerInside, setPointerInside] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const headerMode = useSiteHeader(menuOpen || focusInside || pointerInside, navRef);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -84,97 +91,131 @@ export function NavBar() {
     // SHAN-558: `site-nav` holds the bar still through page transitions, and
     // the active link's pill carries `nav-indicator`, so on every navigation
     // the pill glides from the old link to the new one (app/globals.css).
+    //
+    // SHAN-599: sticky, so it keeps its place in the page at rest and nothing
+    // below it moves. `data-mode` drives the glass and the slide (globals.css,
+    // .site-header). The glass is its own layer rather than a backdrop-filter
+    // on the nav: a filtered or transformed ancestor becomes the containing
+    // block for `position: fixed`, which would shrink the mobile menu's
+    // full-screen click-catcher to the size of this bar. The nav only carries
+    // a transform while hidden, and the menu cannot be open then.
+    //
+    // `site-nav` is on the inner row, not the nav, for the same family of
+    // reason: an element with a view-transition-name is a backdrop root, so a
+    // backdrop-filter inside it can only see the element's own contents. With
+    // the name on the nav, neither the header glass nor the mobile menu panel
+    // could blur the page behind them (the panel had not blurred since
+    // SHAN-558). The glass and the panel sit beside the named row instead.
     <nav
-      style={{ viewTransitionName: "site-nav" }}
-      className="relative z-30 flex h-16 items-center justify-between px-5 md:px-8 print:hidden"
+      ref={navRef}
+      data-mode={headerMode}
+      // Keyboard focus only: a clicked link keeps focus after the navigation,
+      // and holding on that would pin the header for the whole next page.
+      onFocus={(e) => {
+        if ((e.target as Element).matches?.(":focus-visible")) setFocusInside(true);
+      }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusInside(false);
+      }}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") setPointerInside(true);
+      }}
+      onPointerLeave={() => setPointerInside(false)}
+      className="site-header sticky top-0 z-30 print:hidden"
     >
+      <span aria-hidden="true" className="site-header-glass pointer-events-none absolute inset-0 -z-10" />
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"
       />
-      <Link
-        href="/"
-        className="text-[17px] font-semibold tracking-[-0.03em] transition-opacity duration-300 hover:opacity-80"
+      <div
+        style={{ viewTransitionName: "site-nav" }}
+        className="flex h-16 items-center justify-between px-5 md:px-8"
       >
-        Shane<span className="text-teal-400">.</span>
-      </Link>
+        <Link
+          href="/"
+          className="text-[17px] font-semibold tracking-[-0.03em] transition-opacity duration-300 hover:opacity-80"
+        >
+          Shane<span className="text-teal-400">.</span>
+        </Link>
 
-      {/*
-        Desktop nav. `lg` rather than `md` since SHAN-526: the row went from
-        four links to seven, which overflows against the brand and the user
-        menu at 768px, so the hamburger now covers tablet widths too. The gap
-        tightens to 5 for the same reason.
-      */}
-      <div className="hidden lg:flex items-center gap-1 text-[13px]">
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={linkClass(link.href, link.exact)}
-            aria-current={isActive(link.href, link.exact) ? "page" : undefined}
-          >
-            {isActive(link.href, link.exact) && (
-              <span
-                aria-hidden="true"
-                style={{ viewTransitionName: "nav-indicator" }}
-                className="absolute inset-0 rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/10"
-              />
-            )}
-            <span data-vt-title className="relative">{link.label}</span>
-          </Link>
-        ))}
-        <span aria-hidden="true" className="mx-2 h-4 w-px bg-white/10" />
         {/*
-          SHAN-492: `hydrated` as well as `!loading`. Every page ships this nav
-          in its prerendered HTML with this slot empty, and `loading` lives in a
-          context above the nav — it can flip to false before this tree hydrates,
-          which puts a UserMenu here that the server HTML never had and makes
-          React throw away the whole document (intermittent #418, signed in
-          only). The local flag is always false during our own hydration render.
-
-          SHAN-547: the empty branch is a placeholder rather than nothing. The
-          gate above has to stay, but "render nothing until hydrated" left this
-          row 20px tall in every page's prerendered HTML and 36px a beat later,
-          and the nav is above <main>, so the whole page dropped 8px — CLS
-          0.1266 site-wide, over the 0.1 threshold, on an otherwise all-100
-          site. The placeholder is the same pill at visibility:hidden, so the
-          row is its final size from first paint and the real control lands in
-          a box that already exists. It renders identically on the server and
-          in the hydration render, so the #418 constraint is untouched.
+          Desktop nav. `lg` rather than `md` since SHAN-526: the row went from
+          four links to seven, which overflows against the brand and the user
+          menu at 768px, so the hamburger now covers tablet widths too. The gap
+          tightens to 5 for the same reason.
         */}
-        {hydrated && !loading ? (
-          user ? <UserMenu user={user} /> : <LoginButton />
-        ) : (
-          <LoginButtonPlaceholder />
-        )}
-      </div>
+        <div className="hidden lg:flex items-center gap-1 text-[13px]">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={linkClass(link.href, link.exact)}
+              aria-current={isActive(link.href, link.exact) ? "page" : undefined}
+            >
+              {isActive(link.href, link.exact) && (
+                <span
+                  aria-hidden="true"
+                  style={{ viewTransitionName: "nav-indicator" }}
+                  className="absolute inset-0 rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/10"
+                />
+              )}
+              <span data-vt-title className="relative">{link.label}</span>
+            </Link>
+          ))}
+          <span aria-hidden="true" className="mx-2 h-4 w-px bg-white/10" />
+          {/*
+            SHAN-492: `hydrated` as well as `!loading`. Every page ships this nav
+            in its prerendered HTML with this slot empty, and `loading` lives in a
+            context above the nav — it can flip to false before this tree hydrates,
+            which puts a UserMenu here that the server HTML never had and makes
+            React throw away the whole document (intermittent #418, signed in
+            only). The local flag is always false during our own hydration render.
 
-      {/* Mobile hamburger button */}
-      <button
-        ref={toggleRef}
-        type="button"
-        className="lg:hidden flex items-center justify-center w-8 h-8 text-gray-400 hover:text-white transition-colors"
-        onClick={() => setMenuOpen((prev) => !prev)}
-        aria-label={menuOpen ? "Close menu" : "Open menu"}
-        aria-expanded={menuOpen}
-        // Only point at the panel while it exists, so the accessibility tree
-        // never carries a dangling aria-controls target (same rule as
-        // element-search.tsx).
-        aria-controls={menuOpen ? MOBILE_MENU_ID : undefined}
-      >
-        {menuOpen ? (
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="4" y1="4" x2="16" y2="16" />
-            <line x1="16" y1="4" x2="4" y2="16" />
-          </svg>
-        ) : (
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="3" y1="5" x2="17" y2="5" />
-            <line x1="3" y1="10" x2="17" y2="10" />
-            <line x1="3" y1="15" x2="17" y2="15" />
-          </svg>
-        )}
-      </button>
+            SHAN-547: the empty branch is a placeholder rather than nothing. The
+            gate above has to stay, but "render nothing until hydrated" left this
+            row 20px tall in every page's prerendered HTML and 36px a beat later,
+            and the nav is above <main>, so the whole page dropped 8px — CLS
+            0.1266 site-wide, over the 0.1 threshold, on an otherwise all-100
+            site. The placeholder is the same pill at visibility:hidden, so the
+            row is its final size from first paint and the real control lands in
+            a box that already exists. It renders identically on the server and
+            in the hydration render, so the #418 constraint is untouched.
+          */}
+          {hydrated && !loading ? (
+            user ? <UserMenu user={user} /> : <LoginButton />
+          ) : (
+            <LoginButtonPlaceholder />
+          )}
+        </div>
+
+        {/* Mobile hamburger button */}
+        <button
+          ref={toggleRef}
+          type="button"
+          className="lg:hidden flex items-center justify-center w-8 h-8 text-gray-400 hover:text-white transition-colors"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          // Only point at the panel while it exists, so the accessibility tree
+          // never carries a dangling aria-controls target (same rule as
+          // element-search.tsx).
+          aria-controls={menuOpen ? MOBILE_MENU_ID : undefined}
+        >
+          {menuOpen ? (
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="4" y1="4" x2="16" y2="16" />
+              <line x1="16" y1="4" x2="4" y2="16" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="5" x2="17" y2="5" />
+              <line x1="3" y1="10" x2="17" y2="10" />
+              <line x1="3" y1="15" x2="17" y2="15" />
+            </svg>
+          )}
+        </button>
+      </div>
 
       {/* Mobile menu overlay */}
       <AnimatePresence>

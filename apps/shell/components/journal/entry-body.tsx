@@ -31,7 +31,7 @@ interface Props {
  */
 export function EntryBody({ content, headings, notes }: Props) {
   const base = headings?.length
-    ? { ...markdownComponents, ...anchoredHeadings(headings, { scrollMarginClass: "scroll-mt-6" }) }
+    ? { ...markdownComponents, ...anchoredHeadings(headings, { scrollMarginClass: "scroll-mt-under-header" }) }
     : markdownComponents;
   const components = notes?.length ? { ...base, mark: NoteMark } : base;
   return (

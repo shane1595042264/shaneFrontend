@@ -310,7 +310,7 @@ export function JournalEntryView({ date, sidebar }: Props) {
                 </Link>
               )}
             </div>
-            <div id={ENTRY_BODY_ANCHOR} className="mt-4 scroll-mt-6">
+            <div id={ENTRY_BODY_ANCHOR} className="mt-4 scroll-mt-under-header">
               <NotedEntryBody target="entry" content={data.content} headings={toc[0]?.headings} />
             </div>
             {data.appends && data.appends.length > 0 && (

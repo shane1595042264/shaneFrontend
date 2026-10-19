@@ -226,7 +226,7 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
   return (
     <div className="flex flex-col gap-8 lg:flex-row lg:gap-10">
       <aside className="lg:w-52 lg:shrink-0">
-        <div className="space-y-4 lg:sticky lg:top-8">
+        <div className="space-y-4 lg:sticky lg:top-under-header-8 lg:transition-[top] lg:duration-[420ms] lg:ease-[var(--ease-glide)] lg:motion-reduce:transition-none">
           {hydrated && user && (
             <Link
               href="/blog/new"

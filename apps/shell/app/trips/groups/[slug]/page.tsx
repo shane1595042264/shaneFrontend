@@ -345,7 +345,7 @@ function ItineraryView({
               key={gi}
               id={`country-${gi}`}
               open
-              className="group relative scroll-mt-6 overflow-hidden rounded-lg border border-white/15"
+              className="group relative scroll-mt-under-header overflow-hidden rounded-lg border border-white/15"
               style={rep ? photoBgStyle(rep.url, [0.7, 0.9]) : undefined}
             >
               <summary className="cursor-pointer select-none px-3 py-2.5 text-sm font-medium text-white hover:bg-white/5">
@@ -904,7 +904,7 @@ function GroupDetail() {
 
       <GroupSections slug={detail.slug} isOwner={detail.isOwner} onSectionsChange={setTocSections} />
 
-      <details id="itinerary" open className="group/sec mb-8 scroll-mt-6">
+      <details id="itinerary" open className="group/sec mb-8 scroll-mt-under-header">
         <summary className="mb-2 cursor-pointer select-none text-sm font-medium text-gray-300 [&::-webkit-details-marker]:hidden">
           <span className="mr-1.5 inline-block transition-transform group-open/sec:rotate-90">›</span>
           Itinerary
