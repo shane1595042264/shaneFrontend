@@ -146,9 +146,12 @@ export function capturePositionAt(root: Element, node: Node): CapturedPosition |
  * which usually lands mid-word, so cut back to a whole word and say so.
  */
 export function readingSnippet(text: string): string {
-  if (Array.from(text).length < TEXT_CAP) return text;
-  const cut = text.lastIndexOf(" ");
-  return (cut > 40 ? text.slice(0, cut) : text).replace(/[\s.,;:!?-]+$/, "") + "…";
+  // The UI wraps this in its own quotes, so a paragraph that is itself a
+  // quotation would otherwise read “"I'm Shane...”.
+  const bare = text.replace(/^["“”'‘’]+/, "").replace(/["“”'‘’]+$/, "");
+  if (Array.from(text).length < TEXT_CAP) return bare;
+  const cut = bare.lastIndexOf(" ");
+  return (cut > 40 ? bare.slice(0, cut) : bare).replace(/[\s.,;:!?"“”-]+$/, "") + "…";
 }
 
 /** Whether a saved position is worth scrolling to at all. */
