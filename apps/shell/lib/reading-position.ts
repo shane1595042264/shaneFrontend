@@ -50,16 +50,29 @@ function keyOf(text: string): string {
   return text.slice(0, KEY_LEN).toLowerCase();
 }
 
-/** The readable blocks inside `root`, in document order. Note UI and anything hidden are left out. */
+/**
+ * The readable blocks inside `root`, in document order. Note UI and anything
+ * hidden are left out.
+ *
+ * Only the rendered text counts: the entry body and each append's body, which
+ * are the `[data-note-target]` parts the notes layer already marks. Measured
+ * across the whole article, each append's `<li>` was the outermost block, so a
+ * whole append became one block whose opening words were its header ("5d ago ·
+ * Juntao Li edit delete"), and that stops matching the next day.
+ */
 export function readingBlocks(root: Element): Element[] {
+  const parts = root.querySelectorAll("[data-note-target]");
+  const scopes = parts.length > 0 ? [...parts] : [root];
   const out: Element[] = [];
-  root.querySelectorAll(BLOCK_SELECTOR).forEach((el) => {
-    if (el.closest("[data-anno-skip]")) return;
-    const outer = el.parentElement?.closest(BLOCK_SELECTOR);
-    if (outer && root.contains(outer)) return;
-    if (el.getClientRects().length === 0) return;
-    out.push(el);
-  });
+  for (const scope of scopes) {
+    scope.querySelectorAll(BLOCK_SELECTOR).forEach((el) => {
+      if (el.closest("[data-anno-skip]")) return;
+      const outer = el.parentElement?.closest(BLOCK_SELECTOR);
+      if (outer && scope.contains(outer)) return;
+      if (el.getClientRects().length === 0) return;
+      out.push(el);
+    });
+  }
   return out;
 }
 

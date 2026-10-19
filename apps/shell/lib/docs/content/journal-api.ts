@@ -91,7 +91,7 @@ Where the signed-in reader left off in each entry, synced across their devices. 
 | PUT | /reading/:date | \`{progress: 0..1, anchor: {block, offset, text}}\`, strict. 200 \`{position}\`; 404 when the date has no published entry |
 
 - A position is \`{date, progress, anchor, updatedAt}\`. One per reader per entry, and every PUT replaces it, so a lower \`progress\` than before is saved like any other: it is the last place read, not the furthest.
-- \`anchor\` is measured on the page, not in pixels. \`block\` (int 0..100000) indexes the text blocks of the entry and its appends in document order (paragraphs, headings, list items, code blocks, tables, images, diagrams; the outermost wins), \`offset\` (0..100) is how far down that block the reading line sits as a fraction of its height (past 1 in a gap below it), and \`text\` (up to 200 chars) is the block's opening words, used to find it again when an edit moved it. \`progress\` is the fallback when it cannot be found.
+- \`anchor\` is measured on the page, not in pixels. \`block\` (int 0..100000) indexes the text blocks of the entry body and each append body in document order (paragraphs, headings, list items, code blocks, tables, images, diagrams; the outermost wins; headers, dates and buttons around them are not counted), \`offset\` (0..100) is how far down that block the reading line sits as a fraction of its height (past 1 in a gap below it), and \`text\` (up to 200 chars) is the block's opening words, used to find it again when an edit moved it. \`progress\` is the fallback when it cannot be found.
 - \`progress\` is 1 once the end of the entry is on screen. The site counts 0.98 and up as read.
 - Last write wins, by server time.
 
