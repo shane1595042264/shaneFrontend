@@ -10,10 +10,10 @@ Bring-your-own-key AI for Explain, and private inline notes on blog posts and kn
 |---|---|---|
 | GET | /ai/keys | \`{keys, settings, providers}\`. Keys never include the secret: \`keyHint\` is its last four characters |
 | POST | /ai/keys | \`{key}\`. Provider detected from the format, key checked, sealed, stored. One key per provider: adding a second replaces the first. 201 \`{key}\` |
-| PATCH | /ai/keys/:id | \`{preferredModel: string or null}\`. Must be one of the key's \`models\`; null means the cheapest that works |
-| POST | /ai/keys/:id/check | re-runs the check; updates \`models\`, \`defaultModel\`, \`status\` |
+| PATCH | /ai/keys/:id | \`{preferredModel: string or null}\`. Must be one of the key's \`models\`; null means the cheapest that works. 409 if the key was replaced or deleted while the request was in flight |
+| POST | /ai/keys/:id/check | re-runs the check; updates \`models\`, \`defaultModel\`, \`status\`. If a new key for the provider was added during the check, the result is dropped and the current key is returned |
 | DELETE | /ai/keys/:id | 204 |
-| PATCH | /ai/settings | \`{preferredProvider?: provider or null, notesToKnowledge?: boolean}\` |
+| PATCH | /ai/settings | \`{preferredProvider?: provider or null, notesToKnowledge?: boolean}\`. Only the fields sent are written; 200 with the stored settings |
 
 Supported formats: Google Gemini \`AIza\` + 35 characters, OpenAI \`sk-\`, Anthropic \`sk-ant-\`, xAI Grok \`xai-\`. Groq (\`gsk_\`), OpenRouter (\`sk-or-\`) and admin keys are refused with a reason that names them. An unrecognised format is 400 \`{error, code: "unknown_provider"}\`.
 
