@@ -154,9 +154,13 @@ export function readingSnippet(text: string): string {
   return (cut > 40 ? bare.slice(0, cut) : bare).replace(/[\s.,;:!?"“”-]+$/, "") + "…";
 }
 
-/** Whether a saved position is worth scrolling to at all. */
+/**
+ * Whether a saved position is worth scrolling to at all. The same line the
+ * Continue card and the row labels draw: under STARTED the reader is at the
+ * top, so there is nothing to resume and no "Picked up where you left off".
+ */
 export function isPastTheTop(pos: CapturedPosition): boolean {
-  return pos.anchor.block > 0 || pos.anchor.offset > 0.5 || pos.progress > STARTED;
+  return pos.progress >= STARTED;
 }
 
 /** The scrollY that puts a saved position back on the reading line. */

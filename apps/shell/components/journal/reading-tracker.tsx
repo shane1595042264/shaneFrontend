@@ -273,7 +273,14 @@ export function ReadingTracker({ date, articleRef }: Props) {
         // A #section link means "take me there", which beats "where I was".
         !!window.location.hash ||
         tookOver ||
-        window.scrollY > 80;
+        window.scrollY > 80 ||
+        // Nowhere to go: a short entry saves as read (its end is on screen
+        // from the start), and "picked up where you left off" without moving
+        // would be noise.
+        (() => {
+          const root = live();
+          return !root || scrollTargetFor(root, chosen) < 80;
+        })();
       if (skip) {
         startTracking();
         return;
