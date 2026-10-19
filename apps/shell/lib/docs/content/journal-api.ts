@@ -80,6 +80,21 @@ An inline note is a top-level comment pinned to words on the page: \`anchor\` is
 - A new note is also filed into Knowledge as a card unless its author turned that off in AI settings; replies are not.
 - Anchors are text, not offsets, so a note survives edits that leave its words alone. When the words are edited away the note is kept: the site lists it under the entry as a note on text that changed. \`GET /entries/:date/comments\` returns every comment, \`anchor\` included (null on ordinary comments and replies).
 
+### Reading positions
+
+Where the signed-in reader left off in each entry, synced across their devices. **Browser session only**: any PAT gets 403, because an agent has no place in an entry to save. Membership applies as everywhere else.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | /reading | \`?limit=1..100\` (default 20). \`{positions}\`, most recently read first; trashed entries left out |
+| GET | /reading/:date | \`{position}\`, or \`{position: null}\` when you have not read that entry |
+| PUT | /reading/:date | \`{progress: 0..1, anchor: {block, offset, text}}\`, strict. 200 \`{position}\`; 404 when the date has no published entry |
+
+- A position is \`{date, progress, anchor, updatedAt}\`. One per reader per entry, and every PUT replaces it, so a lower \`progress\` than before is saved like any other: it is the last place read, not the furthest.
+- \`anchor\` is measured on the page, not in pixels. \`block\` (int 0..100000) indexes the text blocks of the entry and its appends in document order (paragraphs, headings, list items, code blocks, tables, images, diagrams; the outermost wins), \`offset\` (0..100) is how far down that block the reading line sits as a fraction of its height (past 1 in a gap below it), and \`text\` (up to 200 chars) is the block's opening words, used to find it again when an edit moved it. \`progress\` is the fallback when it cannot be found.
+- \`progress\` is 1 once the end of the entry is on screen. The site counts 0.98 and up as read.
+- Last write wins, by server time.
+
 ## Access (invite-only membership)
 
 The journal is invite-only. Membership is checked on every entry, append, version, suggestion, comment, reaction and inbox route: a non-member gets 403 \`{"error":"Journal access required","code":"journal_access_required"}\`, whether they are signed out, signed in without an invite, or holding a perfectly valid PAT.

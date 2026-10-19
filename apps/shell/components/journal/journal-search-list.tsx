@@ -5,6 +5,9 @@ import Link from "@/components/transition-link";
 import { toPlainExcerpt } from "@/lib/journal-text";
 import { useAuth } from "@/lib/auth-context";
 import { listEntries as apiListEntries, type JournalEntry as ApiJournalEntry } from "@/lib/api/journal";
+import { listReadingPositions, type ReadingPosition } from "@/lib/api/journal-reading";
+import { READ_THROUGH } from "@/lib/reading-position";
+import { ContinueReading } from "@/components/journal/continue-reading";
 import {
   getTodayInTimezone,
   monthLongLabel,
@@ -136,6 +139,32 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
   useEffect(() => {
     setToday(getTodayInTimezone(viewerTz));
   }, [viewerTz]);
+
+  // SHAN-597: where this reader is in each entry, for the Continue card and the
+  // progress line on each row. Signed-in only, and fetched here so one request
+  // serves both.
+  const [positions, setPositions] = useState<ReadingPosition[]>([]);
+  useEffect(() => {
+    if (!user) {
+      setPositions([]);
+      return;
+    }
+    let cancelled = false;
+    listReadingPositions(100)
+      .then((rows) => {
+        if (!cancelled) setPositions(rows);
+      })
+      .catch(() => {
+        // Not fatal: the list still works without progress on it.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+  const progressByDate = useMemo(
+    () => new Map(positions.map((p) => [p.date, p.progress])),
+    [positions]
+  );
 
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -275,6 +304,7 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
 
   return (
     <div>
+      {!isFiltering && <ContinueReading positions={positions} />}
       <div className="mb-6">
         <label htmlFor="journal-search" className="sr-only">
           Search journal entries
@@ -423,12 +453,26 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
                       const relLabel = relativeDayLabel(e.date, today);
                       const isRecent = relLabel === "Today" || relLabel === "Yesterday";
                       const tzTag = timezoneTagFor(e.authorTimezone, viewerTz);
+                      const progress = progressByDate.get(e.date);
+                      const finished = progress !== undefined && progress >= READ_THROUGH;
                       return (
                         <li key={e.id}>
                           <Link
                             href={`/journal/${e.date}`}
-                            className="block px-4 py-3 hover:bg-muted/50"
+                            className="relative block px-4 py-3 hover:bg-muted/50"
                           >
+                            {progress !== undefined && (
+                              // How far in you are, along the row's bottom edge.
+                              <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-x-0 bottom-0 h-px overflow-hidden"
+                              >
+                                <span
+                                  className={`block h-full origin-left ${finished ? "bg-blue-400/40" : "bg-blue-400/80"}`}
+                                  style={{ transform: `scaleX(${Math.max(progress, 0.02)})` }}
+                                />
+                              </span>
+                            )}
                             <div className="flex items-baseline justify-between">
                               <span className="flex items-center gap-2">
                                 <span className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -458,6 +502,12 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
                                 )}
                               </span>
                               <span className="ml-4 flex items-center gap-3 text-xs text-muted-foreground">
+                                {progress !== undefined && (
+                                  <span className="font-mono tabular-nums text-blue-400">
+                                    {finished ? "Read" : `${Math.round(progress * 100)}%`}
+                                    {!finished && <span className="sr-only"> read</span>}
+                                  </span>
+                                )}
                                 <span>
                                   {e.editCount} edit{e.editCount === 1 ? "" : "s"}
                                 </span>

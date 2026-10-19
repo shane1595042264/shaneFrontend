@@ -70,7 +70,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The full collaborative journal write surface: entries, appends, versions, suggestions, comments, reactions.",
     body: journalApi,
-    lastModified: "2026-10-18T23:30:00-05:00",
+    lastModified: "2026-10-19T09:00:00-05:00",
   },
   {
     slug: "blog-api",

@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
 import { captureAnchor, captureContext, collapse, type NoteAnchor } from "@/lib/journal-notes";
 import type { MarkableNote } from "@/lib/rehype-note-marks";
+import { markReadingAt } from "@/lib/reading-position";
 import { useHydrated } from "@/lib/use-hydrated";
 
 /**
@@ -349,6 +350,10 @@ export function NotesProvider({
     const d = draftRef.current;
     if (!d) return;
     const created = await adapterRef.current.create({ anchor: d.anchor, content });
+    // SHAN-597: a note is proof of where the reader got to. Signalled before
+    // the body re-renders with the new mark, while the range still points at
+    // live text.
+    markReadingAt(d.range.startContainer);
     setNotes((prev) => [...prev, withAuthor({ ...created, anchor: created.anchor ?? d.anchor })]);
     markFresh(created.id);
     dismissDraft();
@@ -366,6 +371,7 @@ export function NotesProvider({
         collapse(t.root.anchor.quote).trim() === d.anchor.quote
     );
     if (cached) {
+      markReadingAt(d.range.startContainer);
       dismissDraft();
       setOpenWhenMarked(cached.root.id);
       return;
@@ -389,6 +395,7 @@ export function NotesProvider({
         meta: { kind: "ai", provider: r.provider, model: r.model },
       });
       if (run !== explainRun.current) return;
+      markReadingAt(d.range.startContainer);
       setNotes((prev) => [...prev, withAuthor({ ...created, anchor: created.anchor ?? d.anchor })]);
       markFresh(created.id);
       setOpenWhenMarked(created.id);
