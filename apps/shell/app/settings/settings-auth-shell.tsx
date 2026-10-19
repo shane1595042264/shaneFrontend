@@ -3,12 +3,7 @@
 import Link from "@/components/transition-link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-
-const SECTIONS = [
-  { href: "/settings/tokens", label: "Tokens" },
-  // SHAN-596: AI keys for Explain, and what they have cost.
-  { href: "/settings/ai", label: "AI" },
-];
+import { SETTINGS_SECTIONS } from "@/lib/settings-sections";
 
 function Frame({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto max-w-3xl px-4 py-10 md:px-8">{children}</div>;
@@ -51,7 +46,7 @@ export function SettingsAuthShell({ children }: { children: React.ReactNode }) {
         aria-label="Settings sections"
         className="mb-8 flex gap-6 border-b border-white/10 text-sm"
       >
-        {SECTIONS.map((section) => {
+        {SETTINGS_SECTIONS.map((section) => {
           const active = pathname.startsWith(section.href);
           return (
             <Link

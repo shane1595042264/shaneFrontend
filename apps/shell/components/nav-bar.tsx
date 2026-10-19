@@ -215,7 +215,7 @@ export function NavBar() {
                   before hydration would be dead markup.
                 */}
                 {!loading &&
-                  (user ? <UserMenu user={user} /> : <LoginButton />)}
+                  (user ? <UserMenu user={user} variant="inline" /> : <LoginButton />)}
               </div>
             </motion.div>
           </>
