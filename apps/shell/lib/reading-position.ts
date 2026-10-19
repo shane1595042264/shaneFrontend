@@ -13,6 +13,9 @@ export const READING_LINE = 0.25;
 /** At or past this the entry counts as read. */
 export const READ_THROUGH = 0.98;
 
+/** Below this the reader is still at the top: nothing to resume, nothing to show. */
+export const STARTED = 0.02;
+
 /** Fired by the notes layer when a note or an explanation lands on a node. */
 export const READING_MARK_EVENT = "journal:reading-mark";
 
@@ -137,7 +140,7 @@ export function readingSnippet(text: string): string {
 
 /** Whether a saved position is worth scrolling to at all. */
 export function isPastTheTop(pos: CapturedPosition): boolean {
-  return pos.anchor.block > 0 || pos.anchor.offset > 0.5 || pos.progress > 0.02;
+  return pos.anchor.block > 0 || pos.anchor.offset > 0.5 || pos.progress > STARTED;
 }
 
 /** The scrollY that puts a saved position back on the reading line. */

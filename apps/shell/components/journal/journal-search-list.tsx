@@ -6,7 +6,7 @@ import { toPlainExcerpt } from "@/lib/journal-text";
 import { useAuth } from "@/lib/auth-context";
 import { listEntries as apiListEntries, type JournalEntry as ApiJournalEntry } from "@/lib/api/journal";
 import { listReadingPositions, type ReadingPosition } from "@/lib/api/journal-reading";
-import { READ_THROUGH } from "@/lib/reading-position";
+import { READ_THROUGH, STARTED } from "@/lib/reading-position";
 import { ContinueReading } from "@/components/journal/continue-reading";
 import {
   getTodayInTimezone,
@@ -162,7 +162,7 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
     };
   }, [user]);
   const progressByDate = useMemo(
-    () => new Map(positions.map((p) => [p.date, p.progress])),
+    () => new Map(positions.filter((p) => p.progress >= STARTED).map((p) => [p.date, p.progress])),
     [positions]
   );
 

@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import Link from "@/components/transition-link";
 import type { ReadingPosition } from "@/lib/api/journal-reading";
 import { formatRelativeTime } from "@/lib/format-time";
-import { READ_THROUGH, readingSnippet } from "@/lib/reading-position";
+import { READ_THROUGH, STARTED, readingSnippet } from "@/lib/reading-position";
 
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 
@@ -50,7 +50,8 @@ interface Props {
  */
 export function ContinueReading({ positions }: Props) {
   const reduce = useReducedMotion() ?? false;
-  const unfinished = positions.filter((p) => p.progress < READ_THROUGH);
+  // Scrolled back to the top counts as not started: that is where they left off.
+  const unfinished = positions.filter((p) => p.progress >= STARTED && p.progress < READ_THROUGH);
   const [primary, ...rest] = unfinished;
   if (!primary) return null;
   const others = rest.slice(0, 2);
