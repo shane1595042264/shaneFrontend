@@ -9,6 +9,13 @@ export interface CommentAuthor {
   avatarUrl: string | null;
 }
 
+/** SHAN-596: how a note came to be. Present only on an Explain answer saved as a note. */
+export interface NoteMeta {
+  kind: "ai";
+  provider: "gemini" | "openai" | "anthropic" | "xai";
+  model: string;
+}
+
 export interface Comment {
   id: string;
   entryId: string;
@@ -22,6 +29,7 @@ export interface Comment {
    * page). Its replies carry null and live in its thread.
    */
   anchor?: NoteAnchor | null;
+  meta?: NoteMeta | null;
   editedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -40,12 +48,13 @@ export async function postComment(
   date: string,
   content: string,
   parentCommentId?: string,
-  anchor?: NoteAnchor
+  anchor?: NoteAnchor,
+  meta?: NoteMeta
 ) {
   const res = await fetch(`${API_URL}/api/journal/entries/${date}/comments`, {
     method: "POST",
     headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ content, parent_comment_id: parentCommentId, anchor }),
+    body: JSON.stringify({ content, parent_comment_id: parentCommentId, anchor, meta }),
   });
   if (!res.ok) throw new Error("Failed to post comment");
   return (await res.json()).comment as Comment;

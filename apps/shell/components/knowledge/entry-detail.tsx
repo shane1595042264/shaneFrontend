@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { responsiveTableComponents } from "@/lib/markdown-table";
 import { MarkdownEditor } from "@shane/ui";
 import type { KnowledgeEntry, KnowledgeConnection } from "@/lib/knowledge-api";
@@ -17,6 +15,8 @@ import {
 import { uploadImage } from "@/lib/api/images";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { KnowledgeCommentsThread } from "./comments-thread";
+import { NotedMarkdown, ReaderNotesScope } from "@/components/notes/reader-notes-scope";
+import { OrphanNotes } from "@/components/notes/inline-notes";
 import { MemorizationLocations } from "./memorization-locations";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
@@ -419,29 +419,36 @@ export function EntryDetail({
           </div>
         ) : (
           <>
-            {entry.definition && (
-              <div className="mb-4">
-                <h3 className="text-xs text-gray-400 uppercase mb-1">
-                  Definition
-                </h3>
-                <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 text-gray-300">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={responsiveTableComponents}>
-                    {entry.definition}
-                  </ReactMarkdown>
+            {/* SHAN-596: select words in the definition or the example to
+                note them or have them explained, privately. */}
+            <ReaderNotesScope surface="knowledge" resourceId={entry.id} title={entry.word}>
+              {entry.definition && (
+                <div className="mb-4">
+                  <h3 className="text-xs text-gray-400 uppercase mb-1">
+                    Definition
+                  </h3>
+                  <NotedMarkdown
+                    target="definition"
+                    content={entry.definition}
+                    components={responsiveTableComponents}
+                    className="prose prose-invert prose-sm max-w-none prose-p:my-2 text-gray-300"
+                  />
                 </div>
-              </div>
-            )}
+              )}
 
-            {entry.exampleSentence && (
-              <div className="mb-4">
-                <h3 className="text-xs text-gray-400 uppercase mb-1">Example</h3>
-                <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 italic text-gray-300">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={responsiveTableComponents}>
-                    {entry.exampleSentence}
-                  </ReactMarkdown>
+              {entry.exampleSentence && (
+                <div className="mb-4">
+                  <h3 className="text-xs text-gray-400 uppercase mb-1">Example</h3>
+                  <NotedMarkdown
+                    target="example"
+                    content={entry.exampleSentence}
+                    components={responsiveTableComponents}
+                    className="prose prose-invert prose-sm max-w-none prose-p:my-2 italic text-gray-300"
+                  />
                 </div>
-              </div>
-            )}
+              )}
+              <OrphanNotes />
+            </ReaderNotesScope>
 
             {(entry.labels as string[])?.length > 0 && (
               <div className="mb-4">

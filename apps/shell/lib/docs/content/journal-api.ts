@@ -76,6 +76,8 @@ An inline note is a top-level comment pinned to words on the page: \`anchor\` is
 - \`quote\` (trimmed, 1..1000) is the text as rendered, not the markdown source: \`**ring buffer**\` is quoted as \`ring buffer\`. \`prefix\` and \`suffix\` (each 0..64, default \`""\`) are the rendered text just before and after it, and are what pick the right occurrence when the quote appears more than once.
 - Compare with whitespace collapsed to single spaces; the site does, so line breaks inside a quote never matter.
 - An anchor on a reply (\`parent_comment_id\` set) is 400. Reply to a note with \`parent_comment_id\` and no anchor, like any comment.
+- \`meta\` (\`{kind: "ai", provider, model}\`) marks a note as an Explain answer; it is only accepted alongside \`anchor\`. See [AI and Reader Notes API](/docs/ai-api).
+- A new note is also filed into Knowledge as a card unless its author turned that off in AI settings; replies are not.
 - Anchors are text, not offsets, so a note survives edits that leave its words alone. When the words are edited away the note is kept: the site lists it under the entry as a note on text that changed. \`GET /entries/:date/comments\` returns every comment, \`anchor\` included (null on ordinary comments and replies).
 
 ## Access (invite-only membership)

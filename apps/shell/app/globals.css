@@ -342,3 +342,41 @@ mark.note-mark[data-fresh] {
   mark.note-mark { transition: none; }
   mark.note-mark[data-fresh] { animation: none; }
 }
+
+/*
+ * SHAN-596: Explain. An explained word is underlined in dots, so what a model
+ * wrote about reads differently from what a person wrote about at a glance;
+ * the same amber, because both are notes. The rule along the top of the
+ * explanation card sweeps while the answer is on its way, which is the one
+ * moving thing on screen while the reader waits, and stops when it lands.
+ */
+mark.note-mark[data-kind="ai"] {
+  background-image: repeating-linear-gradient(90deg, rgb(252 211 77 / 0.7) 0 3px, transparent 3px 6px);
+}
+mark.note-mark[data-kind="ai"]:hover,
+mark.note-mark[data-kind="ai"][data-active] {
+  background-color: rgb(252 211 77 / 0.08);
+}
+.note-spark {
+  display: inline-block;
+  line-height: 1;
+  transition: transform 300ms var(--ease-out-expo);
+}
+.note-explain-btn:hover .note-spark { transform: rotate(45deg) scale(1.15); }
+.note-explain-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(252 211 77 / 0.75) 30%, rgb(147 197 253 / 0.6) 60%, transparent);
+  background-size: 200% 100%;
+  background-position: 0 0;
+}
+.note-explain-rule.is-loading { animation: note-sweep 1.6s linear infinite; }
+@keyframes note-sweep { to { background-position: -200% 0; } }
+.note-shimmer {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.05) 0%, rgb(255 255 255 / 0.11) 50%, rgb(255 255 255 / 0.05) 100%);
+  background-size: 200% 100%;
+  animation: note-sweep 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .note-explain-rule.is-loading, .note-shimmer { animation: none; }
+  .note-explain-btn:hover .note-spark { transform: none; }
+}

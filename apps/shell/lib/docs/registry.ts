@@ -13,6 +13,7 @@ import coursesApi from "./content/courses-api";
 import scoreboardApi from "./content/scoreboard-api";
 import tripsApi from "./content/trips-api";
 import knowledgeApi from "./content/knowledge-api";
+import aiApi from "./content/ai-api";
 import vocabularyApi from "./content/vocabulary-api";
 import trainingPlansApi from "./content/training-plans-api";
 import elementsDirectory from "./content/elements-directory";
@@ -69,7 +70,7 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The full collaborative journal write surface: entries, appends, versions, suggestions, comments, reactions.",
     body: journalApi,
-    lastModified: "2026-09-26T09:15:00-05:00",
+    lastModified: "2026-10-18T23:30:00-05:00",
   },
   {
     slug: "blog-api",
@@ -117,7 +118,16 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Free-text note ingest with AI classification, plus knowledge entries, vocabulary, and comments.",
     body: knowledgeApi,
-    lastModified: "2026-09-12T03:07:14-05:00",
+    // SHAN-575 (Recite) and SHAN-596 edited this body without bumping it.
+    lastModified: "2026-10-18T23:30:00-05:00",
+  },
+  {
+    slug: "ai-api",
+    title: "AI and Reader Notes API",
+    description:
+      "Bring-your-own-key Explain: key detection and checks, the fixed explain prompt, usage, and private inline notes on blog posts and knowledge cards.",
+    body: aiApi,
+    lastModified: "2026-10-18T23:30:00-05:00",
   },
   {
     slug: "vocabulary-api",

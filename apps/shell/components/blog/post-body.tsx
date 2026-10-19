@@ -2,7 +2,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { markdownComponents } from "@/lib/markdown-mermaid";
 import { anchoredHeadings } from "@/components/markdown-anchored-headings";
+import { NoteMark } from "@/components/notes/inline-notes";
 import type { MarkdownHeading } from "@/lib/markdown-headings";
+import { rehypeNoteMarks, type MarkableNote } from "@/lib/rehype-note-marks";
 
 /**
  * Renders a post's markdown body with GFM. Server Component (no "use client"),
@@ -23,16 +25,24 @@ import type { MarkdownHeading } from "@/lib/markdown-headings";
 export function PostBody({
   content,
   headings,
+  notes,
 }: {
   content: string;
   headings?: MarkdownHeading[];
+  /** SHAN-596: the reader's private notes on this post, rendered as marks. */
+  notes?: MarkableNote[];
 }) {
-  const components = headings?.length
+  const base = headings?.length
     ? { ...markdownComponents, ...anchoredHeadings(headings) }
     : markdownComponents;
+  const components = notes?.length ? { ...base, mark: NoteMark } : base;
   return (
     <div className="prose prose-invert prose-lg max-w-none prose-p:my-5 prose-headings:tracking-tight prose-a:text-blue-400">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={notes?.length ? [[rehypeNoteMarks, { notes }]] : []}
+        components={components}
+      >
         {content || "*(empty)*"}
       </ReactMarkdown>
     </div>

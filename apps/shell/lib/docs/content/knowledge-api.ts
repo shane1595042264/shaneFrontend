@@ -33,6 +33,10 @@ Free-text note ingest with AI classification, plus structured entries, connectio
 
 To mark or unmark a place, send \`addMemorizationLocations\` or \`removeMemorizationLocations\` (each up to 50 names of up to 120 chars) rather than a full \`memorizationLocations\` list. The deltas are applied to the card as it is stored at that moment, under a row lock that practice mode also takes when it records a newly memorized place, so a place recorded after you read the card is kept. Removal is case-insensitive and adding a place the card already holds, in any casing, changes nothing. A full list overwrites whatever is stored, so only send it when you mean to replace the set.
 
+## Cards from notes
+
+Inline notes and Explain answers on journal entries, blog posts and knowledge cards also arrive here: each new note is classified into a card with the same pipeline as \`POST /notes\`, from the selected words and the note only, with \`source.app\` set to \`journal\`, \`blog\` or \`knowledge\`. See [AI and Reader Notes API](/docs/ai-api).
+
 ## Recite
 
 Recite your own cards from memory, one place at a time. Both routes need scope \`knowledge:write\` and work on the caller's cards: ones they created, plus legacy rows with no recorded creator (the same set \`PUT /entries/:id\` lets them write).

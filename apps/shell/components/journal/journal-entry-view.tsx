@@ -11,7 +11,8 @@ import { CommentsThread } from "@/components/journal/comments-thread";
 import { EntryReactionBar } from "@/components/journal/entry-reaction-bar";
 import { MissingEntryCta } from "@/components/journal/missing-entry-cta";
 import { JournalToc } from "@/components/journal/journal-toc";
-import { NotesProvider, OrphanNotes } from "@/components/journal/inline-notes";
+import { NotesProvider, OrphanNotes } from "@/components/notes/inline-notes";
+import { journalNotesAdapter } from "@/components/notes/adapters";
 import { NotedEntryBody } from "@/components/journal/noted-entry-body";
 import { MarkdownHashScroll } from "@/components/markdown-hash-scroll";
 import { readingTimeMinutes } from "@/lib/journal-text";
@@ -258,7 +259,10 @@ export function JournalEntryView({ date, sidebar }: Props) {
       {/* SHAN-577: inline notes. The provider spans the whole grid so the
           selection pill, the composer and the hover threads (all portalled)
           share one state with the marks in the entry and every append. */}
-      <NotesProvider date={data.entry.date} entryAuthorId={data.entry.authorId}>
+      <NotesProvider
+        adapter={journalNotesAdapter(data.entry.date, data.entry.authorId)}
+        documentTitle={`Journal entry for ${formatDate(data.entry.date)}`}
+      >
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0">
           <article ref={articleRef} className="pb-8">

@@ -171,3 +171,36 @@ export function captureAnchor(target: string, container: Element, range: Range):
     suffix: norm.slice(e, e + CONTEXT_CHARS),
   };
 }
+
+/**
+ * SHAN-596: the words around a selection, for Explain.
+ *
+ * About 120 words before and 80 after, cut at the edge of the part the
+ * selection is in. A word's sense is settled by its sentence and paragraph;
+ * that span covers a paragraph or two on either side, which is enough to tell
+ * "ring buffer" the data structure from a ring and a buffer, at roughly 300
+ * tokens of prompt. More before than after because writing explains forward:
+ * the setup for a term usually precedes it. The nearest heading above the
+ * selection goes along too, since a paragraph alone can be vague about what
+ * field it is in.
+ */
+export function captureContext(
+  container: Element,
+  range: Range,
+  { wordsBefore = 120, wordsAfter = 80 }: { wordsBefore?: number; wordsAfter?: number } = {}
+): { before: string; after: string; heading: string | undefined } {
+  const nodes = textNodesOf(container);
+  const raw = nodes.map((n) => n.data).join("");
+  const start = rawOffset(nodes, range.startContainer, range.startOffset);
+  const end = rawOffset(nodes, range.endContainer, range.endOffset);
+  const before = collapse(raw.slice(0, start)).trim().split(" ").filter(Boolean).slice(-wordsBefore).join(" ");
+  const after = collapse(raw.slice(end)).trim().split(" ").filter(Boolean).slice(0, wordsAfter).join(" ");
+
+  let heading: string | undefined;
+  for (const h of container.querySelectorAll("h1, h2, h3, h4")) {
+    const precedes = h.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_FOLLOWING;
+    if (!precedes) break;
+    heading = collapse(textNodesOf(h).map((n) => n.data).join("")).trim() || undefined;
+  }
+  return { before, after, heading };
+}

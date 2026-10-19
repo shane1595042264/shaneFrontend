@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { EntryBody } from "@/components/journal/entry-body";
-import { useNotesFor } from "@/components/journal/inline-notes";
+import { useNotesFor } from "@/components/notes/inline-notes";
 import type { MarkdownHeading } from "@/lib/markdown-headings";
 
 /**

@@ -4,7 +4,11 @@ import Link from "@/components/transition-link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
-const SECTIONS = [{ href: "/settings/tokens", label: "Tokens" }];
+const SECTIONS = [
+  { href: "/settings/tokens", label: "Tokens" },
+  // SHAN-596: AI keys for Explain, and what they have cost.
+  { href: "/settings/ai", label: "AI" },
+];
 
 function Frame({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto max-w-3xl px-4 py-10 md:px-8">{children}</div>;

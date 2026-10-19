@@ -1,7 +1,8 @@
 import Link from "@/components/transition-link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { PostBody } from "@/components/blog/post-body";
+import { NotedPostBody, ReaderNotesScope } from "@/components/notes/reader-notes-scope";
+import { OrphanNotes } from "@/components/notes/inline-notes";
 import { PostActions } from "@/components/blog/post-actions";
 import { PostReactionBar } from "@/components/blog/post-reaction-bar";
 import { BlogComments } from "@/components/blog/blog-comments";
@@ -255,7 +256,13 @@ export default async function BlogPostPage({ params }: PageProps) {
       {shouldShowToc(headings) && <PostToc headings={headings} />}
 
       <article className="mt-8">
-        <PostBody content={body} headings={headings} />
+        {/* SHAN-596: the reader's private notes and Explain. Rendered on the
+            server exactly as PostBody alone was (no notes until the client
+            knows who is reading), so the cached HTML is unchanged. */}
+        <ReaderNotesScope surface="blog" resourceId={post.id} title={title}>
+          <NotedPostBody content={body} headings={headings} />
+          <OrphanNotes />
+        </ReaderNotesScope>
       </article>
 
       {/* Both are client islands for the same reason PostActions is: the page

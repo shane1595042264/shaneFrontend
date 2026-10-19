@@ -1,6 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { NoteMark } from "@/components/journal/inline-notes";
+import { NoteMark } from "@/components/notes/inline-notes";
 import { anchoredHeadings } from "@/components/markdown-anchored-headings";
 import { markdownComponents } from "@/lib/markdown-mermaid";
 import type { MarkdownHeading } from "@/lib/markdown-headings";
