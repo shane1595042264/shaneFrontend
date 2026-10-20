@@ -89,7 +89,7 @@ const API_FACTS: Record<string, ApiFacts> = {
   },
   "who-owes-me": {
     mount: "/api/loans",
-    auth: "authed, no scope",
+    auth: "browser session only (PATs 403)",
     what: "personal loan ledger; non-owner mutations 403",
   },
 
