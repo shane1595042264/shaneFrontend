@@ -37,7 +37,7 @@ Validation failures (bad params, query, or body) return 400 and add a structured
 - Dates that key resources are \`YYYY-MM-DD\` strings, validated as real calendar dates (2026-02-30 is a 400, not a 500).
 - Ids are UUIDs. Any case is accepted on input (Swift's \`uuidString\` is uppercase) and responses always return lowercase, so compare ids case-insensitively or lowercase them first.
 - Free-text fields are trimmed before validation; whitespace-only input is a 400.
-- A NUL byte is a 400 everywhere: \`%00\` anywhere in the URL (\`details[].path\` is \`url\`), or \`\\u0000\` in any string or key of a JSON body (\`details[].path\` names the field). Postgres cannot store it, and before SHAN-553 it came back as a 500.
+- A NUL byte is a 400 everywhere: \`%00\` anywhere in the URL (\`details[].path\` is \`url\`), or \`\\u0000\` in any string or key of a JSON body (\`details[].path\` names the field), or in the file text, \`title\` or filename of a multipart trip upload (\`details[].path\` is \`html\`, \`title\` or \`filename\`). Postgres cannot store it, and before SHAN-553 (SHAN-602 for multipart trips) it came back as a 500.
 
 ## Text search
 
