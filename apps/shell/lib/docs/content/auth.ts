@@ -45,7 +45,9 @@ A PAT without the required scope gets 403 \`Token missing required scope: <scope
 | tea-entries-write | 30 | tea writes |
 | skincare-write | 60 | skincare writes |
 | knowledge-notes-single / -batch | 30 / 5 | note ingest |
-| knowledge-entries-write | 30 | knowledge entry writes |
+| knowledge-entries-write | 30 | knowledge entry create, edit, delete, bulk-delete; connection create, delete |
+| knowledge-enrich | 10 | knowledge entry enrich (one LLM call each) |
+| knowledge-comments-write | 30 | knowledge comments |
 | vocabulary-writes / vocabulary-enrich | 30 / 10 | vocabulary writes / enrich |
 | practice-* | 30 (sync and vocab reviews 120) | practice writes |
 | rng-capitalist-evaluate / -plaid | 10 / 10 | rng evaluate / budget |

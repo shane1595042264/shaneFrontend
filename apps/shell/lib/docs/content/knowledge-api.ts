@@ -17,6 +17,8 @@ Free-text note ingest with AI classification, plus structured entries, connectio
 - Caller-supplied source fields beat classifier-extracted ones. No cross-request dedup by design; within one batch, duplicate (word, language) pairs are silently dropped.
 - Rate: 30/min single, 5/min batch (separate buckets).
 
+Every other write here is rate limited per PAT as well (browser sessions bypass; 429 with \`Retry-After: 60\`): entry create, edit, delete and bulk-delete plus connection create and delete share one 30/min bucket, \`POST /entries/:id/enrich\` has its own 10/min bucket because each call runs the model, and comment create, edit and delete have their own 30/min bucket.
+
 ## Entries
 
 | Method | Path | Auth | Notes |
