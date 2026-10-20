@@ -30,7 +30,7 @@ curl -X POST https://shanebackend-production.up.railway.app/api/auth/tokens \\
 
 \`entries:write\`, \`suggestions:write\`, \`comments:write\`, \`reactions:write\`, \`knowledge:write\`, \`trips:write\`, \`practice:write\`
 
-A PAT without the required scope gets 403 \`Token missing required scope: <scope>\`. Some routes need only authentication, no scope (for example journal image uploads).
+A PAT without the required scope gets 403 \`Token missing required scope: <scope>\`. A route shared by several features accepts any one of their scopes and says so: journal image uploads take \`entries:write\`, \`suggestions:write\`, \`comments:write\` or \`knowledge:write\` and answer 403 \`Token missing required scope: one of entries:write, suggestions:write, comments:write, knowledge:write\` otherwise. Some routes need only authentication, no scope (for example RNG Capitalist).
 
 ## Rate limits (PATs only, rolling 60s, 429 + Retry-After)
 

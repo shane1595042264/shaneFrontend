@@ -4,7 +4,7 @@ Journal image storage, used to embed images (and rendered diagrams) in any markd
 
 ## Upload
 
-\`POST /api/journal/images\` with any authenticated token (JWT or any PAT, no scope needed) belonging to a journal member.
+\`POST /api/journal/images\` with a browser session (JWT) or a PAT belonging to a journal member. A PAT must hold at least one of \`entries:write\`, \`suggestions:write\`, \`comments:write\` or \`knowledge:write\`, the scopes that write markdown an image can be embedded in; a reactions-only, trips-only, practice-only or scopeless PAT gets 403 \`Token missing required scope: one of entries:write, suggestions:write, comments:write, knowledge:write\` before the upload is read.
 
 \`\`\`bash
 curl -X POST https://shanebackend-production.up.railway.app/api/journal/images \\
