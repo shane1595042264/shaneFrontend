@@ -134,7 +134,7 @@ const UNTILED: Array<{ name: string; where: string } & ApiFacts> = [
     name: "Tea",
     where: "/journal/tea",
     mount: "/api/tea-entries",
-    auth: "authed author; PIN-gated shares",
+    auth: "authed author (PATs need entries:write, reads included); PIN-gated shares",
     what: "private entries unlocked per-entry via the X-Tea-Pin header",
   },
   {

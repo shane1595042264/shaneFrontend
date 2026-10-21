@@ -56,6 +56,8 @@ RNG Capitalist bank linking (\`POST /api/rng/plaid/link-token\` and \`/plaid/exc
 
 The loans ledger (\`/api/loans\`, Who Owes Me) is browser-session only, reads included: any PAT gets 403 \`Loans requires a browser session, not a PAT\`.
 
+Tea entries (\`/api/tea-entries\`) take \`entries:write\` for reads as well as writes. Without it the list answers 403 \`Token missing required scope: entries:write\`, and \`GET /api/tea-entries/:id\` treats the PAT like anyone else: 401 \`PIN required\` until it sends the right \`X-Tea-Pin\`, and the entry's PIN is never in the response.
+
 Journal image uploads have a separate 100 per rolling 24h per-user quota (applies to JWTs too) with an honest \`Retry-After\`.
 
 ## Blitz sync sessions (browser only)
