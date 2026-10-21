@@ -45,6 +45,8 @@ export default function BlogHistoryPage() {
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [currentNum, setCurrentNum] = useState<number | null>(null);
   const [postTitle, setPostTitle] = useState<string>("");
+  const [isDraft, setIsDraft] = useState(false);
+  const [missing, setMissing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -64,16 +66,28 @@ export default function BlogHistoryPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([listPostVersions(slug, { limit: PAGE_SIZE }), getPost(slug)])
+    setMissing(false);
+    // SHAN-607: getPost is the existence check (null on 404), so a versions
+    // failure is held until it has answered. Otherwise a missing post rejects
+    // the pair with the versions 404 and the reader sees "Failed to load
+    // history (404)" instead of being told the post does not exist.
+    Promise.all([
+      listPostVersions(slug, { limit: PAGE_SIZE }).catch((e: unknown) => ({ failed: e })),
+      getPost(slug),
+    ])
       .then(([page, post]) => {
         if (cancelled) return;
+        if (!post) {
+          setMissing(true);
+          return;
+        }
+        if ("failed" in page) throw page.failed;
         setVersions(page.versions);
         setNextCursor(page.nextCursor);
-        if (post) {
-          setAuthorId(post.post.authorId);
-          setCurrentNum(post.currentVersionNum);
-          setPostTitle(post.title);
-        }
+        setAuthorId(post.post.authorId);
+        setCurrentNum(post.currentVersionNum);
+        setPostTitle(post.title);
+        setIsDraft(post.post.status === "draft");
       })
       .catch((e: unknown) => {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load history");
@@ -178,16 +192,24 @@ export default function BlogHistoryPage() {
     return () => document.removeEventListener("keydown", onKey);
   }, [revertTarget, reverting]);
 
+  // A draft's own URL edge-404s for everyone, its author included (the
+  // middleware probe is anonymous), so the way back to a draft is its preview.
+  const back = missing
+    ? { href: "/blog", label: "back to blog" }
+    : { href: isDraft ? `/blog/preview/${slug}` : `/blog/${slug}`, label: "back to post" };
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <Link href={`/blog/${slug}`} className="text-sm text-gray-400 hover:text-white">
-        &larr; back to post
+      <Link href={back.href} className="text-sm text-gray-400 hover:text-white">
+        &larr; {back.label}
       </Link>
       <h1 className="mt-3 mb-1 text-2xl font-semibold tracking-tight text-white">History</h1>
       {postTitle && <p className="mb-5 text-sm text-gray-400">{postTitle}</p>}
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading versions…</p>
+      ) : missing ? (
+        <p className="text-sm text-gray-400">No such post.</p>
       ) : error ? (
         <p role="alert" className="text-sm text-red-400">
           {error}
