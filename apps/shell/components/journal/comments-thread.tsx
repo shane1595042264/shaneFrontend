@@ -66,7 +66,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
   }, [date]);
 
   const submit = async () => {
-    if (!text.trim() || uploading) return;
+    if (!text.trim() || submitting || uploading) return;
     setSubmitting(true);
     setError(null);
     try {

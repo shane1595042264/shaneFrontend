@@ -58,7 +58,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
   }, [entryId]);
 
   const submit = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
