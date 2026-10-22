@@ -61,17 +61,20 @@ function SkincareContent() {
     setRoutines((r) => (r ? { ...r, [timeOfDay]: next } : r));
   }
 
+  /** Resolves true once the product exists, so the form clears only then. */
   async function handleAdd(
     timeOfDay: TimeOfDay,
     input: { name: string; brand: string | null; imageUrl: string | null },
-  ) {
+  ): Promise<boolean> {
     setError(null);
     setBusy(true);
     try {
       const product = await createProduct({ timeOfDay, ...input });
       setRoutines((r) => (r ? { ...r, [timeOfDay]: [...r[timeOfDay], product] } : r));
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add product");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -202,7 +205,7 @@ function RoutineColumn({
   busy: boolean;
   onStartEdit: (id: string) => void;
   onCancelEdit: () => void;
-  onAdd: (t: TimeOfDay, input: { name: string; brand: string | null; imageUrl: string | null }) => void;
+  onAdd: (t: TimeOfDay, input: { name: string; brand: string | null; imageUrl: string | null }) => Promise<boolean>;
   onSaveEdit: (t: TimeOfDay, id: string, patch: { name: string; brand: string | null; imageUrl: string | null }) => void;
   onDelete: (t: TimeOfDay, id: string) => void;
   onMove: (t: TimeOfDay, idx: number, dir: -1 | 1) => void;
@@ -302,7 +305,7 @@ function ProductAddForm({
 }: {
   timeOfDay: TimeOfDay;
   busy: boolean;
-  onAdd: (t: TimeOfDay, input: { name: string; brand: string | null; imageUrl: string | null }) => void;
+  onAdd: (t: TimeOfDay, input: { name: string; brand: string | null; imageUrl: string | null }) => Promise<boolean>;
 }) {
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
@@ -373,17 +376,22 @@ function ProductAddForm({
     }
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || busy) return;
-    onAdd(timeOfDay, {
+    const sent = { name, brand, imageUrl };
+    const added = await onAdd(timeOfDay, {
       name: name.trim(),
       brand: brand.trim() || null,
       imageUrl: imageUrl.trim() || null,
     });
-    setName("");
-    setBrand("");
-    setImageUrl("");
+    // A failed add keeps every field so a bad image URL can be fixed and retried.
+    // On success, clear only what still holds the submitted text: anything typed
+    // while the request was in flight is the next product, not this one.
+    if (!added) return;
+    setName((v) => (v === sent.name ? "" : v));
+    setBrand((v) => (v === sent.brand ? "" : v));
+    setImageUrl((v) => (v === sent.imageUrl ? "" : v));
     setSuggestions([]);
     setShowSuggestions(false);
     setActiveIdx(-1);
