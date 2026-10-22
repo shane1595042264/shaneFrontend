@@ -62,6 +62,8 @@ export default function BlogHistoryPage() {
   const [revertTarget, setRevertTarget] = useState<number | null>(null);
   const [reverting, setReverting] = useState(false);
   const [revertError, setRevertError] = useState<string | null>(null);
+  const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,23 +149,29 @@ export default function BlogHistoryPage() {
     }
   };
 
+  const refreshHistory = async () => {
+    const [page, post] = await Promise.all([
+      listPostVersions(slug, { limit: PAGE_SIZE }),
+      getPost(slug),
+    ]);
+    setVersions(page.versions);
+    setNextCursor(page.nextCursor);
+    if (post) {
+      setCurrentNum(post.currentVersionNum);
+      setPostTitle(post.title);
+    }
+    setRefreshNotice(null);
+  };
+
   const confirmRevert = async () => {
     if (revertTarget === null || currentNum === null) return;
+    const target = revertTarget;
     setReverting(true);
     setRevertError(null);
+    setRefreshNotice(null);
+    let landed: number;
     try {
-      await revertPost(slug, revertTarget, currentNum);
-      const [page, post] = await Promise.all([
-        listPostVersions(slug, { limit: PAGE_SIZE }),
-        getPost(slug),
-      ]);
-      setVersions(page.versions);
-      setNextCursor(page.nextCursor);
-      if (post) {
-        setCurrentNum(post.currentVersionNum);
-        setPostTitle(post.title);
-      }
-      setRevertTarget(null);
+      landed = (await revertPost(slug, target, currentNum)).versionNum;
     } catch (e) {
       const err = e as VersionConflict;
       if (err?.message === "VERSION_CONFLICT") {
@@ -175,8 +183,32 @@ export default function BlogHistoryPage() {
       } else {
         setRevertError(e instanceof Error ? e.message : "Revert failed");
       }
-    } finally {
       setReverting(false);
+      return;
+    }
+    // SHAN-608: the revert has landed, so the dialog closes and currentNum
+    // moves now. The refresh is a second request that can fail on its own; if
+    // it shared the revert's catch, the author would see a failure for a write
+    // that committed, and a retry would send the stale X-If-Match and 409 as
+    // "someone else edited" when the only other edit was theirs.
+    setCurrentNum(landed);
+    setRevertTarget(null);
+    setReverting(false);
+    try {
+      await refreshHistory();
+    } catch {
+      setRefreshNotice(`Reverted to v${target} (now v${landed}), but the history could not refresh.`);
+    }
+  };
+
+  const retryRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshHistory();
+    } catch {
+      // The notice stays up; the reader can try again.
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -205,6 +237,20 @@ export default function BlogHistoryPage() {
       </Link>
       <h1 className="mt-3 mb-1 text-2xl font-semibold tracking-tight text-white">History</h1>
       {postTitle && <p className="mb-5 text-sm text-gray-400">{postTitle}</p>}
+
+      {refreshNotice && (
+        <p role="status" className="mb-4 text-sm text-gray-300">
+          {refreshNotice}{" "}
+          <button
+            type="button"
+            onClick={() => void retryRefresh()}
+            disabled={refreshing}
+            className="underline hover:text-white disabled:opacity-50"
+          >
+            {refreshing ? "Reloading…" : "Reload"}
+          </button>
+        </p>
+      )}
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading versions…</p>

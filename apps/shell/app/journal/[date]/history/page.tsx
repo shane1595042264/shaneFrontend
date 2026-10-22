@@ -45,6 +45,8 @@ export default function HistoryPage() {
   const [reverting, setReverting] = useState<number | null>(null);
   const [revertConfirmTarget, setRevertConfirmTarget] = useState<number | null>(null);
   const [revertError, setRevertError] = useState<string | null>(null);
+  const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -117,21 +119,23 @@ export default function HistoryPage() {
     setRevertError(null);
   };
 
+  const refreshHistory = async () => {
+    const [page, entry] = await Promise.all([listVersions(date, { limit: PAGE_SIZE }), getEntry(date)]);
+    setVersions(page.versions);
+    setNextCursor(page.nextCursor);
+    if (entry) setCurrentNum(entry.currentVersionNum);
+    setRefreshNotice(null);
+  };
+
   const confirmRevert = async () => {
     if (revertConfirmTarget === null || currentNum === null) return;
     const target = revertConfirmTarget;
     setReverting(target);
     setRevertError(null);
+    setRefreshNotice(null);
+    let landed: number;
     try {
-      await revertEntry(date, target, currentNum);
-      const [page, entry] = await Promise.all([
-        listVersions(date, { limit: PAGE_SIZE }),
-        getEntry(date),
-      ]);
-      setVersions(page.versions);
-      setNextCursor(page.nextCursor);
-      if (entry) setCurrentNum(entry.currentVersionNum);
-      setRevertConfirmTarget(null);
+      landed = (await revertEntry(date, target, currentNum)).versionNum;
     } catch (e: any) {
       if (e.message === "VERSION_CONFLICT") {
         const cur = (e as any).currentVersionNum;
@@ -143,8 +147,32 @@ export default function HistoryPage() {
       } else {
         setRevertError(e.message ?? "Revert failed");
       }
-    } finally {
       setReverting(null);
+      return;
+    }
+    // SHAN-608: the revert has landed, so the dialog closes and currentNum
+    // moves now. The refresh below is a second request that can fail on its
+    // own; if it shared the revert's catch, the author would see a failure for
+    // a write that committed, and a retry would send the stale X-If-Match and
+    // 409 as "someone else edited" when the only other edit was theirs.
+    setCurrentNum(landed);
+    setRevertConfirmTarget(null);
+    setReverting(null);
+    try {
+      await refreshHistory();
+    } catch {
+      setRefreshNotice(`Reverted to v${target} (now v${landed}), but the history could not refresh.`);
+    }
+  };
+
+  const retryRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshHistory();
+    } catch {
+      // The notice stays up; the reader can try again.
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -168,6 +196,20 @@ export default function HistoryPage() {
       <h1 className="mt-3 mb-4 font-mono text-2xl">
         {date} — history
       </h1>
+
+      {refreshNotice && (
+        <p role="status" className="mb-4 text-sm text-gray-300">
+          {refreshNotice}{" "}
+          <button
+            type="button"
+            onClick={() => void retryRefresh()}
+            disabled={refreshing}
+            className="underline hover:text-white disabled:opacity-50"
+          >
+            {refreshing ? "Reloading…" : "Reload"}
+          </button>
+        </p>
+      )}
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading versions…</p>
