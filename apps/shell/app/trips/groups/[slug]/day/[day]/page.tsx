@@ -49,6 +49,11 @@ type TimelineRow =
   | { kind: "activity"; time: string | null; actIdx: number; activity: ItineraryActivity }
   | { kind: "meal"; time: string; meal: "breakfast" | "lunch" | "dinner"; label: string; place: string | null };
 
+type Editing =
+  | { kind: "activity"; actIdx: number }
+  | { kind: "meal"; meal: "breakfast" | "lunch" | "dinner" }
+  | null;
+
 function buildTimeline(day: ItineraryDay): { timed: TimelineRow[]; anytime: TimelineRow[] } {
   const rows: TimelineRow[] = [];
   day.activities.forEach((activity, actIdx) => {
@@ -87,11 +92,7 @@ function DayDetail() {
   const [saving, setSaving] = useState(false);
 
   // Which row's inline editor is open.
-  const [editing, setEditing] = useState<
-    | { kind: "activity"; actIdx: number }
-    | { kind: "meal"; meal: "breakfast" | "lunch" | "dinner" }
-    | null
-  >(null);
+  const [editing, setEditing] = useState<Editing>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   // Click-based swap fallback (works on touch, where HTML5 DnD doesn't):
@@ -128,8 +129,14 @@ function DayDetail() {
 
   const day = detail?.itinerary?.days.find((d) => d.day === dayNum);
 
-  async function saveDayPatch(patch: Partial<ItineraryDay>) {
-    if (!slug || !detail?.itinerary || !day) return;
+  /**
+   * Every edit is built from the day as rendered, so a second one sent before
+   * the first lands would write that day back without it (SHAN-610). `openAfter`
+   * is the editor to show once a direct save lands; a suggestion leaves the
+   * local day unchanged, so it always closes.
+   */
+  async function saveDayPatch(patch: Partial<ItineraryDay>, openAfter: Editing = null) {
+    if (!slug || !detail?.itinerary || !day || saving) return;
     const next: TripItinerary = {
       ...detail.itinerary,
       days: detail.itinerary.days.map((d) => (d.day === dayNum ? { ...d, ...patch } : d)),
@@ -149,10 +156,13 @@ function DayDetail() {
               }
             : prev,
         );
-      } else if (result.suggestion) {
-        setNotice("Edit submitted as a suggestion — the group owner can approve it on the group page.");
+        setEditing(openAfter);
+      } else {
+        if (result.suggestion) {
+          setNotice("Edit submitted as a suggestion — the group owner can approve it on the group page.");
+        }
+        setEditing(null);
       }
-      setEditing(null);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -283,7 +293,7 @@ function DayDetail() {
       <li
         key={`act-${row.actIdx}`}
         className={`flex gap-3 ${highlighted ? "rounded bg-blue-500/15 ring-1 ring-blue-400/50" : ""}`}
-        draggable={!isEditing}
+        draggable={!isEditing && !saving}
         onDragStart={(e) => {
           setDragIdx(row.actIdx);
           e.dataTransfer.effectAllowed = "move";
@@ -328,6 +338,7 @@ function DayDetail() {
                     setSwapArm(null);
                   }
                 }}
+                disabled={saving}
                 aria-label={
                   swapArm === row.actIdx
                     ? "Cancel swap"
@@ -336,7 +347,7 @@ function DayDetail() {
                       : `Arm swap for ${row.activity.title}`
                 }
                 title={swapArm === null ? "Tap to swap with another activity (or drag)" : "Tap to swap here"}
-                className={`shrink-0 cursor-grab rounded px-1 pt-1 text-sm leading-none ${swapArm === row.actIdx ? "text-blue-300" : "text-gray-400 hover:text-gray-300"}`}
+                className={`shrink-0 cursor-grab rounded px-1 pt-1 text-sm leading-none disabled:opacity-50 ${swapArm === row.actIdx ? "text-blue-300" : "text-gray-400 hover:text-gray-300"}`}
               >
                 ⇅
               </button>
@@ -344,6 +355,7 @@ function DayDetail() {
                 type="button"
                 onClick={() => {
                   if (swapArm !== null && swapArm !== row.actIdx) {
+                    if (saving) return;
                     swapActivities(swapArm, row.actIdx);
                     setSwapArm(null);
                     return;
@@ -460,8 +472,7 @@ function DayDetail() {
             type="button"
             onClick={() => {
               const activities = [...day.activities, { time: null, title: "New activity", notes: null }];
-              void saveDayPatch({ activities });
-              setEditing({ kind: "activity", actIdx: activities.length - 1 });
+              void saveDayPatch({ activities }, { kind: "activity", actIdx: activities.length - 1 });
             }}
             disabled={saving}
             className="mt-4 text-xs text-blue-300 hover:text-blue-200 disabled:opacity-50"
