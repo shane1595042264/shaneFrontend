@@ -671,8 +671,13 @@ function GroupDetail() {
     }
   }
 
+  /**
+   * One resolve at a time (SHAN-612). Each approve returns the whole itinerary
+   * and the responses can land out of order, so a second approve sent before
+   * the first returned could leave the page showing the older one.
+   */
   async function handleResolve(suggestionId: string, action: "approve" | "reject") {
-    if (!slug) return;
+    if (!slug || resolvingId !== null) return;
     setResolvingId(suggestionId);
     setSuggestionError(null);
     try {
@@ -1095,7 +1100,7 @@ function GroupDetail() {
                         <button
                           type="button"
                           onClick={() => handleResolve(s.id, "approve")}
-                          disabled={resolvingId === s.id}
+                          disabled={resolvingId !== null}
                           className="inline-flex min-h-8 items-center rounded bg-green-600/90 px-2.5 text-xs font-medium text-white hover:bg-green-600 disabled:opacity-50"
                         >
                           Approve
@@ -1103,7 +1108,7 @@ function GroupDetail() {
                         <button
                           type="button"
                           onClick={() => handleResolve(s.id, "reject")}
-                          disabled={resolvingId === s.id}
+                          disabled={resolvingId !== null}
                           className="inline-flex min-h-8 items-center rounded border border-white/20 px-2.5 text-xs font-medium text-gray-300 hover:bg-white/10 disabled:opacity-50"
                         >
                           Reject
