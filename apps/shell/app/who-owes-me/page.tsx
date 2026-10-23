@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AuthGate } from "@/components/auth-gate";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { InlineErrorState } from "@/components/inline-error-state";
 import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
+import { humanizeError } from "@/lib/humanize-error";
 import {
   fetchLoans,
   createLoan,
@@ -92,6 +94,7 @@ function WhoOwesMeContent() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<LoanEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [borrowerName, setBorrowerName] = useState("");
@@ -106,17 +109,22 @@ function WhoOwesMeContent() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // The initial load keeps its own error, apart from the form's. A failed load
+  // must not render as an empty ledger ("$0.00, nothing outstanding"), and
+  // submitting the Add form must not be able to clear it (SHAN-614).
+  const load = useCallback(() => {
     if (!user) return;
+    setLoadError(null);
     setLoading(true);
     fetchLoans()
-      .then((rows) => {
-        setEntries(rows);
-        setError(null);
-      })
-      .catch((e: Error) => setError(e.message))
+      .then(setEntries)
+      .catch((e) => setLoadError(humanizeError(e, "Failed to load loans")))
       .finally(() => setLoading(false));
   }, [user]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   useEffect(() => {
     if (!deleteTarget) return;
@@ -231,6 +239,10 @@ function WhoOwesMeContent() {
     const updated = await updateLoan(entry.id, patch);
     setEntries((prev) => prev.map((e) => (e.id === entry.id ? updated : e)));
     setEditingId(null);
+  }
+
+  if (loadError) {
+    return <InlineErrorState message={loadError} onRetry={load} backHref="/" backLabel="Back to home" />;
   }
 
   return (
