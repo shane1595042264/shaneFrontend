@@ -53,7 +53,14 @@ export function LiveMatch({
       await request;
       setError(null);
     } catch (err) {
-      setScores((s) => ({ ...s, [playerId]: prev }));
+      // Undo only this tap. Restoring `prev` would also wipe every tap made
+      // after it that did save, leaving the screen behind the server
+      // (SHAN-613).
+      const applied = next - prev;
+      setScores((s) => ({
+        ...s,
+        [playerId]: Math.max((s[playerId] ?? 0) - applied, 0),
+      }));
       setError(err instanceof Error ? err.message : "Score did not save");
     } finally {
       inFlight.current.delete(request);
