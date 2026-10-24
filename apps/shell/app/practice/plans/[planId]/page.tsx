@@ -107,6 +107,9 @@ function PlanDetailContent({ planId }: { planId: string }) {
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [addingForDayId, setAddingForDayId] = useState<string | null>(null);
   const [blockDraft, setBlockDraft] = useState<BlockDraft | null>(null);
+  // A block save's failure is shown inside the open editor, next to the
+  // button that caused it. The page-level alert is off screen on a long plan.
+  const [blockError, setBlockError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setError(null);
@@ -123,33 +126,52 @@ function PlanDetailContent({ planId }: { planId: string }) {
   // Every mutation refetches the tree rather than patching local state: the
   // backend owns positions, and a stale position is how a day list silently
   // reorders itself after an edit.
-  const run = async (fn: () => Promise<unknown>) => {
+  //
+  // Resolves to whether the write landed, which is not the same as "no error":
+  // a refetch that fails after a successful write still means the change is on
+  // the server, and a caller that retries it would write it twice.
+  const run = async (
+    fn: () => Promise<unknown>,
+    onError: (message: string) => void = setActionError,
+  ): Promise<boolean> => {
     setBusy(true);
     setActionError(null);
+    let landed = false;
     try {
       await fn();
+      landed = true;
       setPlan(await getPlan(planId));
     } catch (e) {
-      setActionError((e as Error).message ?? "Action failed");
+      const message = (e as Error).message ?? "Action failed";
+      if (landed) {
+        setActionError(`Saved, but the plan did not reload (${message}). Refresh to see it.`);
+      } else {
+        onError(message);
+      }
     } finally {
       setBusy(false);
     }
+    return landed;
   };
 
   const closeBlockEditor = () => {
     setEditingBlockId(null);
     setAddingForDayId(null);
     setBlockDraft(null);
+    setBlockError(null);
   };
 
   const saveBlock = async (day: PlanDay, blockId: string | null) => {
     if (!blockDraft) return;
+    setBlockError(null);
     const clean = cleanBlockDraft(blockDraft);
     if (!clean.title) {
-      setActionError("Block title is required.");
+      setBlockError("Block title is required.");
       return;
     }
-    await run(async () => {
+    // A failed save keeps the editor open with the draft intact. Retrying an
+    // edit whose steps failed is safe: updateBlock writes the same fields again.
+    const landed = await run(async () => {
       if (blockId === null) {
         await createBlock(planId, day.id, clean);
         return;
@@ -157,8 +179,8 @@ function PlanDetailContent({ planId }: { planId: string }) {
       const { steps, ...fields } = clean;
       await updateBlock(planId, day.id, blockId, fields);
       await replaceSteps(planId, day.id, blockId, steps);
-    });
-    closeBlockEditor();
+    }, setBlockError);
+    if (landed) closeBlockEditor();
   };
 
   if (error)
@@ -332,6 +354,11 @@ function PlanDetailContent({ planId }: { planId: string }) {
                         onChange={setBlockDraft}
                         idPrefix={`edit-${block.id}`}
                       />
+                      {blockError && (
+                        <p role="alert" className="mt-3 text-sm text-red-400">
+                          {blockError}
+                        </p>
+                      )}
                       <div className="mt-3 flex justify-end gap-2">
                         <button
                           type="button"
@@ -372,6 +399,7 @@ function PlanDetailContent({ planId }: { planId: string }) {
                               setAddingForDayId(null);
                               setEditingBlockId(block.id);
                               setBlockDraft(blockToDraft(block));
+                              setBlockError(null);
                             }}
                             className={ghostButton}
                           >
@@ -418,6 +446,11 @@ function PlanDetailContent({ planId }: { planId: string }) {
                       onChange={setBlockDraft}
                       idPrefix={`new-${day.id}`}
                     />
+                    {blockError && (
+                      <p role="alert" className="mt-3 text-sm text-red-400">
+                        {blockError}
+                      </p>
+                    )}
                     <div className="mt-3 flex justify-end gap-2">
                       <button
                         type="button"
@@ -446,6 +479,7 @@ function PlanDetailContent({ planId }: { planId: string }) {
                         setEditingBlockId(null);
                         setAddingForDayId(day.id);
                         setBlockDraft(emptyBlockDraft());
+                        setBlockError(null);
                       }}
                       className="rounded border border-white/20 px-3 py-1.5 text-xs hover:bg-white/5 disabled:opacity-50"
                     >
