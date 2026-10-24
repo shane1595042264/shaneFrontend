@@ -30,6 +30,7 @@ export async function fetchWords(params?: {
   search?: string;
   limit?: number;
   offset?: number;
+  signal?: AbortSignal;
 }): Promise<VocabWord[]> {
   const query = new URLSearchParams();
   if (params?.language) query.set("language", params.language);
@@ -38,7 +39,9 @@ export async function fetchWords(params?: {
   if (params?.limit) query.set("limit", String(params.limit));
   if (params?.offset) query.set("offset", String(params.offset));
 
-  const res = await fetch(`${API_URL}/api/vocabulary/words?${query}`);
+  const res = await fetch(`${API_URL}/api/vocabulary/words?${query}`, {
+    signal: params?.signal,
+  });
   if (!res.ok) throw new Error("Failed to fetch words");
   const data = await res.json();
   return data.words;

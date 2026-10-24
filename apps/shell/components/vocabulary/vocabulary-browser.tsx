@@ -14,6 +14,7 @@ import { AddWordForm } from "@/components/vocabulary/add-word-form";
 import { WordCard } from "@/components/vocabulary/word-card";
 import { WordDetail } from "@/components/vocabulary/word-detail";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { InlineErrorState } from "@/components/inline-error-state";
 
 interface VocabularyBrowserProps {
   /**
@@ -31,6 +32,7 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
   const [selectedLanguage, setSelectedLanguage] = useState("");
   const [selectedLabel, setSelectedLabel] = useState("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [adding, setAdding] = useState(false);
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
@@ -41,11 +43,20 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
   } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const hasLoaded = useRef(initialWords !== null);
   // Suppresses only the first run of the load effect below when the server
   // already seeded `words`. Filter/search changes rebuild loadWords and fetch
   // as they always have.
   const skipInitialLoad = useRef(initialWords !== null);
+
+  // SHAN-616: the box used to fetch on every keystroke, and since responses
+  // can land in any order, the grid could end on the matches for "ab" under a
+  // box reading "abc". Debounce the typing; loadWords aborts what it replaces.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     if (!deleteConfirmId) return;
@@ -57,22 +68,39 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
   }, [deleteConfirmId]);
 
   const loadWords = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     try {
       const data = await fetchWords({
         language: selectedLanguage || undefined,
         label: selectedLabel || undefined,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
+        signal: controller.signal,
       });
       setWords(data);
       setInitError(null);
       hasLoaded.current = true;
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setInitError("Failed to load words. Backend may be down.");
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
-  }, [selectedLanguage, selectedLabel, search]);
+  }, [selectedLanguage, selectedLabel, debouncedSearch]);
+
+  const isFiltered =
+    selectedLanguage !== "" || selectedLabel !== "" || debouncedSearch !== "";
+
+  function clearFilters() {
+    setSearch("");
+    setDebouncedSearch("");
+    setSelectedLanguage("");
+    setSelectedLabel("");
+  }
 
   useEffect(() => {
     if (skipInitialLoad.current) {
@@ -157,16 +185,6 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
         </div>
       )}
 
-      {initError && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="flex items-center gap-3 px-4 py-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300"
-        >
-          {initError}
-        </div>
-      )}
-
       <AddWordForm onSubmit={handleAddWord} loading={adding} />
 
       <FilterBar
@@ -180,11 +198,28 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
         onSearchChange={setSearch}
       />
 
-      <div className="text-xs text-gray-400">
-        {words.length} word{words.length !== 1 ? "s" : ""}
-      </div>
+      {/* A failed load replaces the list rather than sitting above it: the
+          words still in state answer the previous filter, not this one. */}
+      {initError ? (
+        <InlineErrorState message={initError} onRetry={loadWords} />
+      ) : (
+        <div className="text-xs text-gray-400">
+          {words.length} word{words.length !== 1 ? "s" : ""}
+        </div>
+      )}
 
-      {words.length === 0 && !initError ? (
+      {initError ? null : words.length === 0 && isFiltered ? (
+        <div className="text-center py-16 text-gray-400">
+          <p className="text-lg mb-2">No words match these filters</p>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : words.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-lg mb-2">No words yet</p>
           <p className="text-sm">
