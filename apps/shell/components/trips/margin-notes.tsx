@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { RelativeTime } from "@/lib/format-time";
 import type { TripGroupNote } from "@/lib/api/trip-groups";
 
@@ -58,8 +58,13 @@ export function NotesMargin({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<{ id: string; message: string } | null>(null);
 
+  // The state above only reaches the button on the next render, so a second
+  // click in the same frame would still read null and send a second DELETE.
+  const deleteInFlight = useRef(false);
+
   async function handleDelete(noteId: string) {
-    if (deletingId) return;
+    if (deleteInFlight.current) return;
+    deleteInFlight.current = true;
     setDeletingId(noteId);
     setDeleteError(null);
     try {
@@ -67,6 +72,7 @@ export function NotesMargin({
     } catch (err) {
       setDeleteError({ id: noteId, message: (err as Error).message });
     } finally {
+      deleteInFlight.current = false;
       setDeletingId(null);
     }
   }
