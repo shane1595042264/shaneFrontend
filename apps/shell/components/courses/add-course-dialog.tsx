@@ -6,6 +6,39 @@ import { createCourse, type Course } from "@/lib/api/courses";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
+/**
+ * SHAN-617. Shared by the add and edit dialogs. The second line is there so
+ * "private" is not read as more than it is: it hides the course on this site,
+ * but the deck is served by its own host, and that URL answers anyone who has
+ * it.
+ */
+export function PrivateCourseToggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-md border border-white/10 p-3">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 shrink-0 accent-amber-400"
+      />
+      <span className="space-y-1">
+        <span className="block text-sm text-gray-200">Private</span>
+        <span className="block text-xs text-gray-400">
+          Only you and the site owner can see it. It stays off the catalog, the
+          sitemap and search engines. The deck itself is still reachable by
+          anyone who has its URL.
+        </span>
+      </span>
+    </label>
+  );
+}
+
 export function AddCourseDialog({
   open,
   onClose,
@@ -17,6 +50,7 @@ export function AddCourseDialog({
 }) {
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,9 +68,11 @@ export function AddCourseDialog({
       const course = await createCourse({
         url: url.trim(),
         ...(title.trim() ? { title: title.trim() } : {}),
+        visibility: isPrivate ? "private" : "public",
       });
       setUrl("");
       setTitle("");
+      setIsPrivate(false);
       onCreated(course);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to add course");
@@ -77,6 +113,7 @@ export function AddCourseDialog({
             className="min-h-11 w-full rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white focus:border-white/40 focus:outline-none"
           />
         </label>
+        <PrivateCourseToggle checked={isPrivate} onChange={setIsPrivate} />
         {error && (
           <p role="alert" className="text-sm text-red-400">
             {error}

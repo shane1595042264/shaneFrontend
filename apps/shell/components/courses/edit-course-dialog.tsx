@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { updateCourse, type Course, type CourseDifficulty } from "@/lib/api/courses";
 import { CATEGORY_STYLES } from "./category-styles";
+import { PrivateCourseToggle } from "./add-course-dialog";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
@@ -27,6 +28,7 @@ export function EditCourseDialog({
   );
   const [tags, setTags] = useState(course.tags.join(", "));
   const [url, setUrl] = useState(course.url);
+  const [isPrivate, setIsPrivate] = useState(course.visibility === "private");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +59,7 @@ export function EditCourseDialog({
           .filter(Boolean)
           .slice(0, 8),
         url: url.trim(),
+        visibility: isPrivate ? "private" : "public",
       });
       onSaved(updated);
     } catch (e: unknown) {
@@ -130,6 +133,7 @@ export function EditCourseDialog({
           <span className="text-xs text-gray-400">Course URL</span>
           <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} className={inputCls} />
         </label>
+        <PrivateCourseToggle checked={isPrivate} onChange={setIsPrivate} />
         {error && (
           <p role="alert" className="text-sm text-red-400">{error}</p>
         )}

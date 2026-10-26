@@ -158,7 +158,12 @@ const COURSES_NOT_FOUND_HTML = renderEdgeNotFound({
 // Returning the edge 404 here keeps the no-probe intent and fixes the status.
 // There are no real sibling routes under /courses/, so there is no
 // pass-through set for this branch.
-const COURSES_RESERVED_SEGMENTS = new Set(["covers"]);
+//
+// SHAN-617: "private" is the bare form of /courses/private/<slug>, where
+// private courses are read. Only the two-segment form is a page, and that shape
+// never reaches the slug branch, so bare /courses/private gets the same
+// treatment as /blog/preview. The backend refuses to mint either slug.
+const COURSES_RESERVED_SEGMENTS = new Set(["covers", "private"]);
 
 const BLOG_NOT_FOUND_HTML = renderEdgeNotFound({
   title: "Not Found — Blog — Shane",

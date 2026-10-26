@@ -6,6 +6,7 @@ import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { useAuth } from "@/lib/auth-context";
 import {
   clearCourseRating,
+  coursePath,
   deleteCourse,
   getCourse,
   rateCourse,
@@ -21,6 +22,7 @@ import { GeneratedCover } from "./generated-cover";
 import { StarRating } from "./star-rating";
 import { EditCourseDialog } from "./edit-course-dialog";
 import { CourseCommentsThread } from "./comments-thread";
+import { PrivateBadge } from "./course-card";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -207,6 +209,7 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
             {course.title}
           </h1>
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            {course.visibility === "private" && <PrivateBadge />}
             <span className={`rounded border px-1.5 py-0.5 ${style.border} ${style.bg} ${style.text}`}>
               {course.category}
             </span>
@@ -316,10 +319,15 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
           course={course}
           onClose={() => setShowEdit(false)}
           onSaved={async (updated) => {
+            const moved = updated.visibility !== course.visibility;
             setCourse(updated);
             setShowEdit(false);
             await bustServerCache();
-            router.refresh();
+            // SHAN-617: public and private courses read at different paths, so a
+            // visibility flip moves the page. replace, not push: the old path
+            // 404s now, so it is not worth a Back entry.
+            if (moved) router.replace(coursePath(updated));
+            else router.refresh();
           }}
         />
       )}

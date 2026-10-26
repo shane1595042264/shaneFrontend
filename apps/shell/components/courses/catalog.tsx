@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
-import { listCourses, type Course } from "@/lib/api/courses";
+import { coursePath, listCourses, type Course } from "@/lib/api/courses";
 import { revalidateCoursesIndex } from "@/lib/courses-revalidate";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { CourseCard } from "./course-card";
@@ -276,7 +276,7 @@ export function CoursesCatalog({ initialCourses }: CoursesCatalogProps) {
           // same reason course-interactive.tsx does it: the write already
           // committed, so a revalidation failure must not read as a failed add.
           revalidateCoursesIndex().catch(() => {});
-          router.push(`/courses/${course.slug}`);
+          router.push(coursePath(course));
         }}
       />
     </div>

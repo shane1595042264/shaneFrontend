@@ -2,7 +2,7 @@
 
 import Link from "@/components/transition-link";
 import { motion } from "framer-motion";
-import type { Course } from "@/lib/api/courses";
+import { coursePath, type Course } from "@/lib/api/courses";
 import { categoryStyle, DIFFICULTY_STYLES } from "./category-styles";
 import { GeneratedCover } from "./generated-cover";
 import { StarRating } from "./star-rating";
@@ -17,6 +17,15 @@ const cardVariants = {
   },
 };
 
+/** SHAN-617. Amber matches the blog's draft banner, the site's other "only you see this". */
+export function PrivateBadge() {
+  return (
+    <span className="rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-amber-200">
+      private
+    </span>
+  );
+}
+
 export function CourseCard({ course }: { course: Course }) {
   const style = categoryStyle(course.category);
   return (
@@ -27,7 +36,7 @@ export function CourseCard({ course }: { course: Course }) {
       className="list-none"
     >
       <Link
-        href={`/courses/${course.slug}`}
+        href={coursePath(course)}
         className={`spot block overflow-hidden rounded-xl border ${style.border} bg-white/[0.02] transition-shadow duration-500 hover:shadow-[0_18px_40px_-18px_rgb(45_212_191/0.35)] focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none`}
       >
         <div className="relative aspect-video">
@@ -56,6 +65,7 @@ export function CourseCard({ course }: { course: Course }) {
         </div>
         <div className="space-y-3 p-4">
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            {course.visibility === "private" && <PrivateBadge />}
             <span className={`rounded border px-1.5 py-0.5 ${style.border} ${style.bg} ${style.text}`}>
               {course.category}
             </span>

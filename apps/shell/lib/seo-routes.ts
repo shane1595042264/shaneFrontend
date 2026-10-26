@@ -62,6 +62,10 @@ export const CRAWLER_DISALLOW: string[] = [
   // gets only AuthGate's sign-in prompt. /knowledge itself stays crawlable.
   "/knowledge/recite",
   "/blog/*/history",
+  // SHAN-617: private courses. Same shape as /blog/preview: content only its
+  // creator and the site owner can fetch, so a crawler gets "Course not found".
+  // /courses and /courses/<slug> stay crawlable.
+  "/courses/private",
   // SHAN-477: transport alias, not a page. /learn/:slug proxies the course deck
   // hosted on the supermassive-courses origin so corporate DNS filters never
   // see that hostname. Letting crawlers in would index a second copy of HTML we

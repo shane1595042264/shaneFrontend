@@ -3,6 +3,9 @@ import { API_URL } from "@/lib/api-url";
 
 export type CourseDifficulty = "intro" | "intermediate" | "advanced";
 
+/** SHAN-617: a private course is visible only to its creator and the site owner. */
+export type CourseVisibility = "public" | "private";
+
 export interface CourseRatingSummary {
   average: number | null;
   count: number;
@@ -18,6 +21,7 @@ export interface Course {
   difficulty: CourseDifficulty;
   durationMinutes: number | null;
   tags: string[];
+  visibility: CourseVisibility;
   ownerId: string;
   coverUrl: string | null;
   rating: CourseRatingSummary;
@@ -47,6 +51,18 @@ export interface CourseComment {
 
 export interface CourseRatingState extends CourseRatingSummary {
   mine: number | null;
+}
+
+/**
+ * Where a course is read. A private course cannot live at /courses/<slug>: the
+ * middleware probes that path anonymously and the backend 404s a private course
+ * to anyone without a token, so it reads at /courses/private/<slug> instead, the
+ * same move as the blog's /blog/preview/<slug> drafts (SHAN-487).
+ */
+export function coursePath(course: Pick<Course, "slug" | "visibility">): string {
+  return course.visibility === "private"
+    ? `/courses/private/${course.slug}`
+    : `/courses/${course.slug}`;
 }
 
 /** Backend returns coverUrl relative to the API host; make it absolute. */
@@ -103,7 +119,29 @@ export const getCourse = (slug: string) =>
     absolutize(r.course),
   );
 
-export const createCourse = (input: { url: string; title?: string }) =>
+/**
+ * Like getCourse, but resolves to null on a 404. The backend answers a private
+ * course that is not yours with the same 404 as a missing one, so the two are
+ * deliberately indistinguishable here.
+ */
+export async function findCourse(slug: string): Promise<Course | null> {
+  const res = await fetch(`${API_URL}/api/courses/${encodeURIComponent(slug)}`, {
+    headers: getAuthHeaders(),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || `${res.status}`);
+  }
+  const data = (await res.json()) as { course: Course };
+  return absolutize(data.course);
+}
+
+export const createCourse = (input: {
+  url: string;
+  title?: string;
+  visibility?: CourseVisibility;
+}) =>
   api<{ course: Course }>("/api/courses", {
     method: "POST",
     body: JSON.stringify(input),
@@ -119,6 +157,7 @@ export const updateCourse = (
     durationMinutes: number | null;
     tags: string[];
     url: string;
+    visibility: CourseVisibility;
   }>,
 ) =>
   api<{ course: Course }>(`/api/courses/${id}`, {
