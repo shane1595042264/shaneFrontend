@@ -34,6 +34,9 @@ export function PracticeRunner({ session, items, setsPerStrike }: Props) {
   const [timer, setTimer] = useState<TimerState | null>(current?.timerState ?? null);
   const [setsCompleted, setSetsCompleted] = useState(current?.setsCompleted ?? 0);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [abandoning, setAbandoning] = useState(false);
+  const [abandonError, setAbandonError] = useState<string | null>(null);
+  const abandoningRef = useRef(false);
 
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -142,21 +145,28 @@ export function PracticeRunner({ session, items, setsPerStrike }: Props) {
   const skipSet = () => { if (timer) setTimer(advancePhase({ ...timer, phase: "work" })); };
   const skipItem = () => { syncToServer({ completedAt: new Date().toISOString(), timerState: null }); setShowLocationPrompt(true); };
 
-  const onLocationPicked = (loc: { id: string; name: string } | null) => {
+  // Finishing an item and finishing the session are awaited, not fired and
+  // forgotten: a failed save used to vanish (no strike at that location, the
+  // session left open) and the summary page could load before either landed.
+  // A rejection propagates to LocationPrompt, which keeps itself open with the
+  // error. Retrying is safe: the item sync rewrites the same fields and
+  // completing the session again only restamps its end time.
+  const onLocationPicked = async (loc: { id: string; name: string } | null) => {
     if (!current) return;
-    syncSessionItem(current.id, {
+    await syncSessionItem(current.id, {
       completedAt: new Date().toISOString(),
       timerState: null,
+      // Re-sent so a mid-item set sync that failed is healed here.
+      setsCompleted,
       ...(loc ? { locationId: loc.id, locationName: loc.name } : {}),
-    }).catch(() => {});
-    setShowLocationPrompt(false);
-    moveToNextItemOrDone();
+    });
+    await moveToNextItemOrDone();
   };
 
-  const moveToNextItemOrDone = () => {
+  const moveToNextItemOrDone = async () => {
     const nextPos = position + 1;
     if (nextPos >= items.length) {
-      completeSession(session.id).catch(() => {});
+      await completeSession(session.id);
       router.push(`/practice/sessions/${session.id}/done`);
       return;
     }
@@ -166,9 +176,19 @@ export function PracticeRunner({ session, items, setsPerStrike }: Props) {
     setShowLocationPrompt(false);
   };
 
-  const abandonSession = () => {
-    completeSession(session.id).catch(() => {});
-    router.push(`/practice/sessions/${session.id}/done`);
+  const abandonSession = async () => {
+    if (abandoningRef.current) return;
+    abandoningRef.current = true;
+    setAbandoning(true);
+    setAbandonError(null);
+    try {
+      await completeSession(session.id);
+      router.push(`/practice/sessions/${session.id}/done`);
+    } catch (e) {
+      setAbandonError((e as Error).message ?? "Failed to end the session");
+      abandoningRef.current = false;
+      setAbandoning(false);
+    }
   };
 
   if (!current) {
@@ -187,13 +207,20 @@ export function PracticeRunner({ session, items, setsPerStrike }: Props) {
   return (
     <div className="flex min-h-dvh flex-col bg-black text-white">
       <header className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-sm">
-        <button type="button" onClick={abandonSession} className="text-gray-400 hover:text-white">← Abandon</button>
+        <button type="button" onClick={abandonSession} disabled={abandoning} className="text-gray-400 hover:text-white disabled:opacity-50">
+          {abandoning ? "Ending…" : "← Abandon"}
+        </button>
         <span className="text-gray-400">Item {position + 1} of {items.length}</span>
       </header>
+      {abandonError && (
+        <p role="alert" className="border-b border-white/10 px-4 py-2 text-sm text-red-400">
+          Could not end the session: {abandonError}
+        </p>
+      )}
 
       {showLocationPrompt ? (
         <div className="mx-auto w-full max-w-md flex-1 p-4">
-          <LocationPrompt onPick={onLocationPicked} onSkip={() => onLocationPicked(null)} />
+          <LocationPrompt key={current.id} onPick={onLocationPicked} />
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
