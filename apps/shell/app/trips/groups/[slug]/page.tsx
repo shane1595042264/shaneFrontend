@@ -433,13 +433,15 @@ function GroupDetail() {
   const [notes, setNotes] = useState<TripGroupNote[]>([]);
   const [noteAnchor, setNoteAnchor] = useState("group");
   const [noteBusy, setNoteBusy] = useState(false);
+  const [notesError, setNotesError] = useState<string | null>(null);
 
   const refetchNotes = useCallback(async () => {
     if (!slug) return;
     try {
       setNotes(await apiListNotes(slug));
-    } catch {
-      /* margin notes are non-critical; the composer surfaces its own errors */
+      setNotesError(null);
+    } catch (err) {
+      setNotesError((err as Error).message);
     }
   }, [slug]);
 
@@ -1139,6 +1141,8 @@ function GroupDetail() {
         onSelectAnchor={setNoteAnchor}
         canDelete={(n) => detail.isOwner || n.authorId === user?.id}
         busy={noteBusy}
+        loadError={notesError}
+        onRetry={() => void refetchNotes()}
         onCreate={async (anchor, body) => {
           setNoteBusy(true);
           try {

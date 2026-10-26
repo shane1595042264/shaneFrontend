@@ -32,6 +32,8 @@ export function NotesMargin({
   onSelectAnchor,
   canDelete,
   busy,
+  loadError,
+  onRetry,
   onCreate,
   onDelete,
 }: {
@@ -42,11 +44,32 @@ export function NotesMargin({
   onSelectAnchor: (value: string) => void;
   canDelete: (n: TripGroupNote) => boolean;
   busy: boolean;
+  /**
+   * Set when the notes list failed to load. The list is then unknown, not
+   * empty, so "No notes yet." and the count would both be wrong (SHAN-618).
+   */
+  loadError: string | null;
+  onRetry: () => void;
   onCreate: (anchor: NoteAnchorOption, body: string) => Promise<void>;
-  onDelete: (noteId: string) => void;
+  onDelete: (noteId: string) => Promise<void>;
 }) {
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<{ id: string; message: string } | null>(null);
+
+  async function handleDelete(noteId: string) {
+    if (deletingId) return;
+    setDeletingId(noteId);
+    setDeleteError(null);
+    try {
+      await onDelete(noteId);
+    } catch (err) {
+      setDeleteError({ id: noteId, message: (err as Error).message });
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   // When a "+ note" button preselects an anchor, surface the composer.
   useEffect(() => {
@@ -70,7 +93,7 @@ export function NotesMargin({
     <aside aria-label="Notes" className="lg:sticky lg:top-under-header lg:self-start lg:transition-[top] lg:duration-[420ms] lg:ease-[var(--ease-glide)] lg:motion-reduce:transition-none">
       <h2 className="mb-2 text-sm font-medium text-gray-300">
         Notes
-        {notes.length > 0 && (
+        {notes.length > 0 && !loadError && (
           <span className="ml-2 rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-gray-400">
             {notes.length}
           </span>
@@ -111,8 +134,17 @@ export function NotesMargin({
         </div>
       </form>
 
+      {loadError && (
+        <div role="alert" className="mb-2 text-xs text-red-400">
+          Couldn&apos;t load notes: {loadError}{" "}
+          <button type="button" onClick={onRetry} className="text-blue-300 underline hover:text-blue-200">
+            Retry
+          </button>
+        </div>
+      )}
+
       {notes.length === 0 ? (
-        <p className="text-xs text-gray-400">No notes yet.</p>
+        !loadError && <p className="text-xs text-gray-400">No notes yet.</p>
       ) : (
         <ul className="space-y-2">
           {notes.map((n) => (
@@ -128,13 +160,17 @@ export function NotesMargin({
                 {canDelete(n) && (
                   <button
                     type="button"
-                    onClick={() => onDelete(n.id)}
-                    className="text-red-400/70 hover:text-red-300"
+                    onClick={() => void handleDelete(n.id)}
+                    disabled={deletingId !== null}
+                    className="text-red-400/70 hover:text-red-300 disabled:opacity-50"
                   >
-                    delete
+                    {deletingId === n.id ? "deleting…" : "delete"}
                   </button>
                 )}
               </p>
+              {deleteError?.id === n.id && (
+                <p role="alert" className="mt-1 text-[10px] text-red-400">{deleteError.message}</p>
+              )}
             </li>
           ))}
         </ul>

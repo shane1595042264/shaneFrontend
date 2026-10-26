@@ -102,26 +102,34 @@ function DayDetail() {
   const [notes, setNotes] = useState<TripGroupNote[]>([]);
   const [noteAnchor, setNoteAnchor] = useState("day");
   const [noteBusy, setNoteBusy] = useState(false);
+  const [notesError, setNotesError] = useState<string | null>(null);
+
+  // Kept apart from the page load: a failed notes list must not blank the day,
+  // and must not read as an empty one either (SHAN-618).
+  const refetchNotes = useCallback(async () => {
+    if (!slug) return;
+    try {
+      setNotes(await apiListNotes(slug));
+      setNotesError(null);
+    } catch (err) {
+      setNotesError((err as Error).message);
+    }
+  }, [slug]);
 
   const refetch = useCallback(async () => {
     if (!slug) return;
     setLoading(true);
     try {
-      const [d, p, n] = await Promise.all([
-        getGroupDetail(slug),
-        listPhotos(slug),
-        apiListNotes(slug).catch(() => [] as TripGroupNote[]),
-      ]);
+      const [d, p] = await Promise.all([getGroupDetail(slug), listPhotos(slug), refetchNotes()]);
       setDetail(d);
       setPhotos(p);
-      setNotes(n);
       setError(null);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [slug, refetchNotes]);
 
   useEffect(() => {
     void refetch();
@@ -499,6 +507,8 @@ function DayDetail() {
           onSelectAnchor={setNoteAnchor}
           canDelete={(n) => detail.isOwner || n.authorId === user?.id}
           busy={noteBusy}
+          loadError={notesError}
+          onRetry={() => void refetchNotes()}
           onCreate={async (anchor, body) => {
             setNoteBusy(true);
             try {
