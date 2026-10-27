@@ -42,32 +42,37 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
   async function commit(delta: {
     addMemorizationLocations?: string[];
     removeMemorizationLocations?: string[];
-  }) {
+  }): Promise<boolean> {
     setSaving(true);
     setError(null);
     try {
       const updated = await updateEntry(entry.id, delta);
       onUpdated(updated);
+      return true;
     } catch (e) {
       setError((e as Error)?.message ?? "Failed to update locations");
+      return false;
     } finally {
       setSaving(false);
     }
   }
 
-  async function add(name: string) {
+  // SHAN-623: `fromInput` is false for a suggestion chip, which must leave
+  // whatever is typed in the box alone. A typed add clears the box only once
+  // it has saved, so a failed save keeps the text for a retry.
+  async function add(name: string, fromInput: boolean) {
     const trimmed = name.trim();
     if (!trimmed) return;
     // De-dupe case-insensitively against what's already on the card.
     if (current.some((l) => l.toLowerCase() === trimmed.toLowerCase())) {
-      setInput("");
+      if (fromInput) setInput("");
       return;
     }
     // Register it as a practice location too so it shows up as a suggestion
     // later; tolerate failure — the card update below is what actually matters.
     upsertLocation(trimmed).catch(() => {});
-    setInput("");
-    await commit({ addMemorizationLocations: [trimmed] });
+    const saved = await commit({ addMemorizationLocations: [trimmed] });
+    if (saved && fromInput) setInput("");
   }
 
   function remove(name: string) {
@@ -131,7 +136,7 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
                   key={s.id}
                   type="button"
                   disabled={saving}
-                  onClick={() => add(s.name)}
+                  onClick={() => add(s.name, false)}
                   className="text-xs px-2 py-0.5 border border-white/15 rounded text-gray-400 hover:bg-white/10 disabled:opacity-50"
                 >
                   + {s.name}
@@ -147,17 +152,20 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  add(input);
+                  add(input, true);
                 }
               }}
               aria-label="Add a location"
+              // The server caps a location at 120 characters (knowledge PUT
+              // and POST /api/practice/locations alike).
+              maxLength={120}
               placeholder="Add a location…"
               disabled={saving}
               className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-white/20 disabled:opacity-50"
             />
             <button
               type="button"
-              onClick={() => add(input)}
+              onClick={() => add(input, true)}
               disabled={saving || !input.trim()}
               className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white rounded transition-colors"
             >
