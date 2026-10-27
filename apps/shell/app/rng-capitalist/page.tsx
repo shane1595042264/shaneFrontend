@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { BudgetBar } from "@/components/rng/budget-bar";
 import { UrlInput } from "@/components/rng/url-input";
 import { ResultCard } from "@/components/rng/result-card";
@@ -27,36 +27,61 @@ function RngCapitalistContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsManual, setNeedsManual] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
+  // SHAN-621: one error per section, so a failed fetch renders as a failure in
+  // that section instead of its empty state ("No active bans.") or a budget
+  // that says "Loading budget..." forever.
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [bansError, setBansError] = useState<string | null>(null);
 
   // Track if user has manually overridden the budget
   const manualOverride = useRef<{ balance: number; lastMonthSpend: number } | null>(null);
 
+  // `replaceOverride` is for an explicit refresh (a bank was just connected):
+  // the fresh Plaid numbers win, and only once they have actually landed, so a
+  // failed fetch keeps the manual numbers the evaluations are using. Any other
+  // load leaves an override that was entered while it was in flight alone.
+  const loadBudget = useCallback((replaceOverride = false) => {
+    setBudgetError(null);
+    return fetchBudget()
+      .then((b) => {
+        if (manualOverride.current && !replaceOverride) return;
+        manualOverride.current = null;
+        setBudget(b);
+      })
+      .catch(() => {
+        if (manualOverride.current && !replaceOverride) return;
+        setBudgetError("Couldn't load your budget.");
+      });
+  }, []);
+
+  const loadHistory = useCallback(() => {
+    setHistoryError(null);
+    return fetchHistory()
+      .then(setHistory)
+      .catch(() => setHistoryError("Couldn't load your history."));
+  }, []);
+
+  const loadBans = useCallback(() => {
+    setBansError(null);
+    return fetchBans()
+      .then(setBans)
+      .catch(() => setBansError("Couldn't load your bans."));
+  }, []);
+
   // Re-fetch data when user changes (login/logout)
   useEffect(() => {
     if (!user) return;
-    setInitError(null);
-    Promise.allSettled([
-      fetchBudget().then(setBudget),
-      fetchHistory().then(setHistory),
-      fetchBans().then(setBans),
-    ]).then((results) => {
-      const failed = results.filter((r) => r.status === "rejected");
-      if (failed.length === results.length) {
-        setInitError("Failed to connect to the backend. The service may be down.");
-      } else if (failed.length > 0) {
-        setInitError("Some data failed to load. Results may be incomplete.");
-      }
-    });
-  }, [user]);
+    loadBudget();
+    loadHistory();
+    loadBans();
+  }, [user, loadBudget, loadHistory, loadBans]);
 
   function refreshAfterEval() {
-    fetchHistory().then(setHistory).catch(console.error);
-    fetchBans().then(setBans).catch(console.error);
+    loadHistory();
+    loadBans();
     // Only refresh budget from Plaid if NOT manually overridden
-    if (!manualOverride.current) {
-      fetchBudget().then(setBudget).catch(console.error);
-    }
+    if (!manualOverride.current) loadBudget();
   }
 
   // Build override params to send to backend
@@ -95,19 +120,14 @@ function RngCapitalistContent() {
 
   return (
     <div className="space-y-8">
-      {initError && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300">
-          <span>{initError}</span>
-        </div>
-      )}
       <BudgetBar
         budget={budget}
-        onRefresh={() => {
-          manualOverride.current = null;
-          fetchBudget().then(setBudget);
-        }}
+        error={budgetError}
+        onRetry={() => loadBudget()}
+        onRefresh={() => loadBudget(true)}
         onManualOverride={(balance, lastMonthSpend) => {
           manualOverride.current = { balance, lastMonthSpend };
+          setBudgetError(null);
           setBudget({ connected: true, balance, last_month_spend: lastMonthSpend, remaining_budget: balance - lastMonthSpend });
         }}
       />
@@ -120,8 +140,8 @@ function RngCapitalistContent() {
       {error && !needsManual && <p className="text-red-400 text-sm">{error}</p>}
       {result && <ResultCard result={result} />}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2"><HistoryList decisions={history} /></div>
-        <div><BanList bans={bans} /></div>
+        <div className="md:col-span-2"><HistoryList decisions={history} error={historyError} onRetry={loadHistory} /></div>
+        <div><BanList bans={bans} error={bansError} onRetry={loadBans} /></div>
       </div>
     </div>
   );

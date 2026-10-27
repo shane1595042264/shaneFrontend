@@ -1,7 +1,16 @@
 "use client";
 import type { Ban } from "@/lib/rng-api";
+import { LoadError } from "./load-error";
 
-export function BanList({ bans }: { bans: Ban[] }) {
+export function BanList({
+  bans,
+  error,
+  onRetry,
+}: {
+  bans: Ban[];
+  error?: string | null;
+  onRetry?: () => void;
+}) {
   return (
     <div>
       {/*
@@ -13,7 +22,14 @@ export function BanList({ bans }: { bans: Ban[] }) {
         BanList is imported only by that page, so nothing else inherits this.
       */}
       <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Banned Categories</h2>
-      {bans.length === 0 ? <p className="text-gray-400 text-sm">No active bans.</p> : (
+      {/* SHAN-621: a failed load is not "No active bans.", which would show a
+          category banned for 30 days as open. */}
+      {error && (
+        <div className="mb-2">
+          <LoadError message={error} onRetry={onRetry} stale={bans.length > 0} />
+        </div>
+      )}
+      {bans.length === 0 ? (error ? null : <p className="text-gray-400 text-sm">No active bans.</p>) : (
         <div className="space-y-2">
           {bans.map((ban) => {
             const daysLeft = Math.ceil((new Date(ban.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));

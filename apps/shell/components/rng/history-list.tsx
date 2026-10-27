@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Decision } from "@/lib/rng-api";
 import { RelativeTime } from "@/lib/format-time";
+import { LoadError } from "./load-error";
 
 const RESULT_BADGE: Record<string, string> = {
   approved: "bg-green-500/20 text-green-400",
@@ -162,7 +163,23 @@ function HistoryItem({ decision }: { decision: Decision }) {
   );
 }
 
-export function HistoryList({ decisions }: { decisions: Decision[] }) {
+export function HistoryList({
+  decisions,
+  error,
+  onRetry,
+}: {
+  decisions: Decision[];
+  error?: string | null;
+  onRetry?: () => void;
+}) {
+  // SHAN-621: a failed load shows the failure, never "No decisions yet.", and
+  // a failed refresh keeps the last list on screen under the note.
+  const errorNote = error && (
+    <div className="mb-2">
+      <LoadError message={error} onRetry={onRetry} stale={decisions.length > 0} />
+    </div>
+  );
+
   // SHAN-533: h2, not h3, in BOTH branches — see components/rng/ban-list.tsx
   // for why. The empty branch is the one a fresh account renders, so fixing
   // only the populated one would leave the skip in place for exactly the
@@ -171,7 +188,7 @@ export function HistoryList({ decisions }: { decisions: Decision[] }) {
     return (
       <div>
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">History</h2>
-        <p className="text-gray-400 text-sm">No decisions yet.</p>
+        {errorNote || <p className="text-gray-400 text-sm">No decisions yet.</p>}
       </div>
     );
   }
@@ -179,6 +196,7 @@ export function HistoryList({ decisions }: { decisions: Decision[] }) {
   return (
     <div>
       <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">History</h2>
+      {errorNote}
       <div className="space-y-2">
         {decisions.map((d) => (
           <HistoryItem key={d.id} decision={d} />

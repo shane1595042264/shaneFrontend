@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import type { BudgetInfo } from "@/lib/rng-api";
 import { createPlaidLinkToken, exchangePlaidToken } from "@/lib/rng-api";
+import { LoadError } from "./load-error";
 
 function formatMoney(n: number | null): string {
   if (n === null) return "—";
@@ -78,21 +79,40 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 
 interface BudgetBarProps {
   budget: BudgetInfo | null;
+  error?: string | null;
+  onRetry?: () => void;
   onRefresh?: () => void;
   onManualOverride?: (balance: number, lastMonthSpend: number) => void;
 }
 
-export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProps) {
+export function BudgetBar({ budget, error, onRetry, onRefresh, onManualOverride }: BudgetBarProps) {
   const [editing, setEditing] = useState(false);
   const [manualBalance, setManualBalance] = useState("");
   const [manualSpend, setManualSpend] = useState("");
 
-  if (!budget) return <div className="text-gray-400 text-sm">Loading budget...</div>;
+  if (!budget && !error) return <div className="text-gray-400 text-sm">Loading budget...</div>;
 
-  if (!budget.connected && !editing) {
+  // SHAN-621: the editor is checked before the failed-load card, because
+  // entering the numbers by hand is the way through when Plaid is down.
+  if (!budget && !editing) {
+    return (
+      <div className="bg-white/5 rounded-lg p-6 text-center space-y-3">
+        <LoadError message={error ?? "Couldn't load your budget."} onRetry={onRetry} />
+        <button
+          onClick={() => setEditing(true)}
+          className="px-4 py-2 border border-white/20 text-gray-300 rounded-md hover:bg-white/10 text-sm"
+        >
+          Enter Manually
+        </button>
+      </div>
+    );
+  }
+
+  if (budget && !budget.connected && !editing) {
     return (
       <div className="bg-white/5 rounded-lg p-6 text-center space-y-3">
         <p className="text-gray-400">Connect your bank or enter manually</p>
+        {error && <LoadError message={error} onRetry={onRetry} />}
         <div className="flex items-center justify-center gap-3">
           <PlaidConnectButton onConnected={() => onRefresh?.()} />
           <button
@@ -161,6 +181,9 @@ export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProp
     );
   }
 
+  // Only reachable with a budget: every null-budget case returned above.
+  if (!budget) return null;
+
   const remaining = budget.remaining_budget ?? 0;
   return (
     <div>
@@ -180,6 +203,11 @@ export function BudgetBar({ budget, onRefresh, onManualOverride }: BudgetBarProp
           </p>
         </div>
       </div>
+      {error && (
+        <div className="mt-2">
+          <LoadError message={error} onRetry={onRetry} stale />
+        </div>
+      )}
       <button
         onClick={() => setEditing(true)}
         className="mt-2 text-xs text-gray-400 hover:text-gray-200 transition-colors"
