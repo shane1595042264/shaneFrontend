@@ -20,6 +20,7 @@ import { NoteInput, type QuickAddInput } from "@/components/knowledge/note-input
 import { CategoryTabs } from "@/components/knowledge/category-tabs";
 import { EntryCard } from "@/components/knowledge/entry-card";
 import { EntryDetail } from "@/components/knowledge/entry-detail";
+import { LoadError } from "@/components/load-error";
 import { PracticeButton } from "@/components/practice/practice-button";
 import { ProgressChip } from "@/components/practice/progress-chip";
 import { listPracticeableItems, type PracticeableItem } from "@/lib/api/practice";
@@ -141,6 +142,7 @@ export function KnowledgeBrowser({
   const [adding, setAdding] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [metaError, setMetaError] = useState(false);
   const [loading, setLoading] = useState(initialEntries === null);
   const [notification, setNotification] = useState<{
     message: string;
@@ -309,12 +311,23 @@ export function KnowledgeBrowser({
     loadEntries();
   }, [loadEntries]);
 
-  useEffect(() => {
-    fetchCategories().then(setCategories).catch(() => {});
-    fetchLanguages().then(setLanguages).catch(() => {});
-    fetchLabels().then(setLabels).catch(() => {});
-    fetchMemorizationLocations().then(setLocations).catch(() => {});
+  // SHAN-624: a failed options fetch used to be swallowed, which left the tabs
+  // at a lone "All" and hid the location filter, reading as "no categories".
+  // Each list that did load still applies; the notice stays until a load where
+  // all four succeed.
+  const loadMeta = useCallback(async () => {
+    const results = await Promise.allSettled([
+      fetchCategories().then(setCategories),
+      fetchLanguages().then(setLanguages),
+      fetchLabels().then(setLabels),
+      fetchMemorizationLocations().then(setLocations),
+    ]);
+    setMetaError(results.some((r) => r.status === "rejected"));
   }, []);
+
+  useEffect(() => {
+    loadMeta();
+  }, [loadMeta]);
 
   // Re-loading entries (filter change, deletions) invalidates the saved anchor
   // for shift-range selection: indices into the array shifted, so a "select
@@ -322,13 +335,6 @@ export function KnowledgeBrowser({
   useEffect(() => {
     lastClickedIndexRef.current = null;
   }, [entries]);
-
-  function refreshMeta() {
-    fetchCategories().then(setCategories).catch(() => {});
-    fetchLanguages().then(setLanguages).catch(() => {});
-    fetchLabels().then(setLabels).catch(() => {});
-    fetchMemorizationLocations().then(setLocations).catch(() => {});
-  }
 
   function showNotification(message: string, type: "error" | "success") {
     setNotification({ message, type });
@@ -421,7 +427,7 @@ export function KnowledgeBrowser({
     try {
       const { entry } = await submitNote(text);
       await loadEntries();
-      refreshMeta();
+      loadMeta();
       showNotification(
         `Added "${entry.word}" to ${entry.category}`,
         "success"
@@ -447,7 +453,7 @@ export function KnowledgeBrowser({
         autoEnrich: false,
       });
       await loadEntries();
-      refreshMeta();
+      loadMeta();
       showNotification(`Added "${entry.word}" to ${entry.category}`, "success");
     } catch (err: any) {
       showNotification(err.message || "Failed to add card", "error");
@@ -461,7 +467,7 @@ export function KnowledgeBrowser({
     try {
       await deleteEntry(id);
       await loadEntries();
-      refreshMeta();
+      loadMeta();
       if (selectedEntryId === id) closeEntry();
     } catch (err: any) {
       showNotification(err.message || "Failed to delete entry", "error");
@@ -477,7 +483,7 @@ export function KnowledgeBrowser({
     try {
       const result = await bulkDeleteEntries(deletableSelectedIds);
       await loadEntries();
-      refreshMeta();
+      loadMeta();
       const parts = [`Deleted ${result.deleted.length}`];
       if (result.denied.length > 0) parts.push(`${result.denied.length} not yours`);
       if (result.notFound.length > 0) parts.push(`${result.notFound.length} missing`);
@@ -534,12 +540,12 @@ export function KnowledgeBrowser({
       )}
 
       {initError && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="flex items-center gap-3 px-4 py-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300"
-        >
-          {initError}
+        <div className="px-4 py-3 rounded bg-red-500/10 border border-red-500/20">
+          <LoadError
+            message={initError}
+            onRetry={loadEntries}
+            stale={entries.length > 0}
+          />
         </div>
       )}
 
@@ -649,6 +655,10 @@ export function KnowledgeBrowser({
         </div>
       </div>
 
+      {metaError && (
+        <LoadError message="Couldn't load the filter options." onRetry={loadMeta} />
+      )}
+
       <div className="font-mono text-xs tabular-nums text-gray-400">
         {entries.length} card{entries.length !== 1 ? "s" : ""}
         {editMode && (
@@ -715,7 +725,7 @@ export function KnowledgeBrowser({
           onNotFound={dropEntryParam}
           onEntryUpdated={() => {
             loadEntries();
-            refreshMeta();
+            loadMeta();
           }}
         />
       )}

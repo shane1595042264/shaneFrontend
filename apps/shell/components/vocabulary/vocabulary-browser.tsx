@@ -15,6 +15,7 @@ import { WordCard } from "@/components/vocabulary/word-card";
 import { WordDetail } from "@/components/vocabulary/word-detail";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { InlineErrorState } from "@/components/inline-error-state";
+import { LoadError } from "@/components/load-error";
 
 interface VocabularyBrowserProps {
   /**
@@ -36,6 +37,7 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
   const [adding, setAdding] = useState(false);
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [metaError, setMetaError] = useState(false);
   const [loading, setLoading] = useState(initialWords === null);
   const [notification, setNotification] = useState<{
     message: string;
@@ -110,15 +112,19 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
     loadWords();
   }, [loadWords]);
 
-  useEffect(() => {
-    fetchLanguages().then(setLanguages).catch(() => {});
-    fetchLabels().then(setLabels).catch(() => {});
+  // SHAN-624: a failed options fetch used to be swallowed, leaving both
+  // selects at "All languages" / "All labels" as if no word had either.
+  const loadMeta = useCallback(async () => {
+    const results = await Promise.allSettled([
+      fetchLanguages().then(setLanguages),
+      fetchLabels().then(setLabels),
+    ]);
+    setMetaError(results.some((r) => r.status === "rejected"));
   }, []);
 
-  function refreshMeta() {
-    fetchLanguages().then(setLanguages).catch(() => {});
-    fetchLabels().then(setLabels).catch(() => {});
-  }
+  useEffect(() => {
+    loadMeta();
+  }, [loadMeta]);
 
   function showNotification(message: string, type: "error" | "success") {
     setNotification({ message, type });
@@ -134,7 +140,7 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
     try {
       await createWord(data);
       await loadWords();
-      refreshMeta();
+      loadMeta();
       showNotification(`Added "${data.word}"`, "success");
     } catch (err: any) {
       showNotification(err.message || "Failed to add word", "error");
@@ -148,7 +154,7 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
     try {
       await deleteWord(id);
       await loadWords();
-      refreshMeta();
+      loadMeta();
       if (selectedWordId === id) setSelectedWordId(null);
     } catch (err: any) {
       showNotification(err.message || "Failed to delete word", "error");
@@ -197,6 +203,10 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
         onLabelChange={setSelectedLabel}
         onSearchChange={setSearch}
       />
+
+      {metaError && (
+        <LoadError message="Couldn't load the filter options." onRetry={loadMeta} />
+      )}
 
       {/* A failed load replaces the list rather than sitting above it: the
           words still in state answer the previous filter, not this one. */}
@@ -248,7 +258,7 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
           onClose={() => setSelectedWordId(null)}
           onWordUpdated={() => {
             loadWords();
-            refreshMeta();
+            loadMeta();
           }}
         />
       )}
