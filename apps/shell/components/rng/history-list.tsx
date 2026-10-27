@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Decision } from "@/lib/rng-api";
 import { RelativeTime } from "@/lib/format-time";
-import { LoadError } from "./load-error";
+import { LoadError } from "@/components/load-error";
 
 const RESULT_BADGE: Record<string, string> = {
   approved: "bg-green-500/20 text-green-400",

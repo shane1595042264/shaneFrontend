@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import type { BudgetInfo } from "@/lib/rng-api";
 import { createPlaidLinkToken, exchangePlaidToken } from "@/lib/rng-api";
-import { LoadError } from "./load-error";
+import { LoadError } from "@/components/load-error";
 
 function formatMoney(n: number | null): string {
   if (n === null) return "—";

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "@/components/transition-link";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { AuthGate } from "@/components/auth-gate";
+import { LoadError } from "@/components/load-error";
 import {
   previewSession,
   createSessionFromGenerator,
@@ -21,7 +22,9 @@ function NewSessionContent() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("workout");
 
-  // Shared error surface.
+  // Start failures only. SHAN-622: each load below has its own error, cleared
+  // when it reloads, so a failed load never outlives the next good one and
+  // never reads as "no categories", "no saved locations" or "Checking...".
   const [error, setError] = useState<string | null>(null);
 
   // ---- Workout mode (existing) ----
@@ -29,52 +32,81 @@ function NewSessionContent() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [includeSolidified, setIncludeSolidified] = useState(false);
   const [preview, setPreview] = useState<PracticeableItem[] | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewAttempt, setPreviewAttempt] = useState(0);
   const [categories, setCategories] = useState<string[] | null>(null);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [categoriesAttempt, setCategoriesAttempt] = useState(0);
   const [starting, setStarting] = useState(false);
 
   // ---- Vocab mode ----
   const [vocabN, setVocabN] = useState(10);
   const [location, setLocation] = useState("");
   const [locations, setLocations] = useState<Location[]>([]);
+  const [locationsError, setLocationsError] = useState<string | null>(null);
+  const [locationsAttempt, setLocationsAttempt] = useState(0);
   const [counts, setCounts] = useState<{ dueAvailable: number; newAvailable: number } | null>(null);
+  const [countsError, setCountsError] = useState<string | null>(null);
+  const [countsAttempt, setCountsAttempt] = useState(0);
   const [startingVocab, setStartingVocab] = useState(false);
 
   useEffect(() => {
     if (mode !== "workout") return;
     let cancelled = false;
+    setPreviewError(null);
     previewSession(categoryFilter || null, n, includeSolidified)
       .then((items) => { if (!cancelled) setPreview(items); })
-      .catch((e) => { if (!cancelled) setError(e.message); });
+      .catch(() => {
+        if (cancelled) return;
+        // The last list belongs to other settings; don't show it as current.
+        setPreview(null);
+        setPreviewError("Couldn't load the preview.");
+      });
     return () => { cancelled = true; };
-  }, [mode, n, categoryFilter, includeSolidified]);
+  }, [mode, n, categoryFilter, includeSolidified, previewAttempt]);
 
   useEffect(() => {
     if (mode !== "workout") return;
     let cancelled = false;
+    setCategoriesError(null);
     listPracticeableItems(null, true)
       .then((items) => {
         if (cancelled) return;
         setCategories(Array.from(new Set(items.map((i) => i.category))).sort());
       })
-      .catch(() => { if (!cancelled) setCategories([]); });
+      .catch(() => {
+        if (cancelled) return;
+        setCategories((prev) => prev ?? []);
+        setCategoriesError("Couldn't load your categories.");
+      });
     return () => { cancelled = true; };
-  }, [mode]);
+  }, [mode, categoriesAttempt]);
 
   useEffect(() => {
-    listLocations().then(setLocations).catch(() => {});
-  }, []);
+    let cancelled = false;
+    setLocationsError(null);
+    listLocations()
+      .then((l) => { if (!cancelled) setLocations(l); })
+      .catch(() => { if (!cancelled) setLocationsError("Couldn't load your saved locations."); });
+    return () => { cancelled = true; };
+  }, [locationsAttempt]);
 
   // Debounced vocab preview when a location is chosen.
   useEffect(() => {
+    setCountsError(null);
     if (mode !== "vocab" || !location.trim()) { setCounts(null); return; }
     let cancelled = false;
     const t = setTimeout(() => {
       vocabPreview(location.trim(), vocabN)
         .then((c) => { if (!cancelled) setCounts(c); })
-        .catch(() => { if (!cancelled) setCounts(null); });
+        .catch(() => {
+          if (cancelled) return;
+          setCounts(null);
+          setCountsError("Couldn't check how many words are ready.");
+        });
     }, 300);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [mode, location, vocabN]);
+  }, [mode, location, vocabN, countsAttempt]);
 
   const start = async () => {
     setStarting(true);
@@ -158,6 +190,9 @@ function NewSessionContent() {
                 ))}
               </select>
             </label>
+            {categoriesError && (
+              <LoadError message={categoriesError} onRetry={() => setCategoriesAttempt((a) => a + 1)} />
+            )}
 
             <label className="flex items-center gap-2 text-sm text-gray-400">
               <input type="checkbox" checked={includeSolidified} onChange={(e) => setIncludeSolidified(e.target.checked)} />
@@ -169,10 +204,14 @@ function NewSessionContent() {
 
           <section className={error ? "" : "mt-8"}>
             <h2 className="mb-2 text-sm font-medium text-gray-400">
-              Preview ({preview !== null ? preview.length : error ? "—" : "…"} items)
+              Preview ({preview !== null ? preview.length : previewError ? "—" : "…"} items)
             </h2>
             {preview === null ? (
-              error ? null : <p className="text-xs text-gray-400">Loading…</p>
+              previewError ? (
+                <LoadError message={previewError} onRetry={() => setPreviewAttempt((a) => a + 1)} />
+              ) : (
+                <p className="text-xs text-gray-400">Loading…</p>
+              )
             ) : preview.length === 0 ? (
               <p className="text-xs text-gray-400">No items match. Try a different filter or configure more items in /knowledge.</p>
             ) : (
@@ -234,8 +273,14 @@ function NewSessionContent() {
                   ))}
                 </div>
               )}
+              {locationsError && (
+                <div className="mt-2">
+                  <LoadError message={locationsError} onRetry={() => setLocationsAttempt((a) => a + 1)} />
+                </div>
+              )}
               <input
                 type="text"
+                maxLength={120}
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 aria-label="Location"
@@ -263,7 +308,11 @@ function NewSessionContent() {
             {!location.trim() ? (
               <p className="text-xs text-gray-400">Pick a location to see how many words are ready.</p>
             ) : counts === null ? (
-              <p className="text-xs text-gray-400">Checking…</p>
+              countsError ? (
+                <LoadError message={countsError} onRetry={() => setCountsAttempt((a) => a + 1)} />
+              ) : (
+                <p className="text-xs text-gray-400">Checking…</p>
+              )
             ) : (
               <p className="text-sm text-gray-400">
                 <span className="text-gray-200">{counts.dueAvailable}</span> due ·{" "}

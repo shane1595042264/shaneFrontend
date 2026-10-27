@@ -1,6 +1,6 @@
 "use client";
 import type { Ban } from "@/lib/rng-api";
-import { LoadError } from "./load-error";
+import { LoadError } from "@/components/load-error";
 
 export function BanList({
   bans,
