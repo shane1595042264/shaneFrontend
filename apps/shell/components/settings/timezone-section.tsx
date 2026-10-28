@@ -55,8 +55,18 @@ function listIanaTimezones(): string[] {
 
 export function TimezoneSection() {
   const { user, patchUser } = useAuth();
-  const zones = useMemo(listIanaTimezones, []);
   const [value, setValue] = useState<string>(user?.timezone ?? DEFAULT_TIMEZONE);
+  // SHAN-627: V8's supportedValuesOf list has no "UTC" and only the old CLDR
+  // aliases (Asia/Calcutta, not Asia/Kolkata), but the backend saves any name
+  // Intl accepts. A controlled <select> whose value has no matching option
+  // shows its first option instead, so the saved zone is always listed.
+  const savedTimezone = user?.timezone;
+  const zones = useMemo(() => {
+    const set = new Set(listIanaTimezones());
+    set.add("UTC");
+    if (savedTimezone) set.add(savedTimezone);
+    return [...set].sort();
+  }, [savedTimezone]);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
 
