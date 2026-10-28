@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "@/components/transition-link";
 import { AuthGate } from "@/components/auth-gate";
+import { LoadError } from "@/components/load-error";
 import { listMySessions, type Session } from "@/lib/api/practice";
 import { RelativeTime } from "@/lib/format-time";
 
@@ -19,19 +20,25 @@ function HistoryContent() {
   const [sessions, setSessions] = useState<Session[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
     listMySessions()
       .then(setSessions)
       .catch((e) => setError(e.message ?? "Failed to load"));
   }, []);
 
+  useEffect(load, [load]);
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <Link href="/practice" className="text-sm text-gray-400 hover:text-gray-300">← back</Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">Session history</h1>
-      {error && <p role="alert" className="mb-4 text-sm text-red-400">{error}</p>}
       {sessions === null ? (
-        error ? null : <p className="text-sm text-gray-400">Loading…</p>
+        error ? (
+          <LoadError message={error} onRetry={load} />
+        ) : (
+          <p className="text-sm text-gray-400">Loading…</p>
+        )
       ) : sessions.length === 0 ? (
         <p className="text-sm text-gray-400">No sessions yet.</p>
       ) : (

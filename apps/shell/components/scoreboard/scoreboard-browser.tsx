@@ -15,6 +15,7 @@ import {
 import { Hall } from "@/components/scoreboard/hall";
 import { Cabinet } from "@/components/scoreboard/cabinet";
 import { LiveMatch } from "@/components/scoreboard/live-match";
+import { LoadError } from "@/components/load-error";
 
 /**
  * SHAN-508: the interactive half of /scoreboard, seeded by the server
@@ -68,6 +69,10 @@ export function ScoreboardBrowser({
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
   const [loading, setLoading] = useState(!seeded);
   const [error, setError] = useState<string | null>(null);
+  // SHAN-625: whether anything is on screen. Without it a failed unseeded load
+  // fell through to the hall with no games, "The hall is empty", under the
+  // error, so an outage read as a scoreboard nobody had played on.
+  const [loaded, setLoaded] = useState(seeded);
 
   // Not seeded from the URL: the server has no query string, so the first
   // client render has to be the hall for the markup to match. A deep link
@@ -94,6 +99,7 @@ export function ScoreboardBrowser({
       setGames(g.games);
       setPlayers(p);
       setMatches(m);
+      setLoaded(true);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load the scoreboard");
@@ -105,6 +111,11 @@ export function ScoreboardBrowser({
   useEffect(() => {
     refresh().finally(() => setLoading(false));
   }, [refresh]);
+
+  const retry = useCallback(() => {
+    if (!loaded) setLoading(true);
+    refresh().finally(() => setLoading(false));
+  }, [loaded, refresh]);
 
   const onSelectGame = useCallback((id: string | null) => {
     setActiveMatchId(null);
@@ -131,10 +142,10 @@ export function ScoreboardBrowser({
         </Link>
       </header>
 
-      {error && (
-        <p role="alert" className="mb-4 text-sm text-red-400">
-          {error}
-        </p>
+      {error && loaded && (
+        <div className="mb-4">
+          <LoadError message={error} onRetry={retry} stale />
+        </div>
       )}
 
       {loading ? (
@@ -151,6 +162,8 @@ export function ScoreboardBrowser({
             />
           ))}
         </div>
+      ) : error && !loaded ? (
+        <LoadError message={error} onRetry={retry} />
       ) : activeMatch ? (
         <LiveMatch
           match={activeMatch}
