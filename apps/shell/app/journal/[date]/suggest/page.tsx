@@ -1,7 +1,7 @@
 // apps/shell/app/journal/[date]/suggest/page.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "@/components/transition-link";
 import { useParams } from "next/navigation";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
@@ -12,6 +12,7 @@ import { uploadImage } from "@/lib/api/images";
 import { MarkdownEditor } from "@shane/ui";
 import { LoginButton } from "@/components/login-button";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { InlineErrorState } from "@/components/inline-error-state";
 import { markdownComponents } from "@/lib/markdown-mermaid";
 
 export default function SuggestPage() {
@@ -24,6 +25,7 @@ export default function SuggestPage() {
   const [baseVersionNum, setBaseVersionNum] = useState<number | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,11 @@ export default function SuggestPage() {
   const skipPromptRef = useRef(false);
   const dirty = content !== initialContent;
 
-  useEffect(() => {
+  // getEntry returns null only for a 404; a thrown load must not fall through
+  // to "Entry not found." for an entry that exists.
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     getEntry(date)
       .then((r) => {
         if (r) {
@@ -41,8 +47,11 @@ export default function SuggestPage() {
           setAuthorId(r.entry.authorId);
         }
       })
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [date]);
+
+  useEffect(load, [load]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -105,6 +114,16 @@ export default function SuggestPage() {
           <LoginButton />
         </div>
       </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <InlineErrorState
+        message="Couldn't load this entry. Check your connection and try again."
+        onRetry={load}
+        backHref={`/journal/${date}`}
+        backLabel="Back to entry"
+      />
     );
   }
   if (baseVersionNum === null || authorId === null) {

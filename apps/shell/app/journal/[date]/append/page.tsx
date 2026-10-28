@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "@/components/transition-link";
 import { useParams } from "next/navigation";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
@@ -10,6 +10,7 @@ import { uploadImage } from "@/lib/api/images";
 import { MarkdownEditor } from "@shane/ui";
 import { LoginButton } from "@/components/login-button";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { InlineErrorState } from "@/components/inline-error-state";
 import { markdownComponents } from "@/lib/markdown-mermaid";
 
 export default function AppendEntryPage() {
@@ -21,6 +22,7 @@ export default function AppendEntryPage() {
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [entryMissing, setEntryMissing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,14 +30,22 @@ export default function AppendEntryPage() {
   const skipPromptRef = useRef(false);
   const dirty = content.length > 0;
 
-  useEffect(() => {
+  // getEntry returns null only for a 404. Anything else throws, and must not be
+  // read as an answer: with authorId still null the author guard below would be
+  // skipped and every member would get an editor whose Append can only fail.
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     getEntry(date)
       .then((r) => {
         if (!r) setEntryMissing(true);
         else setAuthorId(r.entry.authorId);
       })
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [date]);
+
+  useEffect(load, [load]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -98,6 +108,16 @@ export default function AppendEntryPage() {
           <LoginButton />
         </div>
       </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <InlineErrorState
+        message="Couldn't load this entry. Check your connection and try again."
+        onRetry={load}
+        backHref={`/journal/${date}`}
+        backLabel="Back to entry"
+      />
     );
   }
   if (entryMissing) {

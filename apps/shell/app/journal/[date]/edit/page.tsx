@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "@/components/transition-link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
@@ -9,6 +9,7 @@ import { getEntry, createEntry, type EntryDetail } from "@/lib/api/journal";
 import { uploadImage } from "@/lib/api/images";
 import { MarkdownEditor } from "@shane/ui";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { InlineErrorState } from "@/components/inline-error-state";
 import { markdownComponents } from "@/lib/markdown-mermaid";
 
 export default function EditEntryPage() {
@@ -25,20 +26,29 @@ export default function EditEntryPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(!isNew);
+  const [loadError, setLoadError] = useState(false);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   // Set right before router.push on a successful save so the beforeunload
   // listener doesn't fire during the in-app navigation that follows.
   const skipPromptRef = useRef(false);
   const dirty = content !== initialContent;
 
-  useEffect(() => {
+  // getEntry returns null only for a 404. A failed load is not "no entry": with
+  // entryExists left false the create editor would show for a date that may
+  // already have one, and Publish's 409 would then blame another writer.
+  const load = useCallback(() => {
     if (isNew) return;
+    setLoading(true);
+    setLoadError(false);
     getEntry(date)
       .then((r: EntryDetail | null) => {
         if (r) setEntryExists(true);
       })
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [date, isNew]);
+
+  useEffect(load, [load]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -96,6 +106,16 @@ export default function EditEntryPage() {
         <Link href={`/journal/${date}`} className="text-gray-400 hover:text-gray-300">← back</Link>
         <p className="mt-4">Sign in to edit.</p>
       </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <InlineErrorState
+        message="Couldn't check whether this date already has an entry. Check your connection and try again."
+        onRetry={load}
+        backHref={`/journal/${date}`}
+        backLabel="Back to entry"
+      />
     );
   }
 
