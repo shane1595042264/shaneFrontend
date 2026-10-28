@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
+import { LoadError } from "@/components/load-error";
 import { getSettings, updateSettings, type PracticeSettings } from "@/lib/api/practice";
 
 const ADMIN_EMAIL = "a1595042264@gmail.com"; // matches ADMIN_EMAILS on Railway
@@ -20,29 +21,65 @@ export default function PracticeSettingsPage() {
   const [vmem, setVmem] = useState(3);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
-    getSettings().then((s) => {
-      setSettings(s);
-      setSps(s.setsPerStrike);
-      setSpll(s.strikesPerLoadedLocation);
-      setLts(s.locationsToSolidify);
-      setVl1(s.vocabIntervalL1Days);
-      setVl2(s.vocabIntervalL2Days);
-      setVlapse(s.vocabLapseIntervalDays);
-      setVmem(s.vocabLevelToMemorize);
-    });
-  }, []);
+    let cancelled = false;
+    setLoadError(null);
+    getSettings()
+      .then((s) => {
+        if (cancelled) return;
+        setSettings(s);
+        setSps(s.setsPerStrike);
+        setSpll(s.strikesPerLoadedLocation);
+        setLts(s.locationsToSolidify);
+        setVl1(s.vocabIntervalL1Days);
+        setVl2(s.vocabIntervalL2Days);
+        setVlapse(s.vocabLapseIntervalDays);
+        setVmem(s.vocabLevelToMemorize);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : "Failed to load settings");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadAttempt]);
 
   if (loading) return <div className="p-6 text-sm text-gray-400">Loading…</div>;
   if (!user) return <div className="p-6 text-sm">Sign in.</div>;
+
+  const retryLoad = () => setLoadAttempt((a) => a + 1);
 
   if (user.email !== ADMIN_EMAIL) {
     return (
       <div className="p-6 text-sm text-gray-400">
         Admin-only page. Current settings (read-only):
-        {settings && (
+        {settings ? (
           <pre className="mt-2 rounded border border-white/10 bg-black/30 p-3 text-xs">{JSON.stringify(settings, null, 2)}</pre>
+        ) : (
+          <div className="mt-2">
+            {loadError ? <LoadError message={loadError} onRetry={retryLoad} /> : <p>Loading settings…</p>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // SHAN-626: the inputs start on placeholder values and Save writes every
+  // field for every user, so the form must not exist until the real settings
+  // have arrived. A failed load used to leave those placeholders one click away
+  // from overwriting the live thresholds.
+  if (!settings) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-12">
+        <Link href="/practice" className="text-sm text-gray-400 hover:text-gray-300">← back</Link>
+        <h1 className="mt-3 mb-6 text-2xl font-semibold">Practice settings</h1>
+        {loadError ? (
+          <LoadError message={loadError} onRetry={retryLoad} />
+        ) : (
+          <p className="text-sm text-gray-400">Loading settings…</p>
         )}
       </div>
     );
