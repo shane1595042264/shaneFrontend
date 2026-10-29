@@ -66,7 +66,7 @@ export async function getEntryReactions(date: string): Promise<ReactionState> {
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) return { summary: [], mine: [] };
+  if (!res.ok) throw new Error("Failed to load reactions");
   return res.json();
 }
 
@@ -75,6 +75,6 @@ export async function getCommentReactions(commentId: string): Promise<ReactionSt
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) return { summary: [], mine: [] };
+  if (!res.ok) throw new Error("Failed to load reactions");
   return res.json();
 }

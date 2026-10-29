@@ -111,7 +111,7 @@ export async function getBlogPostReactions(slug: string): Promise<ReactionState>
     `${API_URL}/api/blog/posts/${encodeURIComponent(slug)}/reactions`,
     { headers: getAuthHeaders(), cache: "no-store" },
   );
-  if (!res.ok) return { summary: [], mine: [] };
+  if (!res.ok) throw await failure(res, "Failed to load reactions");
   return res.json();
 }
 

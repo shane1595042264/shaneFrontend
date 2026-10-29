@@ -26,14 +26,35 @@ export function ReactionDisplay({ initial, refetch, onToggle, size = "md" }: Pro
   const [loaded, setLoaded] = useState(!!initial);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<Emoji | null>(null);
+  // SHAN-629: a failed load used to render as "nobody reacted" and a failed
+  // toggle as an ignored click. Both are now said out loud.
+  const [loadError, setLoadError] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  // The wrappers pass a fresh arrow every render; keeping it in a ref stops a
+  // parent re-render from restarting the mount fetch.
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
 
   useEffect(() => {
     if (loaded) return;
-    refetch()
-      .then(setState)
-      .finally(() => setLoaded(true));
-  }, [loaded, refetch]);
+    let cancelled = false;
+    refetchRef.current()
+      .then((fresh) => {
+        if (cancelled) return;
+        setState(fresh);
+        setLoadError(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded]);
 
   useEffect(() => {
     if (!open) return;
@@ -56,15 +77,46 @@ export function ReactionDisplay({ initial, refetch, onToggle, size = "md" }: Pro
   const handle = async (emoji: Emoji) => {
     if (!user) return; // anon clicks do nothing
     setBusy(emoji);
+    setActionError(null);
+    let result: "added" | "removed";
     try {
-      await onToggle(emoji);
-      const fresh = await refetch();
-      setState(fresh);
+      result = await onToggle(emoji);
+    } catch {
+      setActionError("Couldn't save your reaction. Try again.");
+      setBusy(null);
+      setOpen(false);
+      return;
+    }
+    // The reaction is saved. Show it now, so a failed refetch below cannot put
+    // the pre-click counts back on screen.
+    setState((s) => applyToggle(s, emoji, result));
+    try {
+      setState(await refetch());
+    } catch {
+      // Keep the local result; the next successful load reconciles it.
     } finally {
       setBusy(null);
       setOpen(false);
     }
   };
+
+  if (loadError) {
+    return (
+      <p role="alert" className={`${size === "sm" ? "text-xs" : "text-sm"} text-red-400`}>
+        Couldn&apos;t load reactions.{" "}
+        <button
+          type="button"
+          onClick={() => {
+            setLoadError(false);
+            setLoaded(false);
+          }}
+          className="text-gray-300 underline underline-offset-2 hover:text-white"
+        >
+          Retry
+        </button>
+      </p>
+    );
+  }
 
   const chipClass = (mine: boolean) =>
     `inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${
@@ -131,6 +183,28 @@ export function ReactionDisplay({ initial, refetch, onToggle, size = "md" }: Pro
           </div>
         )}
       </div>
+      {actionError && (
+        <span role="alert" className={`${size === "sm" ? "text-xs" : "text-sm"} text-red-400`}>
+          {actionError}
+        </span>
+      )}
     </div>
   );
+}
+
+/** Folds a confirmed toggle into the current state, idempotently. */
+function applyToggle(s: ReactionState, emoji: Emoji, result: "added" | "removed"): ReactionState {
+  const had = s.mine.includes(emoji);
+  if ((result === "added") === had) return s;
+  const delta = result === "added" ? 1 : -1;
+  const existing = s.summary.find((r) => r.emoji === emoji);
+  const summary = existing
+    ? s.summary
+        .map((r) => (r.emoji === emoji ? { ...r, count: r.count + delta } : r))
+        .filter((r) => r.count > 0)
+    : delta > 0
+      ? [...s.summary, { emoji, count: 1 }]
+      : s.summary;
+  const mine = result === "added" ? [...s.mine, emoji] : s.mine.filter((e) => e !== emoji);
+  return { summary, mine };
 }
