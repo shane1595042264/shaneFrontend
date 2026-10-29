@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   clearUniversalTeaPin,
   getUniversalTeaPinState,
@@ -24,24 +24,38 @@ export function UniversalTeaPinCard({ className = "" }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
+  // SHAN-630: a failed status load left isSet false, so the card said "Not
+  // set" (and hid Clear) for an author who has a PIN. Until a load or a save
+  // tells us, the status is unknown.
+  const [statusUnknown, setStatusUnknown] = useState(false);
+  const mounted = useRef(true);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadStatus = useCallback(() => {
+    setLoading(true);
+    setError(null);
     getUniversalTeaPinState()
       .then((s) => {
-        if (cancelled) return;
+        if (!mounted.current) return;
         setIsSet(s.isSet);
-        setLoading(false);
+        setStatusUnknown(false);
       })
       .catch(() => {
-        if (cancelled) return;
+        if (!mounted.current) return;
+        setStatusUnknown(true);
         setError("Could not load universal PIN status.");
-        setLoading(false);
+      })
+      .finally(() => {
+        if (mounted.current) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    mounted.current = true;
+    loadStatus();
+    return () => {
+      mounted.current = false;
+    };
+  }, [loadStatus]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +69,7 @@ export function UniversalTeaPinCard({ className = "" }: Props) {
     try {
       const s = await setUniversalTeaPin(pin);
       setIsSet(s.isSet);
+      setStatusUnknown(false);
       setPin("");
       setShowPin(false);
       setSavedNote("Universal PIN saved.");
@@ -73,6 +88,7 @@ export function UniversalTeaPinCard({ className = "" }: Props) {
     try {
       const s = await clearUniversalTeaPin();
       setIsSet(s.isSet);
+      setStatusUnknown(false);
       setPin("");
       setShowPin(false);
       setSavedNote("Universal PIN cleared.");
@@ -95,7 +111,7 @@ export function UniversalTeaPinCard({ className = "" }: Props) {
             isSet ? "bg-emerald-500/15 text-emerald-300" : "bg-white/5 text-gray-400"
           }`}
         >
-          {loading ? "…" : isSet ? "Set" : "Not set"}
+          {loading ? "…" : statusUnknown ? "Unknown" : isSet ? "Set" : "Not set"}
         </span>
       </div>
       <p className="mt-1 text-xs text-gray-400">
@@ -137,7 +153,7 @@ export function UniversalTeaPinCard({ className = "" }: Props) {
           disabled={loading || saving || pin.length !== 4}
           className="ml-auto inline-flex min-h-10 items-center justify-center rounded bg-white px-3 text-xs font-medium text-black hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? "Saving…" : isSet ? "Replace PIN" : "Set PIN"}
+          {saving ? "Saving…" : statusUnknown ? "Save PIN" : isSet ? "Replace PIN" : "Set PIN"}
         </button>
         {isSet && (
           <button
@@ -154,6 +170,18 @@ export function UniversalTeaPinCard({ className = "" }: Props) {
       {error && (
         <p className="mt-2 text-xs text-red-400" role="alert">
           {error}
+          {statusUnknown && !loading && (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={loadStatus}
+                className="text-gray-200 underline decoration-white/30 underline-offset-2 transition-colors hover:text-white"
+              >
+                Retry
+              </button>
+            </>
+          )}
         </p>
       )}
       {savedNote && !error && (

@@ -1,9 +1,10 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { AuthGate } from "@/components/auth-gate";
+import { LoadError } from "@/components/load-error";
 import {
   listMyTeaEntries,
   teaEntryWasEdited,
@@ -60,13 +61,15 @@ function TeaEntriesIndexContent() {
   const viewerTz = useMemo(() => resolveViewerTimezone(user), [user]);
   const today = useMemo(() => getTodayInTimezone(viewerTz), [viewerTz]);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setEntries(null);
     setError(null);
     listMyTeaEntries()
       .then((r) => setEntries(r.entries))
       .catch(() => setError("Could not load your tea entries."));
-  }, [user]);
+  }, []);
+
+  useEffect(load, [user, load]);
 
   const filtered = useMemo(() => {
     if (entries === null) return null;
@@ -130,9 +133,11 @@ function TeaEntriesIndexContent() {
         </div>
       )}
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
-
-      {entries === null ? (
+      {/* SHAN-630: a failed load used to leave entries null, so the skeleton
+          kept pulsing under the error with no way back but a full reload. */}
+      {entries === null && error ? (
+        <LoadError message={error} onRetry={load} />
+      ) : entries === null ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-16 w-full rounded border border-white/10 bg-white/[0.03] animate-pulse" />
