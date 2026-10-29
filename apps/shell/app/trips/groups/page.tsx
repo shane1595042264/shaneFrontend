@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "@/components/transition-link";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { AuthGate } from "@/components/auth-gate";
+import { LoadError } from "@/components/load-error";
 import { RelativeTime } from "@/lib/format-time";
 import {
   listMyGroups,
@@ -52,15 +53,16 @@ function GroupsIndex() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
     listMyGroups()
-      .then((g) => {
-        setGroups(g);
-        setError(null);
-      })
-      .catch((e: Error) => setError(e.message))
+      .then(setGroups)
+      .catch(() => setError("Could not load your groups."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(load, [load]);
 
   async function handleJoin(e: FormEvent) {
     e.preventDefault();
@@ -124,7 +126,8 @@ function GroupsIndex() {
       {loading ? (
         <p className="text-sm text-gray-400">Loading…</p>
       ) : error ? (
-        <p role="alert" className="text-sm text-red-400">{error}</p>
+        // SHAN-631: used to show the raw error with no way back but a reload.
+        <LoadError message={error} onRetry={load} />
       ) : groups.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No groups yet. <Link href="/trips/groups/new" className="underline">Create your first one</Link> or join with a slug above.

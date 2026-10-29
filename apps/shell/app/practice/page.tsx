@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "@/components/transition-link";
 import { AuthGate } from "@/components/auth-gate";
+import { LoadError } from "@/components/load-error";
 import { listPracticeableItems, type PracticeableItem } from "@/lib/api/practice";
 import { RelativeTime } from "@/lib/format-time";
 
@@ -11,14 +12,17 @@ function PracticeIndexContent() {
   const [includeSolidified, setIncludeSolidified] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
     // Always fetch the full corpus (including solidified) so the header stats
     // reflect every practice item the user owns. The visible list filters
     // solidified out client-side when the checkbox is off.
     listPracticeableItems(null, true)
       .then(setItems)
-      .catch((e) => setError(e.message ?? "Failed to load"));
+      .catch(() => setError("Could not load your practice items."));
   }, []);
+
+  useEffect(load, [load]);
 
   const totalStrikes = items?.reduce((sum, i) => sum + i.totalStrikes, 0) ?? 0;
   const solidifiedCount = items?.filter((i) => i.isSolidified).length ?? 0;
@@ -69,10 +73,14 @@ function PracticeIndexContent() {
         Show solidified
       </label>
 
-      {error && <p role="alert" className="mb-4 text-sm text-red-400">{error}</p>}
-
+      {/* SHAN-631: a failed load used to leave only the raw error ("Failed to
+          fetch") with no way back but a full reload. */}
       {items === null || visibleItems === null ? (
-        error ? null : <p className="text-sm text-gray-400">Loading…</p>
+        error ? (
+          <LoadError message={error} onRetry={load} />
+        ) : (
+          <p className="text-sm text-gray-400">Loading…</p>
+        )
       ) : items.length === 0 ? (
         <p className="text-sm text-gray-400">
           No practice-able items yet. <Link href="/knowledge" className="underline">Configure an item</Link>.

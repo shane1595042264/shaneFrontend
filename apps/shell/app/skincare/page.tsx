@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/transition-link";
 import { AuthGate } from "@/components/auth-gate";
+import { LoadError } from "@/components/load-error";
 import {
   listSkincare,
   createProduct,
@@ -48,14 +49,18 @@ function cardBgStyle(url: string) {
 function SkincareContent() {
   const [routines, setRoutines] = useState<SkincareRoutines | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoadError(null);
     listSkincare()
       .then(setRoutines)
-      .catch((e) => setError(e.message ?? "Failed to load"));
+      .catch(() => setLoadError("Could not load your routines."));
   }, []);
+
+  useEffect(load, [load]);
 
   function patchRoutine(timeOfDay: TimeOfDay, next: SkincareProduct[]) {
     setRoutines((r) => (r ? { ...r, [timeOfDay]: next } : r));
@@ -156,8 +161,14 @@ function SkincareContent() {
         </p>
       )}
 
+      {/* SHAN-631: a failed load used to leave only the raw error ("Failed to
+          fetch") with no way back but a full reload. */}
       {routines === null ? (
-        error ? null : <p className="text-sm text-gray-400">Loading…</p>
+        loadError ? (
+          <LoadError message={loadError} onRetry={load} />
+        ) : (
+          <p className="text-sm text-gray-400">Loading…</p>
+        )
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {ROUTINES.map(({ key, label, icon }) => (
