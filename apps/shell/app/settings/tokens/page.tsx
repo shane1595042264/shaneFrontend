@@ -7,6 +7,7 @@ import { TokenList, TokenListSkeleton } from "@/components/settings/token-list";
 import { MintTokenDialog } from "@/components/settings/mint-token-dialog";
 import { RevokeTokenDialog } from "@/components/settings/revoke-token-dialog";
 import { TimezoneSection } from "@/components/settings/timezone-section";
+import { LoadError } from "@/components/load-error";
 
 export default function TokensPage() {
   const [tokens, setTokens] = useState<ApiToken[]>([]);
@@ -33,12 +34,13 @@ export default function TokensPage() {
   }, [revokeConfirmId]);
 
   const refresh = () => {
+    // A retry after a failed first load goes back to the skeleton, not to the
+    // empty-state card, while it waits.
+    if (loadError && tokens.length === 0) setLoaded(false);
     setLoadError(null);
     listTokens()
       .then(setTokens)
-      .catch((err: unknown) =>
-        setLoadError(err instanceof Error ? err.message : "Failed to load tokens"),
-      )
+      .catch(() => setLoadError("Could not load your tokens."))
       .finally(() => setLoaded(true));
   };
 
@@ -108,10 +110,12 @@ export default function TokensPage() {
           </button>
         </header>
 
+        {/* SHAN-632: a failed load used to show only the raw error ("Failed to
+            fetch") with no way back but a full reload. */}
         {loadError && (
-          <p role="alert" className="mb-3 text-sm text-red-400">
-            {loadError}
-          </p>
+          <div className="mb-3">
+            <LoadError message={loadError} onRetry={refresh} stale={tokens.length > 0} />
+          </div>
         )}
 
         {/* A failed first load must not render the empty-state card, which would

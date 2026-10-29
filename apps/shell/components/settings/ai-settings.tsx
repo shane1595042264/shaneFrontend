@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { RelativeTime } from "@/lib/format-time";
 import {
@@ -20,6 +20,7 @@ import {
   type UsageSummary,
 } from "@/lib/api/ai";
 import { PROVIDER_COLOR, UsageChart } from "@/components/settings/ai-usage-chart";
+import { LoadError } from "@/components/load-error";
 
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 
@@ -52,15 +53,21 @@ export function AiSettingsPanel() {
   const [keys, setKeys] = useState<AiKey[] | null>(null);
   const [settings, setSettings] = useState<AiSettings | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [switchError, setSwitchError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // SHAN-632: a failed load used to show only the raw error ("Failed to fetch")
+  // with no way back but a full reload.
+  const load = useCallback(() => {
+    setLoadError(null);
     listAiKeys()
       .then((r) => {
         setKeys(r.keys);
         setSettings(r.settings);
       })
-      .catch((e: unknown) => setLoadError(e instanceof Error ? e.message : "Couldn't load your AI settings"));
+      .catch(() => setLoadError("Couldn't load your AI settings."));
   }, []);
+
+  useEffect(load, [load]);
 
   const replaceKey = (k: AiKey) =>
     setKeys((prev) => {
@@ -86,9 +93,9 @@ export function AiSettingsPanel() {
         <AddKeyForm onAdded={replaceKey} />
 
         {loadError && (
-          <p role="alert" className="mt-4 text-sm text-red-300">
-            {loadError}
-          </p>
+          <div className="mt-4">
+            <LoadError message={loadError} onRetry={load} />
+          </div>
         )}
 
         <div className="mt-6 space-y-3">
@@ -152,15 +159,22 @@ export function AiSettingsPanel() {
               checked={settings.notesToKnowledge}
               label="Turn my notes into Knowledge cards"
               onChange={async (next) => {
+                setSwitchError(null);
                 setSettings({ ...settings, notesToKnowledge: next });
                 try {
                   setSettings(await saveAiSettings({ notesToKnowledge: next }));
                 } catch {
                   setSettings({ ...settings, notesToKnowledge: !next });
+                  setSwitchError("Couldn't save that. The setting is unchanged.");
                 }
               }}
             />
           </div>
+          {switchError && (
+            <p role="alert" className="mt-2 text-sm text-red-300">
+              {switchError}
+            </p>
+          )}
         </section>
       )}
 
@@ -440,17 +454,21 @@ function UsageSection() {
   const [days, setDays] = useState(30);
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Bumped by Retry to rerun the fetch for the same period.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setError(null);
     getAiUsage(days)
       .then((s) => !cancelled && setSummary(s))
-      .catch((e: unknown) => !cancelled && setError(e instanceof Error ? e.message : "Couldn't load usage"));
+      .catch(() => !cancelled && setError(`Couldn't load usage for the last ${days} days.`));
     return () => {
       cancelled = true;
     };
-  }, [days]);
+  }, [days, attempt]);
+
+  const retry = () => setAttempt((n) => n + 1);
 
   const t = summary?.totals;
   const tiles = t
@@ -487,14 +505,17 @@ function UsageSection() {
         </div>
       </div>
 
+      {/* SHAN-632: a failed first load used to keep the skeleton pulsing under
+          the error, and a failed period switch left the previous period's
+          numbers up with nothing saying so. */}
       {error && (
-        <p role="alert" className="mt-4 text-sm text-red-300">
-          {error}
-        </p>
+        <div className="mt-4">
+          <LoadError message={error} onRetry={retry} stale={summary !== null} />
+        </div>
       )}
 
       {!summary ? (
-        <div className="mt-5 h-64 animate-pulse rounded-2xl bg-white/[0.03]" />
+        error ? null : <div className="mt-5 h-64 animate-pulse rounded-2xl bg-white/[0.03]" />
       ) : (
         <>
           <dl className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
