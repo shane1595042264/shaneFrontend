@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { SuggestionDiff } from "@/components/journal/suggestion-diff";
+import { LoadError } from "@/components/load-error";
 import {
   getPost,
   getPostVersion,
@@ -49,6 +50,8 @@ export default function BlogHistoryPage() {
   const [missing, setMissing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // SHAN-635: bumped by Retry to re-run the load effect after a failure.
+  const [attempt, setAttempt] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState<string | null>(null);
 
@@ -69,6 +72,7 @@ export default function BlogHistoryPage() {
     let cancelled = false;
     setLoading(true);
     setMissing(false);
+    setError(null);
     // SHAN-607: getPost is the existence check (null on 404), so a versions
     // failure is held until it has answered. Otherwise a missing post rejects
     // the pair with the versions 404 and the reader sees "Failed to load
@@ -100,7 +104,7 @@ export default function BlogHistoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, attempt]);
 
   const isAuthor = !!user && user.id === authorId;
 
@@ -257,9 +261,7 @@ export default function BlogHistoryPage() {
       ) : missing ? (
         <p className="text-sm text-gray-400">No such post.</p>
       ) : error ? (
-        <p role="alert" className="text-sm text-red-400">
-          {error}
-        </p>
+        <LoadError message={error} onRetry={() => setAttempt((n) => n + 1)} />
       ) : versions.length === 0 ? (
         <p className="text-sm text-gray-400">No versions found for this post.</p>
       ) : (

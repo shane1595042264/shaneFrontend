@@ -13,6 +13,7 @@ import {
   updateTeaEntry,
 } from "@/lib/api/tea-entries";
 import { LoginButton } from "@/components/login-button";
+import { LoadError } from "@/components/load-error";
 import { MarkdownEditor } from "@shane/ui";
 
 export default function EditTeaEntryPage() {
@@ -28,8 +29,13 @@ export default function EditTeaEntryPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // SHAN-635: the form must not render over a failed load. It used to open
+  // with an empty title, body and PIN, and Save would overwrite the entry.
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
     try {
       const r = await getTeaEntry(params.id);
       if (!r.isAuthor) {
@@ -50,7 +56,7 @@ export default function EditTeaEntryPage() {
         setLoading(false);
         return;
       }
-      setError("Could not load entry.");
+      setLoadError(true);
       setLoading(false);
     }
   }, [params.id, router]);
@@ -114,6 +120,19 @@ export default function EditTeaEntryPage() {
       <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-gray-400">
         <Link href="/journal/tea" className="text-gray-400 hover:text-gray-300">← back to tea entries</Link>
         <p className="mt-4">This tea entry doesn&apos;t exist.</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-12">
+        <Link href={`/journal/tea/${params.id}`} className="text-sm text-gray-400 hover:text-gray-300">
+          ← back to entry
+        </Link>
+        <div className="mt-4">
+          <LoadError message="Could not load this tea entry." onRetry={load} />
+        </div>
       </div>
     );
   }

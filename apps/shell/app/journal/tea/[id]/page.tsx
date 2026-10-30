@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { useAuth } from "@/lib/auth-context";
 import { EntryBody } from "@/components/journal/entry-body";
+import { LoadError } from "@/components/load-error";
 import {
   deleteTeaEntry,
   getTeaEntry,
@@ -62,6 +63,10 @@ export default function TeaEntryReadPage() {
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  // SHAN-635: a failure that is not a PIN, rate-limit or 404 answer. Without
+  // it a failed first load left data null with no gate up, which rendered a
+  // blank page.
+  const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rateLimitedUntilMs, setRateLimitedUntilMs] = useState<number | null>(null);
   const [remainingSec, setRemainingSec] = useState(0);
@@ -83,6 +88,7 @@ export default function TeaEntryReadPage() {
   const load = useCallback(
     async (pin?: string, fromCacheAuthor?: string) => {
       setPinError(null);
+      setLoadError(false);
       try {
         const r = await getTeaEntry(params.id, pin);
         setData(r);
@@ -117,7 +123,10 @@ export default function TeaEntryReadPage() {
         } else if (err instanceof Error && err.message === "TEA_NOT_FOUND") {
           setNotFound(true);
         } else {
+          // Shown on the PIN gate when it is up; otherwise loadError
+          // renders the Retry below.
           setPinError("Could not load entry.");
+          setLoadError(true);
         }
       } finally {
         setLoading(false);
@@ -249,7 +258,23 @@ export default function TeaEntryReadPage() {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    if (!loadError) return null;
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <Link href="/journal" className="text-sm text-gray-400 hover:text-gray-300">← back</Link>
+        <div className="mt-4">
+          <LoadError
+            message="Could not load this tea entry."
+            onRetry={() => {
+              setLoading(true);
+              load();
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   const e = data.entry;
   return (

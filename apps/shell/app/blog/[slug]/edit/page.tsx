@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { AuthorOnly } from "@/components/blog/author-only";
 import { PostEditor } from "@/components/blog/post-editor";
+import { LoadError } from "@/components/load-error";
 import { getPost, type BlogPostDetail } from "@/lib/api/blog";
 
 /**
@@ -20,9 +21,12 @@ function EditForm() {
   const [post, setPost] = useState<BlogPostDetail | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
+  // SHAN-635: bumped by Retry to re-run the load effect after a failure.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setState("loading");
     getPost(slug)
       .then((data) => {
         if (cancelled) return;
@@ -41,7 +45,7 @@ function EditForm() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, attempt]);
 
   if (state === "loading") {
     return (
@@ -62,9 +66,16 @@ function EditForm() {
         <Link href="/blog" className="text-gray-400 hover:text-white">
           &larr; back to blog
         </Link>
-        <p className="mt-4">
-          {state === "missing" ? "No such post." : (error ?? "Failed to load this post.")}
-        </p>
+        {state === "missing" ? (
+          <p className="mt-4">No such post.</p>
+        ) : (
+          <div className="mt-4">
+            <LoadError
+              message={error ?? "Failed to load this post."}
+              onRetry={() => setAttempt((n) => n + 1)}
+            />
+          </div>
+        )}
       </div>
     );
   }

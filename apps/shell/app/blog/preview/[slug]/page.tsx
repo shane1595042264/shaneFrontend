@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PostBody } from "@/components/blog/post-body";
 import { PostToc, shouldShowToc } from "@/components/blog/post-toc";
 import { MarkdownHashScroll } from "@/components/markdown-hash-scroll";
+import { LoadError } from "@/components/load-error";
 import { extractBodyHeadings } from "@/lib/markdown-headings";
 import { coverSrc, getPost, type BlogPostDetail } from "@/lib/api/blog";
 import {
@@ -36,6 +37,8 @@ export default function BlogPreviewPage() {
   const [post, setPost] = useState<BlogPostDetail | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
+  // SHAN-635: bumped by Retry to re-run the load effect after a failure.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     // Wait for auth: fetching before the token is readable would ask
@@ -61,7 +64,7 @@ export default function BlogPreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, authLoading]);
+  }, [slug, authLoading, attempt]);
 
   if (authLoading || state === "loading") {
     return (
@@ -86,13 +89,20 @@ export default function BlogPreviewPage() {
         <Link href="/blog" className="text-gray-400 hover:text-white">
           &larr; back to blog
         </Link>
-        <p className="mt-4">
-          {state === "missing"
-            ? user
+        {state === "missing" ? (
+          <p className="mt-4">
+            {user
               ? "No such post, or it isn't yours to read."
-              : "No such post. If this is your draft, sign in to read it."
-            : (error ?? "Failed to load this post.")}
-        </p>
+              : "No such post. If this is your draft, sign in to read it."}
+          </p>
+        ) : (
+          <div className="mt-4">
+            <LoadError
+              message={error ?? "Failed to load this post."}
+              onRetry={() => setAttempt((n) => n + 1)}
+            />
+          </div>
+        )}
       </div>
     );
   }
