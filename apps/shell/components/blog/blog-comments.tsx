@@ -19,6 +19,7 @@ import {
   type BlogComment,
 } from "@/lib/api/blog-social";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { LoadError } from "@/components/load-error";
 
 interface Props {
   slug: string;
@@ -69,8 +70,8 @@ export function BlogComments({ slug, postAuthorId }: Props) {
     try {
       setComments(await listBlogComments(slug));
       setLoadError(null);
-    } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Failed to load comments");
+    } catch {
+      setLoadError("Could not load comments.");
     } finally {
       setLoading(false);
     }
@@ -79,6 +80,12 @@ export function BlogComments({ slug, postAuthorId }: Props) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // A retry with nothing loaded goes back to the skeleton while it waits.
+  const retry = () => {
+    if (comments.length === 0) setLoading(true);
+    void refresh();
+  };
 
   const submit = async () => {
     const body = text.trim();
@@ -283,14 +290,23 @@ export function BlogComments({ slug, postAuthorId }: Props) {
             </div>
           ))}
         </div>
-      ) : loadError ? (
-        <p role="alert" className="text-sm text-red-400">
-          {loadError}
-        </p>
+      ) : loadError && comments.length === 0 ? (
+        // SHAN-633: this showed only the raw exception ("Failed to fetch"),
+        // with no way back but a reload.
+        <LoadError message={loadError} onRetry={retry} />
       ) : comments.length === 0 ? (
         <p className="text-sm text-gray-400">No comments yet. Be the first.</p>
       ) : (
-        <ul className="space-y-3">{comments.map(renderComment)}</ul>
+        <>
+          <ul className="space-y-3">{comments.map(renderComment)}</ul>
+          {/* A refresh after a post or edit that fails keeps the thread on
+              screen instead of replacing it with the error. */}
+          {loadError && (
+            <div className="mt-3">
+              <LoadError message={loadError} onRetry={retry} stale />
+            </div>
+          )}
+        </>
       )}
 
       {authLoading ? (

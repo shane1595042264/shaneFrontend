@@ -20,6 +20,7 @@ import { ReactionDisplay } from "./reaction-display";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { resolveViewerTimezone, timezoneTagFor } from "@/lib/timezone";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { LoadError } from "@/components/load-error";
 
 interface Props {
   date: string;
@@ -36,6 +37,10 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [editUploading, setEditUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // SHAN-633: kept apart from `error`, which belongs to the composer. A failed
+  // load used to land there, reading as a failed post (and showing nothing at
+  // all signed out) while the list said "No comments yet."
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   useScrollLock(!!deleteConfirmId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -53,8 +58,9 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
       // about (components/notes/inline-notes), not in this general thread.
       const noteRoots = new Set(list.filter((c) => c.anchor && c.parentCommentId === null).map((c) => c.id));
       setComments(list.filter((c) => !noteRoots.has(c.id) && !(c.parentCommentId && noteRoots.has(c.parentCommentId))));
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load comments");
+      setLoadError(null);
+    } catch {
+      setLoadError("Could not load comments.");
     } finally {
       setLoading(false);
     }
@@ -300,10 +306,19 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
             </div>
           ))}
         </div>
+      ) : loadError && topLevel.length === 0 ? (
+        <LoadError message={loadError} onRetry={() => void refresh()} />
       ) : topLevel.length === 0 ? (
         <p className="text-sm text-gray-400">No comments yet.</p>
       ) : (
-        <ul className="space-y-3">{topLevel.map((c) => renderComment(c, false))}</ul>
+        <>
+          <ul className="space-y-3">{topLevel.map((c) => renderComment(c, false))}</ul>
+          {loadError && (
+            <div className="mt-3">
+              <LoadError message={loadError} onRetry={() => void refresh()} stale />
+            </div>
+          )}
+        </>
       )}
 
       {user ? (
