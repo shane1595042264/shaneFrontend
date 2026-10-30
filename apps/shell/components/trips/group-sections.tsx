@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { CollapsibleSection } from "@/components/trips/page-toc";
+import { LoadError } from "@/components/load-error";
 import { useAuth } from "@/lib/auth-context";
 import {
   listSections,
@@ -36,15 +37,26 @@ export function GroupSections({
   const { user } = useAuth();
   const [sections, setSections] = useState<TripGroupSection[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // SHAN-636: kept apart from `error` (which the add/toggle/delete actions
+  // clear), and paired with `loaded`, so a failed load never reads as "No
+  // sections yet" and an add after it does not pass for the whole list.
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [creating, setCreating] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoadError(null);
     listSections(slug)
-      .then(setSections)
-      .catch((err) => setError((err as Error).message));
+      .then((rows) => {
+        setSections(rows);
+        setLoaded(true);
+      })
+      .catch(() => setLoadError("Could not load this group's sections."));
   }, [slug]);
+
+  useEffect(load, [load]);
 
   useEffect(() => {
     onSectionsChange?.(sections.map((s) => ({ id: s.id, title: s.title })));
@@ -60,6 +72,9 @@ export function GroupSections({
       const section = await createSection(slug, newTitle.trim());
       setSections((prev) => [section, ...prev]);
       setNewTitle("");
+      // The list never loaded, so fetch it whole rather than show the new
+      // section as if it were the only one.
+      if (!loaded) load();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -101,7 +116,7 @@ export function GroupSections({
       id="sections"
       title="Sections"
       right={
-        sections.length > 0 ? (
+        loaded && sections.length > 0 ? (
           <span className="text-xs font-normal text-gray-400">{sections.length}</span>
         ) : undefined
       }
@@ -126,7 +141,13 @@ export function GroupSections({
         </button>
       </form>
 
-      {sections.length === 0 ? (
+      {!loaded ? (
+        loadError ? (
+          <LoadError message={loadError} onRetry={load} />
+        ) : (
+          <p className="text-sm text-gray-400">Loading sections…</p>
+        )
+      ) : sections.length === 0 ? (
         <p className="text-sm text-gray-400">
           No sections yet. Create a shared checklist — packing lists, pre-trip todos, anything.
         </p>

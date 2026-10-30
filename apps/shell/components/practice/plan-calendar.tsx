@@ -18,6 +18,7 @@ import {
   type ScheduleDay,
 } from "@/lib/plan-schedule";
 import { WEEKDAY_LABELS, listCompletions, type PlanTree } from "@/lib/api/plans";
+import { LoadError } from "@/components/load-error";
 
 const WEEKDAY_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -71,6 +72,8 @@ export function PlanCalendar({ plan, today }: { plan: PlanTree; today: string })
   // empty month does not flash as "nothing done" before the fetch lands.
   const [doneDates, setDoneDates] = useState<Set<string> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // SHAN-636: bumped by Retry to refire the fetch for the same month.
+  const [attempt, setAttempt] = useState(0);
 
   const { lead, days } = useMemo(
     () => monthGrid(cursor.year, cursor.month),
@@ -88,13 +91,13 @@ export function PlanCalendar({ plan, today }: { plan: PlanTree; today: string })
         if (cancelled) return;
         setDoneDates(new Set(rows.filter((r) => r.completedAt).map((r) => r.isoDate)));
       })
-      .catch((e) => {
-        if (!cancelled) setError((e as Error).message ?? "Could not load history");
+      .catch(() => {
+        if (!cancelled) setError("Could not load this month's history.");
       });
     return () => {
       cancelled = true;
     };
-  }, [plan.id, from, to]);
+  }, [plan.id, from, to, attempt]);
 
   const cadence = useMemo(() => resolveCadence(plan), [plan]);
 
@@ -146,9 +149,12 @@ export function PlanCalendar({ plan, today }: { plan: PlanTree; today: string })
       <p className="mt-2 text-xs text-gray-400">{describeCadence(plan)}</p>
 
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-400">
-          {error}
-        </p>
+        <div className="mt-2">
+          <LoadError
+            message={`${error} Completed days are not marked.`}
+            onRetry={() => setAttempt((n) => n + 1)}
+          />
+        </div>
       )}
 
       <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wider text-gray-400">
@@ -202,7 +208,11 @@ export function PlanCalendar({ plan, today }: { plan: PlanTree; today: string })
 
       <p className="mt-3 text-xs text-gray-400">
         {scheduledCount} session{scheduledCount === 1 ? "" : "s"} scheduled
-        {doneCount === null ? " · loading history…" : ` · ${doneCount} completed`}
+        {doneCount !== null
+          ? ` · ${doneCount} completed`
+          : error
+            ? " · history unavailable"
+            : " · loading history…"}
         {" · "}
         <Link href={`/practice/plans/${plan.id}/today`} className="underline">
           run today
