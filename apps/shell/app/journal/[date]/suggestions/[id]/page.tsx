@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "@/components/transition-link";
 import { useParams } from "next/navigation";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
@@ -17,6 +17,7 @@ import { SuggestionDiff } from "@/components/journal/suggestion-diff";
 import { RelativeTime } from "@/lib/format-time";
 import { humanizeError } from "@/lib/humanize-error";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { LoadError } from "@/components/load-error";
 
 type DiffView = "current" | "base" | "full";
 
@@ -40,9 +41,11 @@ export default function SuggestionDetailPage() {
   const [currentNum, setCurrentNum] = useState<number | null>(null);
   const [currentContent, setCurrentContent] = useState("");
   const [baseContent, setBaseContent] = useState("");
+  const [baseStatus, setBaseStatus] = useState<"loading" | "ready" | "error">("loading");
   const [view, setView] = useState<DiffView>("current");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -50,8 +53,36 @@ export default function SuggestionDetailPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Fetch only the base version's body. This used to list every version
+  // (each carrying its full body) just to find the one whose id matched
+  // baseVersionId; the backend now hands back the number directly so a
+  // single-version read is enough (SHAN-461). SHAN-634: it fails on its own,
+  // so a lost base shows Retry in the "vs base" view instead of diffing the
+  // proposal against an empty string.
+  const loadBase = useCallback(
+    async (num: number | null) => {
+      if (num == null) {
+        setBaseStatus("ready");
+        return;
+      }
+      setBaseStatus("loading");
+      try {
+        const base = await getVersion(date, num);
+        setBaseContent(base.content);
+        setBaseStatus("ready");
+      } catch {
+        setBaseStatus("error");
+      }
+    },
+    [date]
+  );
+
+  // SHAN-634: a failed load used to render "Suggestion not found.", since the
+  // error was only drawn inside the loaded view. getSuggestion now returns null
+  // for a real 404, so anything that throws is a failure with a Retry.
+  const load = useCallback(() => {
     setLoading(true);
+    setLoadError(null);
     Promise.all([getSuggestion(id), getEntry(date)])
       .then(async ([sug, entry]) => {
         setS(sug);
@@ -60,18 +91,13 @@ export default function SuggestionDetailPage() {
           setCurrentNum(entry.currentVersionNum);
           setCurrentContent(entry.content);
         }
-        // Fetch only the base version's body. This used to list every version
-        // (each carrying its full body) just to find the one whose id matched
-        // baseVersionId; the backend now hands back the number directly so a
-        // single-version read is enough (SHAN-461).
-        if (sug.baseVersionNum != null) {
-          const base = await getVersion(date, sug.baseVersionNum);
-          setBaseContent(base.content);
-        }
+        if (sug) await loadBase(sug.baseVersionNum ?? null);
       })
-      .catch((e) => setError(humanizeError(e, "Failed to load suggestion")))
+      .catch(() => setLoadError("Could not load this suggestion."))
       .finally(() => setLoading(false));
-  }, [id, date]);
+  }, [id, date, loadBase]);
+
+  useEffect(load, [load]);
 
   useEffect(() => {
     if (!rejectOpen && !withdrawOpen) return;
@@ -93,6 +119,13 @@ export default function SuggestionDetailPage() {
 
   if (loading) {
     return <div className="mx-auto max-w-4xl px-4 py-12 text-sm text-gray-400">Loading…</div>;
+  }
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-12">
+        <LoadError message={loadError} onRetry={load} />
+      </div>
+    );
   }
   if (!s) {
     return <div className="mx-auto max-w-4xl px-4 py-12 text-sm text-gray-400">Suggestion not found.</div>;
@@ -246,7 +279,17 @@ export default function SuggestionDetailPage() {
       </div>
 
       {view === "current" && <SuggestionDiff before={currentContent} after={s.proposedContent} />}
-      {view === "base" && <SuggestionDiff before={baseContent} after={s.proposedContent} />}
+      {view === "base" &&
+        (baseStatus === "ready" ? (
+          <SuggestionDiff before={baseContent} after={s.proposedContent} />
+        ) : baseStatus === "error" ? (
+          <LoadError
+            message="Could not load the version this suggestion was based on."
+            onRetry={() => void loadBase(s.baseVersionNum ?? null)}
+          />
+        ) : (
+          <p className="text-sm text-gray-400">Loading base version…</p>
+        ))}
       {view === "full" && (
         <pre className="overflow-x-auto rounded border border-white/10 bg-black/30 p-3 font-mono text-xs leading-5 text-gray-300 whitespace-pre-wrap">
           {s.proposedContent}

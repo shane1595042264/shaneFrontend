@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "@/components/transition-link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { listSuggestions, type Suggestion } from "@/lib/api/suggestions";
 import { RelativeTime } from "@/lib/format-time";
-import { humanizeError } from "@/lib/humanize-error";
+import { LoadError } from "@/components/load-error";
 
 const STATUS_FILTERS = ["pending", "approved", "rejected", "withdrawn"] as const;
 type StatusFilter = typeof STATUS_FILTERS[number];
@@ -27,7 +27,7 @@ export default function SuggestionsListPage() {
     setShowSubmittedBanner(Boolean(submittedId));
   }, [submittedId]);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true);
     setError(null);
     listSuggestions(date, filter)
@@ -35,15 +35,18 @@ export default function SuggestionsListPage() {
         setItems(list);
         setError(null);
       })
-      .catch((e) => {
+      .catch(() => {
         // On failure (missing entry 404, backend 500, network blip) surface an
         // error instead of silently falling through to the empty state, which
         // would misleadingly read as "there are no suggestions".
+        // SHAN-634: a plain message and a Retry, not the raw exception.
         setItems([]);
-        setError(humanizeError(e, "Failed to load suggestions"));
+        setError("Could not load suggestions.");
       })
       .finally(() => setLoading(false));
   }, [date, filter]);
+
+  useEffect(load, [load]);
 
   const dismissBanner = () => {
     setShowSubmittedBanner(false);
@@ -111,9 +114,7 @@ export default function SuggestionsListPage() {
           ))}
         </div>
       ) : error ? (
-        <p role="alert" className="text-sm text-red-400">
-          {error}
-        </p>
+        <LoadError message={error} onRetry={load} />
       ) : items.length === 0 ? (
         <p className="text-sm text-gray-400">No {filter} suggestions.</p>
       ) : (

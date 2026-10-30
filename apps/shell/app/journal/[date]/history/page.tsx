@@ -1,7 +1,7 @@
 // apps/shell/app/journal/[date]/history/page.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "@/components/transition-link";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -10,6 +10,7 @@ import { RelativeTime } from "@/lib/format-time";
 import { humanizeError } from "@/lib/humanize-error";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { SuggestionDiff } from "@/components/journal/suggestion-diff";
+import { LoadError } from "@/components/load-error";
 
 // One page of history. Version rows are metadata only since SHAN-461, so a page
 // costs the same whether the bodies behind it are 200 bytes or 100k.
@@ -48,8 +49,11 @@ export default function HistoryPage() {
   const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  // SHAN-634: a failed load used to render "No versions found for this date."
+  // with the raw error at the foot of the page and nothing to click.
+  const load = useCallback(() => {
     setLoading(true);
+    setError(null);
     Promise.all([listVersions(date, { limit: PAGE_SIZE }), getEntry(date)])
       .then(([page, entry]) => {
         setVersions(page.versions);
@@ -59,9 +63,11 @@ export default function HistoryPage() {
           setCurrentNum(entry.currentVersionNum);
         }
       })
-      .catch((e) => setError(humanizeError(e, "Failed to load history")))
+      .catch(() => setError("Could not load this entry's history."))
       .finally(() => setLoading(false));
   }, [date]);
+
+  useEffect(load, [load]);
 
   const isAuthor = !!user && user.id === authorId;
 
@@ -213,6 +219,8 @@ export default function HistoryPage() {
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading versions…</p>
+      ) : error ? (
+        <LoadError message={error} onRetry={load} />
       ) : versions.length === 0 ? (
         <p className="text-sm text-gray-400">No versions found for this date.</p>
       ) : (
@@ -350,8 +358,6 @@ export default function HistoryPage() {
           )}
         </div>
       )}
-
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
 
       {revertConfirmTarget !== null && (
         <div

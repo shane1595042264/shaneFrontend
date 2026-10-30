@@ -66,10 +66,16 @@ export async function listSuggestions(date: string, status?: string): Promise<Su
   return (await res.json()).suggestions;
 }
 
-export async function getSuggestion(id: string): Promise<Suggestion> {
+/**
+ * null means the suggestion does not exist: a 404, or a 400 for an id that is
+ * not a uuid. Anything else throws, so a failed load is never reported as
+ * "not found" (SHAN-634).
+ */
+export async function getSuggestion(id: string): Promise<Suggestion | null> {
   const res = await fetch(`${API_URL}/api/journal/suggestions/${id}`, {
     headers: getAuthHeaders(),
   });
+  if (res.status === 404 || res.status === 400) return null;
   if (!res.ok) throw new Error("Failed to fetch suggestion");
   return (await res.json()).suggestion;
 }

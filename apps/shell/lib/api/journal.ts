@@ -212,6 +212,9 @@ export async function listVersions(
   const res = await fetch(`${API_URL}/api/journal/entries/${date}/versions${suffix}`, {
     headers: getAuthHeaders(),
   });
+  // No entry for the date means no history, which is not a failed load
+  // (SHAN-634): the history page says so instead of offering a Retry.
+  if (res.status === 404) return { versions: [], nextCursor: null };
   if (!res.ok) throw new Error("Failed to list versions");
   const json = await res.json();
   // Coalesce a missing nextCursor to null. The two repos deploy independently,
