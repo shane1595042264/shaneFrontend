@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/transition-link";
+import { LoadError } from "@/components/load-error";
 import { useAuth } from "@/lib/auth-context";
 import { formatMMSS, playPing } from "@/lib/practice-timer";
 import { getTodayInTimezone, resolveViewerTimezone, weekdayLongLabel } from "@/lib/timezone";
@@ -99,6 +100,10 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
   const [completions, setCompletions] = useState<Record<string, PlanCompletion>>({});
   const [history, setHistory] = useState<PlanCompletion[]>([]);
   const [loadingTally, setLoadingTally] = useState(true);
+  // SHAN-638: kept apart from syncError so a later successful save cannot
+  // clear it while today's progress is still missing. Bumping `attempt` is Retry.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [run, setRun] = useState<RunState | null>(null);
 
@@ -123,6 +128,7 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
   useEffect(() => {
     let cancelled = false;
     setLoadingTally(true);
+    setLoadError(null);
     listCompletions(plan.id, { from: shiftIso(today, -(HISTORY_DAYS - 1)), to: today })
       .then((rows) => {
         if (cancelled) return;
@@ -131,8 +137,8 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
           Object.fromEntries(rows.filter((r) => r.isoDate === today).map((r) => [r.blockId, r])),
         );
       })
-      .catch((e) => {
-        if (!cancelled) setSyncError((e as Error).message ?? "Could not load progress");
+      .catch(() => {
+        if (!cancelled) setLoadError("Could not load today's progress.");
       })
       .finally(() => {
         if (!cancelled) setLoadingTally(false);
@@ -140,7 +146,12 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
     return () => {
       cancelled = true;
     };
-  }, [plan.id, today]);
+  }, [plan.id, today, attempt]);
+
+  // Every completion write overwrites the day's row for its block, so a write
+  // made before today's rows are known would replace the sets and time already
+  // logged with a tally that starts from zero. Start and the checkboxes wait.
+  const progressReady = !loadingTally && loadError === null;
 
   /** Optimistic write — the checkbox and the tally shouldn't wait on the round trip. */
   const sync = useCallback(
@@ -366,6 +377,8 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
         <p className="mt-2 text-sm text-gray-300">
           {loadingTally ? (
             "Loading progress…"
+          ) : loadError ? (
+            <span className="text-gray-400">Progress unavailable</span>
           ) : (
             <>
               {doneToday} of {blocks.length} block{blocks.length === 1 ? "" : "s"} done
@@ -380,6 +393,15 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
           )}
         </p>
       </header>
+
+      {loadError && (
+        <div className="mt-4">
+          <LoadError
+            message={`${loadError} Today's sets are not shown, so Start and the checkboxes are off until it loads.`}
+            onRetry={() => setAttempt((n) => n + 1)}
+          />
+        </div>
+      )}
 
       {syncError && (
         <p role="alert" className="mt-4 text-sm text-red-400">
@@ -469,6 +491,7 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
                       type="checkbox"
                       checked={isDone}
                       aria-label={`Mark ${block.title} done`}
+                      disabled={!progressReady}
                       onChange={() => toggleCheck(block)}
                       className="mt-1 h-5 w-5 shrink-0 accent-emerald-500"
                     />
@@ -496,6 +519,7 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
                       <button
                         type="button"
                         onClick={() => startBlock(block)}
+                        disabled={!progressReady}
                         className={controlButton}
                       >
                         {isDone ? "Run again" : "Start"}
