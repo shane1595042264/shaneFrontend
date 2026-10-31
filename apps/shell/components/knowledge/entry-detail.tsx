@@ -115,12 +115,17 @@ export function EntryDetail({
     setTimeout(() => setCopyFeedback(null), 2000);
   }
 
+  // SHAN-637: the enrich response is the saved row (the same shape GET returns)
+  // and enrich never touches connections, so there is no refetch whose failure
+  // could read as a failed enrich.
   async function handleEnrich() {
     setEnriching(true);
+    setError(null);
     try {
-      await enrichEntryApi(entryId);
-      await loadEntry();
+      setEntry(await enrichEntryApi(entryId));
       onEntryUpdated();
+    } catch (err) {
+      setError((err as Error)?.message || "Failed to enrich entry.");
     } finally {
       setEnriching(false);
     }
@@ -354,7 +359,7 @@ export function EntryDetail({
         </div>
 
         {error && (
-          <div className="mb-4 px-3 py-2 rounded bg-red-500/10 border border-red-500/20 text-xs text-red-300">
+          <div role="alert" className="mb-4 px-3 py-2 rounded bg-red-500/10 border border-red-500/20 text-xs text-red-300">
             {error}
           </div>
         )}
@@ -480,27 +485,28 @@ export function EntryDetail({
               }}
             />
 
-            <div className="mb-6 flex flex-wrap items-center gap-2">
-              {/* Mirrors backend ownership rule in PUT /api/knowledge/entries/:id
-                  (SHAN-222): must be signed in AND either the creator or a
-                  legacy entry whose createdBy is null. */}
-              {currentUserId &&
-                (entry.createdBy === null || entry.createdBy === currentUserId) && (
+            {/* Mirrors backend ownership rule in PUT /api/knowledge/entries/:id
+                (SHAN-222), which POST .../enrich shares since SHAN-570: must be
+                signed in AND either the creator or a legacy entry whose
+                createdBy is null. Anyone else would only ever get a 401/403. */}
+            {currentUserId &&
+              (entry.createdBy === null || entry.createdBy === currentUserId) && (
+                <div className="mb-6 flex flex-wrap items-center gap-2">
                   <button
                     onClick={startEdit}
                     className="px-3 py-1.5 text-xs bg-white/5 border border-white/10 text-gray-300 rounded hover:bg-white/10 transition-colors"
                   >
                     Edit
                   </button>
-                )}
-              <button
-                onClick={handleEnrich}
-                disabled={enriching}
-                className="px-3 py-1.5 text-xs bg-purple-600/20 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-600/30 disabled:opacity-50 transition-colors"
-              >
-                {enriching ? "Enriching..." : "Re-enrich with AI"}
-              </button>
-            </div>
+                  <button
+                    onClick={handleEnrich}
+                    disabled={enriching}
+                    className="px-3 py-1.5 text-xs bg-purple-600/20 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-600/30 disabled:opacity-50 transition-colors"
+                  >
+                    {enriching ? "Enriching..." : "Re-enrich with AI"}
+                  </button>
+                </div>
+              )}
           </>
         )}
 

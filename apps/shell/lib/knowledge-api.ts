@@ -235,7 +235,10 @@ export async function enrichEntryApi(id: string): Promise<KnowledgeEntry> {
     method: "POST",
     headers: { ...getAuthHeaders() },
   });
-  if (!res.ok) throw new Error("Failed to enrich entry");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to enrich entry");
+  }
   const data = await res.json();
   return data.entry;
 }
