@@ -41,6 +41,7 @@ import {
   type TripGroupNote,
 } from "@/lib/api/trip-groups";
 import { InlineErrorState } from "@/components/inline-error-state";
+import { LoadError } from "@/components/load-error";
 
 function InviteLinkBox({ slug }: { slug: string }) {
   const [url, setUrl] = useState(`https://shanejli.com/trips/groups/${slug}`);
@@ -423,6 +424,14 @@ function GroupDetail() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [filling, setFilling] = useState(false);
 
+  // SHAN-640: the two list loads keep their own errors, apart from the action
+  // errors above. suggestionError only renders inside "Pending suggestions",
+  // which a failed load (no suggestions) never shows, so it hid the failure.
+  const [suggestionsLoaded, setSuggestionsLoaded] = useState(false);
+  const [suggestionsLoadError, setSuggestionsLoadError] = useState<string | null>(null);
+  const [photosLoaded, setPhotosLoaded] = useState(false);
+  const [photosLoadError, setPhotosLoadError] = useState<string | null>(null);
+
   const [draft, setDraft] = useState<TripItinerary | null>(null);
   // The itinerary the draft was copied from (SHAN-565), sent as the edit's base.
   const [draftBase, setDraftBase] = useState<TripItinerary | null>(null);
@@ -449,8 +458,10 @@ function GroupDetail() {
     if (!slug) return;
     try {
       setPhotos(await listPhotos(slug));
-    } catch (err) {
-      setPhotoError((err as Error).message);
+      setPhotosLoaded(true);
+      setPhotosLoadError(null);
+    } catch {
+      setPhotosLoadError("Could not load this itinerary's photos.");
     }
   }, [slug]);
 
@@ -458,9 +469,10 @@ function GroupDetail() {
     if (!slug) return;
     try {
       setSuggestions(await listSuggestions(slug));
-      setSuggestionError(null);
-    } catch (err) {
-      setSuggestionError((err as Error).message);
+      setSuggestionsLoaded(true);
+      setSuggestionsLoadError(null);
+    } catch {
+      setSuggestionsLoadError("Could not load suggested itinerary changes.");
     }
   }, [slug]);
 
@@ -574,7 +586,10 @@ function GroupDetail() {
     setPhotoError(null);
     try {
       const { photos: created, skipped } = await unsplashFill(slug);
-      if (created.length > 0) setPhotos((prev) => [...prev, ...created]);
+      // The list never loaded, so fetch it whole rather than show the new
+      // photos as if they were the only ones.
+      if (!photosLoaded) void refetchPhotos();
+      else if (created.length > 0) setPhotos((prev) => [...prev, ...created]);
       if (skipped.length > 0) {
         setPhotoError(
           `Some days were skipped: ${skipped.map((s) => `day ${s.day} (${s.reason})`).join("; ")}`,
@@ -1016,6 +1031,24 @@ function GroupDetail() {
           <p role="status" className="mb-2 text-sm text-green-400">
             {consolidateNotice}
           </p>
+        )}
+        {suggestionsLoadError && (
+          <div className="mb-2">
+            <LoadError
+              message={suggestionsLoadError}
+              stale={suggestionsLoaded}
+              onRetry={() => void refetchSuggestions()}
+            />
+          </div>
+        )}
+        {photosLoadError && (
+          <div className="mb-2">
+            <LoadError
+              message={photosLoadError}
+              stale={photosLoaded}
+              onRetry={() => void refetchPhotos()}
+            />
+          </div>
         )}
         {photoError && (
           <p role="alert" className="mb-2 text-sm text-amber-400">{photoError}</p>
