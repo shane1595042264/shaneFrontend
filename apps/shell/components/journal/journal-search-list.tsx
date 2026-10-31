@@ -8,6 +8,7 @@ import { listEntries as apiListEntries, type JournalEntry as ApiJournalEntry } f
 import { listReadingPositions, type ReadingPosition } from "@/lib/api/journal-reading";
 import { READ_THROUGH, STARTED } from "@/lib/reading-position";
 import { ContinueReading } from "@/components/journal/continue-reading";
+import { LoadError } from "@/components/load-error";
 import {
   getTodayInTimezone,
   monthLongLabel,
@@ -179,8 +180,13 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
   // "no server result yet for the current query".
   const [serverMatches, setServerMatches] = useState<ApiJournalEntry[] | null>(null);
   const [serverSearching, setServerSearching] = useState(false);
+  // SHAN-639: the full-text search failed for the current query, so the list
+  // holds only preview matches. Bumping serverRetry re-runs the search.
+  const [serverFailed, setServerFailed] = useState(false);
+  const [serverRetry, setServerRetry] = useState(0);
 
   useEffect(() => {
+    setServerFailed(false);
     if (!trimmed) {
       setServerMatches(null);
       setServerSearching(false);
@@ -210,8 +216,11 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
       } catch (err) {
         // Aborted (stale query) — a newer effect owns the spinner now, so leave it.
         if (cancelled || (err instanceof DOMException && err.name === "AbortError")) return;
-        // Real failure: fall back to client-only results, just stop the spinner.
+        // Real failure: fall back to client-only results and say so. Drop the
+        // previous query's matches, which would otherwise be unioned in.
+        setServerMatches(null);
         setServerSearching(false);
+        setServerFailed(true);
       }
     }, 250);
     return () => {
@@ -219,7 +228,7 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
       controller.abort();
       clearTimeout(timer);
     };
-  }, [trimmed]);
+  }, [trimmed, serverRetry]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -374,6 +383,14 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
             {serverSearching && " · searching full text…"}
           </p>
         )}
+        {isFiltering && serverFailed && !serverSearching && (
+          <div className="mt-2">
+            <LoadError
+              message="Full-text search failed, so only matches in entry previews are shown."
+              onRetry={() => setServerRetry((n) => n + 1)}
+            />
+          </div>
+        )}
       </div>
 
       {filtered.length === 0 && !showTodayPlaceholder ? (
@@ -399,7 +416,9 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
             {isFiltering
               ? serverSearching
                 ? "Searching…"
-                : "No entries match your search."
+                : serverFailed
+                  ? "No matches in entry previews."
+                  : "No entries match your search."
               : "No entries yet."}
           </p>
         )
