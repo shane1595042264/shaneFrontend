@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { getActivities, type Activity } from "@/lib/api/activities";
 import { DEFAULT_TIMEZONE } from "@/lib/timezone";
+import { humanizeError } from "@/lib/humanize-error";
+import { LoadError } from "@/components/load-error";
 
 interface Props {
   date: string;
@@ -195,16 +197,34 @@ function summarizeLocations(items: Activity[]): { rows: Row[]; backgroundPings: 
 // server component cannot send the viewer's token (it lives in localStorage).
 export function ActivitySidebar({ date }: Props) {
   const [acts, setActs] = useState<Activity[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  // Bumped by Retry so the effect reruns for the same date.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     // Reset so a previous date's feed never shows under a different date.
     setActs(null);
+    setError(null);
     const controller = new AbortController();
-    getActivities(date, controller.signal).then((rows) => {
-      if (!controller.signal.aborted) setActs(rows);
-    });
+    getActivities(date, controller.signal)
+      .then((rows) => {
+        if (!controller.signal.aborted) setActs(rows);
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) {
+          setError(humanizeError(e, "Couldn't load activity for this date."));
+        }
+      });
     return () => controller.abort();
-  }, [date]);
+  }, [date, attempt]);
+
+  if (error) {
+    return (
+      <aside className="sticky top-under-header transition-[top] duration-[420ms] ease-[var(--ease-glide)] motion-reduce:transition-none rounded border border-white/10 bg-black/10 p-3 text-xs">
+        <LoadError message={error} onRetry={() => setAttempt((n) => n + 1)} />
+      </aside>
+    );
+  }
 
   if (acts === null) {
     return (
