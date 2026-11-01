@@ -158,12 +158,29 @@ export function KnowledgeBrowser({
   const lastClickedIndexRef = useRef<number | null>(null);
 
   const [practiceMap, setPracticeMap] = useState<Map<string, PracticeableItem>>(new Map());
+  // SHAN-644: a failed load used to be swallowed, which dropped every card's
+  // strike and Solidified chip and read as a deck nobody had practiced.
+  const [practiceError, setPracticeError] = useState(false);
+  const [practiceAttempt, setPracticeAttempt] = useState(0);
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setPracticeMap(new Map());
+      setPracticeError(false);
+      return;
+    }
+    let cancelled = false;
+    setPracticeError(false);
     listPracticeableItems(null, true)
-      .then((arr) => setPracticeMap(new Map(arr.map((it) => [it.itemId, it]))))
-      .catch(() => {});
-  }, [user]);
+      .then((arr) => {
+        if (!cancelled) setPracticeMap(new Map(arr.map((it) => [it.itemId, it])));
+      })
+      .catch(() => {
+        if (!cancelled) setPracticeError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, practiceAttempt]);
 
   const abortRef = useRef<AbortController | null>(null);
   const hasLoaded = useRef(initialEntries !== null);
@@ -657,6 +674,14 @@ export function KnowledgeBrowser({
 
       {metaError && (
         <LoadError message="Couldn't load the filter options." onRetry={loadMeta} />
+      )}
+
+      {practiceError && (
+        <LoadError
+          message="Couldn't load your practice progress."
+          onRetry={() => setPracticeAttempt((n) => n + 1)}
+          stale={practiceMap.size > 0}
+        />
       )}
 
       <div className="font-mono text-xs tabular-nums text-gray-400">

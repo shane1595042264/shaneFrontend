@@ -127,9 +127,15 @@ export const updateSettings = (patch: Partial<Omit<PracticeSettings, "updatedAt"
   }).then((r) => r.settings);
 
 // Prescriptions
-export const getPrescription = (itemId: string) =>
-  fetch(`${API_URL}/api/practice/prescriptions/${itemId}`)
-    .then(async (r) => (r.status === 404 ? null : ((await r.json()).prescription as Prescription)));
+// SHAN-644: only a 404 means "not configured". Reading any other failure as
+// null opened the setup modal on its defaults, and Save overwrote the card's
+// real prescription.
+export const getPrescription = async (itemId: string): Promise<Prescription | null> => {
+  const r = await fetch(`${API_URL}/api/practice/prescriptions/${itemId}`);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`Request failed (${r.status})`);
+  return ((await r.json()) as { prescription: Prescription }).prescription;
+};
 
 export const upsertPrescription = (itemId: string, body: { setMode: "time" | "reps"; setSize: number; restSeconds: number }) =>
   api<{ prescription: Prescription }>(`/api/practice/prescriptions/${itemId}`, {
