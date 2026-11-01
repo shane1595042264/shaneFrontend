@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
+import { LoadError } from "@/components/load-error";
 import {
   getCalendarStatus,
   connectCalendar,
@@ -20,16 +21,25 @@ import {
 export function AddToCalendarButton({ slug }: { slug: string }) {
   const [clientId, setClientId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  // SHAN-642: a failed status check used to null the client id, which hid the
+  // button exactly as if calendar export were not configured.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadStatus = useCallback(() => {
     getCalendarStatus()
       .then((s) => {
         setClientId(s.clientId || null);
         setConnected(s.connected);
+        setLoadError(null);
       })
-      .catch(() => setClientId(null));
+      .catch(() => setLoadError("Could not check your Google Calendar connection."));
   }, []);
 
+  useEffect(() => {
+    loadStatus();
+  }, [loadStatus]);
+
+  if (loadError) return <LoadError message={loadError} onRetry={loadStatus} />;
   if (!clientId) return null;
 
   return (
