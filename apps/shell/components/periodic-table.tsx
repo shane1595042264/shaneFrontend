@@ -363,7 +363,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
         </div>
       )}
       {signedIn && layoutError && (
-        <div className="mb-3 px-1">
+        <div className="mb-3 px-1 text-center">
           <LoadError
             message="Couldn't load your saved arrangement. Showing the default order, and rearranging is off until it loads."
             onRetry={() => setLoadAttempt((n) => n + 1)}
