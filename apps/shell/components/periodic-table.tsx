@@ -6,6 +6,7 @@ import type { ElementConfig } from "@shane/types";
 import { ElementCard } from "./element-card";
 import { ElementSearch } from "./element-search";
 import { PlaceholderCard } from "./placeholder-card";
+import { LoadError } from "./load-error";
 import { searchElements } from "@/lib/element-search";
 import {
   PERIODIC_TABLE_ELEMENTS,
@@ -38,7 +39,18 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   // would save the default order over the real one (SHAN-569).
   const [layoutLoaded, setLayoutLoaded] = useState(false);
   const canRearrange = signedIn && layoutLoaded;
+  // SHAN-646: a failed load used to look like the visitor's own order with
+  // drags quietly off. Retry bumps loadAttempt so the effect refetches in place.
+  const [layoutError, setLayoutError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [slotMap, setSlotMap] = useState<SlotMap>(() => resolveSlots(elements, {}));
+  // Drops are saved one PUT at a time, always sending the newest arrangement,
+  // so PUTs cannot land out of order and a failed save cannot roll back over a
+  // later move that saved. confirmedMapRef is the last map the server holds.
+  const confirmedMapRef = useRef<SlotMap | null>(null);
+  const pendingMapRef = useRef<SlotMap | null>(null);
+  const savingRef = useRef(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // False until we know which arrangement to draw. The first render can only
   // use the default registry order, and a signed-in visitor's saved order
   // differs from it in most slots, so revealing the grid before the saved map
@@ -72,6 +84,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
     // reveal the default arrangement a moment before the saved one arrives.
     if (authLoading) return;
     setLayoutLoaded(false);
+    setLayoutError(false);
     if (!signedIn) {
       setSlotMap(resolveSlots(elements, {}));
       setSlotsResolved(true);
@@ -80,14 +93,17 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
     let cancelled = false;
     fetchSlotAssignments().then((saved) => {
       if (cancelled) return;
-      setSlotMap(resolveSlots(elements, saved ?? {}));
+      const resolved = resolveSlots(elements, saved ?? {});
+      setSlotMap(resolved);
       setSlotsResolved(true);
       setLayoutLoaded(saved !== null);
+      setLayoutError(saved === null);
+      if (saved !== null) confirmedMapRef.current = resolved;
     });
     return () => {
       cancelled = true;
     };
-  }, [elements, signedIn, authLoading]);
+  }, [elements, signedIn, authLoading, loadAttempt]);
 
   // The grid is invisible until resolution, so a request that never settles
   // (accepted but unanswered; fetchSlotAssignments already swallows outright
@@ -125,6 +141,51 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
     setDropTarget(null);
   }, []);
 
+  const showToast = useCallback(
+    (type: "success" | "error", message: string, ms: number) => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      setSaveToast({ type, message });
+      toastTimerRef.current = setTimeout(() => setSaveToast(null), ms);
+    },
+    []
+  );
+
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    },
+    []
+  );
+
+  // A drop made while a PUT is in flight only replaces pendingMapRef; the loop
+  // picks it up when the PUT settles. A failure is only rolled back when it was
+  // the newest arrangement, since a queued one already carries the same move
+  // and saving it retries that move too.
+  const flushSaves = useCallback(async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    let failed = false;
+    while (pendingMapRef.current) {
+      const next = pendingMapRef.current;
+      pendingMapRef.current = null;
+      try {
+        await saveSlotAssignments(next);
+        confirmedMapRef.current = next;
+        failed = false;
+      } catch {
+        failed = true;
+      }
+    }
+    savingRef.current = false;
+    if (failed) {
+      const confirmed = confirmedMapRef.current;
+      if (confirmed) setSlotMap(confirmed);
+      showToast("error", "Failed to save arrangement", 4000);
+    } else {
+      showToast("success", "Arrangement saved", 2000);
+    }
+  }, [showToast]);
+
   const handleDrop = useCallback(
     (targetAtomic: number) => {
       if (!draggedAppId || !canRearrange) return;
@@ -138,7 +199,6 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
 
       const targetAppId = slotMap[targetAtomic];
       const newSlotMap = { ...slotMap };
-      const previousSlotMap = { ...slotMap };
 
       if (targetAppId) {
         newSlotMap[sourceAtomic] = targetAppId;
@@ -151,18 +211,10 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
       setSlotMap(newSlotMap);
       setDraggedAppId(null);
 
-      saveSlotAssignments(newSlotMap)
-        .then(() => {
-          setSaveToast({ type: "success", message: "Arrangement saved" });
-          setTimeout(() => setSaveToast(null), 2000);
-        })
-        .catch(() => {
-          setSlotMap(previousSlotMap);
-          setSaveToast({ type: "error", message: "Failed to save arrangement" });
-          setTimeout(() => setSaveToast(null), 4000);
-        });
+      pendingMapRef.current = newSlotMap;
+      flushSaves();
     },
-    [draggedAppId, canRearrange, slotMap, appToSlot]
+    [draggedAppId, canRearrange, slotMap, appToSlot, flushSaves]
   );
 
   const handleDragEnd = useCallback(() => {
@@ -308,6 +360,14 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
           }`}
         >
           {saveToast.message}
+        </div>
+      )}
+      {signedIn && layoutError && (
+        <div className="mb-3 px-1">
+          <LoadError
+            message="Couldn't load your saved arrangement. Showing the default order, and rearranging is off until it loads."
+            onRetry={() => setLoadAttempt((n) => n + 1)}
+          />
         </div>
       )}
       <ElementSearch
