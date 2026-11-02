@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import Link from "@/components/transition-link";
 import { LoadError } from "@/components/load-error";
 import { useAuth } from "@/lib/auth-context";
@@ -182,7 +183,7 @@ export function PlanRunner({ plan }: { plan: PlanTree }) {
           setCompletions((prev) => ({ ...prev, [blockId]: row }));
           setSyncError(null);
         })
-        .catch((e) => setSyncError((e as Error).message ?? "Could not save progress"));
+        .catch((e) => setSyncError(humanizeActionError(e, "Couldn't save progress")));
     },
     [plan.id, today],
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { useParams } from "next/navigation";
 import Link from "@/components/transition-link";
 import { AuthGate } from "@/components/auth-gate";
@@ -35,7 +36,7 @@ function DoneContent({ sessionId }: { sessionId: string }) {
           setLoaded({ kind: "workout", session: s.session, items: s.items, setsPerStrike: settings.setsPerStrike });
         }
       })
-      .catch((e) => setError(e.message ?? "Failed"));
+      .catch((e) => setError(humanizeActionError(e, "Couldn't load the session summary")));
   }, [sessionId]);
 
   useEffect(() => {

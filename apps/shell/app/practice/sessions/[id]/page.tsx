@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { useParams } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import {
@@ -36,7 +37,7 @@ function RunnerContent({ sessionId }: { sessionId: string }) {
           setLoaded({ kind: "workout", session: s.session, items: s.items, setsPerStrike: settings.setsPerStrike });
         }
       })
-      .catch((e) => setError(e.message ?? "Failed"));
+      .catch((e) => setError(humanizeActionError(e, "Couldn't load this session")));
   }, [sessionId]);
 
   useEffect(() => {

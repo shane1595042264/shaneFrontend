@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import Link from "@/components/transition-link";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { AuthGate } from "@/components/auth-gate";
@@ -33,7 +34,7 @@ function PlansIndexContent() {
     setPlans(null);
     listPlans(filter === "all" ? undefined : filter)
       .then(setPlans)
-      .catch((e) => setError((e as Error).message ?? "Failed to load"));
+      .catch((e) => setError(humanizeActionError(e, "Couldn't load your plans")));
   }, [filter]);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { listLocations, upsertLocation, type Location } from "@/lib/api/practice";
 
 interface Props {
@@ -19,7 +20,7 @@ export function LocationPrompt({ onPick }: Props) {
   const busyRef = useRef(false);
 
   useEffect(() => {
-    listLocations().then(setLocations).catch((e) => setError(e.message));
+    listLocations().then(setLocations).catch((e) => setError(humanizeActionError(e, "Couldn't load your saved locations")));
   }, []);
 
   const finish = async (resolve: () => Promise<{ id: string; name: string } | null>) => {
@@ -30,7 +31,7 @@ export function LocationPrompt({ onPick }: Props) {
     try {
       await onPick(await resolve());
     } catch (e) {
-      setError((e as Error).message ?? "Failed to save");
+      setError(humanizeActionError(e, "Couldn't save the location"));
       busyRef.current = false;
       setSaving(false);
     }

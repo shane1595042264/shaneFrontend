@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import {
   calendarFeedUrl,
   mintCalendarToken,
@@ -56,7 +57,7 @@ export function PlanScheduleSettings({
     try {
       await fn();
     } catch (e) {
-      setFeedError((e as Error).message ?? "Calendar feed action failed");
+      setFeedError(humanizeActionError(e, "Calendar feed action failed"));
     } finally {
       setFeedBusy(false);
     }

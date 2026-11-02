@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import Link from "@/components/transition-link";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import {
@@ -185,7 +186,7 @@ export function PracticeRunner({ session, items, setsPerStrike }: Props) {
       await completeSession(session.id);
       router.push(`/practice/sessions/${session.id}/done`);
     } catch (e) {
-      setAbandonError((e as Error).message ?? "Failed to end the session");
+      setAbandonError(humanizeActionError(e, "Couldn't end the session"));
       abandoningRef.current = false;
       setAbandoning(false);
     }

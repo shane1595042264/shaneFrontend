@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { upsertPrescription } from "@/lib/api/practice";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useEscapeKey } from "@/lib/use-escape-key";
@@ -29,7 +30,7 @@ export function PrescriptionModal({ itemId, itemName, onSaved, onCancel }: Props
       const p = await upsertPrescription(itemId, { setMode, setSize, restSeconds });
       onSaved({ setMode: p.setMode, setSize: p.setSize, restSeconds: p.restSeconds });
     } catch (e) {
-      setError((e as Error).message ?? "Failed");
+      setError(humanizeActionError(e, "Couldn't save the prescription"));
       setSaving(false);
     }
   };

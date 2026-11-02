@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import Link from "@/components/transition-link";
 import { useParams } from "next/navigation";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
@@ -116,7 +117,7 @@ function PlanDetailContent({ planId }: { planId: string }) {
     setPlan(null);
     getPlan(planId)
       .then(setPlan)
-      .catch((e) => setError((e as Error).message ?? "Failed to load"));
+      .catch((e) => setError(humanizeActionError(e, "Couldn't load this plan")));
   }, [planId]);
 
   useEffect(() => {
@@ -142,11 +143,10 @@ function PlanDetailContent({ planId }: { planId: string }) {
       landed = true;
       setPlan(await getPlan(planId));
     } catch (e) {
-      const message = (e as Error).message ?? "Action failed";
       if (landed) {
-        setActionError(`Saved, but the plan did not reload (${message}). Refresh to see it.`);
+        setActionError("Saved, but the plan did not reload. Refresh to see it.");
       } else {
-        onError(message);
+        onError(humanizeActionError(e, "That change didn't save"));
       }
     } finally {
       setBusy(false);
@@ -244,7 +244,7 @@ function PlanDetailContent({ planId }: { planId: string }) {
                 await deletePlan(planId);
                 router.push("/practice/plans");
               } catch (e) {
-                setActionError((e as Error).message ?? "Failed to delete plan");
+                setActionError(humanizeActionError(e, "Couldn't delete the plan"));
                 setBusy(false);
               }
             }}

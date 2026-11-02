@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import Link from "@/components/transition-link";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { AuthGate } from "@/components/auth-gate";
@@ -119,7 +120,7 @@ function NewSessionContent() {
       });
       router.push(`/practice/sessions/${session.id}`);
     } catch (e) {
-      setError((e as Error).message ?? "Failed");
+      setError(humanizeActionError(e, "Couldn't start the session"));
       setStarting(false);
     }
   };
@@ -131,7 +132,7 @@ function NewSessionContent() {
       const { session } = await createVocabSession(location.trim(), vocabN);
       router.push(`/practice/sessions/${session.id}`);
     } catch (e) {
-      setError((e as Error).message ?? "Failed");
+      setError(humanizeActionError(e, "Couldn't start the session"));
       setStartingVocab(false);
     }
   };

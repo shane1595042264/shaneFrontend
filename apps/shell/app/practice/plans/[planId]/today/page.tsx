@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { useParams } from "next/navigation";
 import { AuthGate } from "@/components/auth-gate";
 import { InlineErrorState } from "@/components/inline-error-state";
@@ -16,7 +17,7 @@ function TodayContent({ planId }: { planId: string }) {
     setPlan(null);
     getPlan(planId)
       .then(setPlan)
-      .catch((e) => setError((e as Error).message ?? "Failed to load"));
+      .catch((e) => setError(humanizeActionError(e, "Couldn't load this plan")));
   }, [planId]);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { useParams } from "next/navigation";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import Link from "@/components/transition-link";
@@ -23,7 +24,7 @@ function ItemProgressContent({ itemId }: { itemId: string }) {
     setSettings(null);
     Promise.all([getItemProgress(itemId), getSettings()])
       .then(([d, s]) => { setDetail(d); setSettings(s); })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(humanizeActionError(e, "Couldn't load this item")));
   }, [itemId]);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ function ItemProgressContent({ itemId }: { itemId: string }) {
       const { session } = await createSessionFromItemIds([detail.itemId]);
       router.push(`/practice/sessions/${session.id}`);
     } catch (e) {
-      setStartError((e as Error).message ?? "Failed to start session");
+      setStartError(humanizeActionError(e, "Couldn't start the session"));
       setStarting(false);
     }
   };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import Link from "@/components/transition-link";
 import { AuthGate } from "@/components/auth-gate";
 import { LoadError } from "@/components/load-error";
@@ -24,7 +25,7 @@ function HistoryContent() {
     setError(null);
     listMySessions()
       .then(setSessions)
-      .catch((e) => setError(e.message ?? "Failed to load"));
+      .catch((e) => setError(humanizeActionError(e, "Couldn't load your session history")));
   }, []);
 
   useEffect(load, [load]);

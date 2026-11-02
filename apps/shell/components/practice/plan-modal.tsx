@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { BlockForm, cleanBlockDraft } from "@/components/practice/block-form";
 import {
@@ -113,7 +114,7 @@ export function PlanModal({
       });
       onCreated(plan);
     } catch (e) {
-      setError((e as Error).message ?? "Failed to create plan");
+      setError(humanizeActionError(e, "Couldn't create the plan"));
       setSaving(false);
     }
   };

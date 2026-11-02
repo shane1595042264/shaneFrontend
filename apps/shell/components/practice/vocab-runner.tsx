@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { gradeVocab, completeSession, type Session, type VocabCard } from "@/lib/api/practice";
 
 export function VocabRunner({ session, cards }: { session: Session; cards: VocabCard[] }) {
@@ -32,7 +33,7 @@ export function VocabRunner({ session, cards }: { session: Session; cards: Vocab
       // Full navigation so the done page re-fetches the summary cleanly.
       window.location.assign(`/practice/sessions/${session.id}/done`);
     } catch (e) {
-      setFinishError((e as Error).message || "Failed to end the session");
+      setFinishError(humanizeActionError(e, "Couldn't end the session"));
       finishingRef.current = false;
       setFinishing(false);
     }
@@ -59,7 +60,7 @@ export function VocabRunner({ session, cards }: { session: Session; cards: Vocab
         setPos((p) => p + 1);
       } catch (e) {
         setToast(null);
-        setGradeError((e as Error).message || "Failed to save");
+        setGradeError(humanizeActionError(e, "Couldn't save that answer"));
       } finally {
         busy.current = false;
         gradeInFlight.current = null;
