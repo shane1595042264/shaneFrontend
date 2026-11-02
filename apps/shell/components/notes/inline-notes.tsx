@@ -20,6 +20,7 @@ import type { NoteRecord, NotesAdapter } from "@/components/notes/adapters";
 import { AiApiError, explainSelection } from "@/lib/api/ai";
 import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
+import { humanizeError } from "@/lib/humanize-error";
 import { captureAnchor, captureContext, collapse, type NoteAnchor } from "@/lib/journal-notes";
 import type { MarkableNote } from "@/lib/rehype-note-marks";
 import { markReadingAt } from "@/lib/reading-position";
@@ -70,7 +71,12 @@ interface ThreadActions {
 
 const NotesDataContext = createContext<DataCtx | null>(null);
 const NotesUiContext = createContext<UiCtx | null>(null);
-const OrphansContext = createContext<{ orphans: NoteThread[]; actions: ThreadActions } | null>(null);
+const OrphansContext = createContext<{
+  orphans: NoteThread[];
+  actions: ThreadActions;
+  loadError: string | null;
+  retry: () => void;
+} | null>(null);
 
 const EMPTY: MarkableNote[] = [];
 const SPRING = { type: "spring", stiffness: 460, damping: 34, mass: 0.7 } as const;
@@ -170,17 +176,25 @@ export function NotesProvider({
   adapterRef.current = adapter;
   const userId = user?.id ?? null;
 
-  const refresh = useCallback(async () => {
+  // SHAN-645: a failed load used to be swallowed, and a page with no
+  // highlights reads exactly like notes that were deleted. The page itself
+  // still renders as it was; OrphanNotes says the notes didn't load.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const refresh = useCallback(async (): Promise<boolean> => {
     try {
       setNotes(await adapterRef.current.list());
-    } catch {
-      // Notes are an enhancement to reading; a failed load leaves the page as it was.
+      setLoadError(null);
+      return true;
+    } catch (e) {
+      setLoadError(humanizeError(e, "Couldn't load the notes on this page."));
+      return false;
     }
   }, []);
 
   useEffect(() => {
     if (!userId) {
       setNotes([]);
+      setLoadError(null);
       return;
     }
     void refresh();
@@ -218,8 +232,9 @@ export function NotesProvider({
     remove: async (id) => {
       await adapterRef.current.remove(id);
       // A deleted journal note with replies is re-rooted server-side, so take
-      // the server's word for the new shape.
-      await refresh();
+      // the server's word for the new shape. If that read fails the delete has
+      // still happened, so drop the note here rather than leave it on screen.
+      if (!(await refresh())) setNotes((prev) => prev.filter((n) => n.id !== id));
     },
     canDelete: (n) => adapterRef.current.canDelete(n, userId),
   };
@@ -438,7 +453,7 @@ export function NotesProvider({
   return (
     <NotesDataContext.Provider value={data}>
       <NotesUiContext.Provider value={ui}>
-        <OrphansContext.Provider value={{ orphans, actions }}>
+        <OrphansContext.Provider value={{ orphans, actions, loadError, retry: () => void refresh() }}>
           {children}
           {/* Portals only after hydration: on a server-rendered page (a blog
               post) the first client render has to match the HTML, which has
@@ -841,6 +856,7 @@ function NoteItem({ n, actions, index }: { n: NoteRecord; actions: ThreadActions
   const reduce = useReducedMotion() ?? false;
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState(false);
   useEffect(() => {
     if (!confirming) return;
     const t = window.setTimeout(() => setConfirming(false), 3500);
@@ -870,8 +886,12 @@ function NoteItem({ n, actions, index }: { n: NoteRecord; actions: ThreadActions
                   return;
                 }
                 setBusy(true);
+                setDeleteFailed(false);
                 try {
                   await actions.remove(n.id);
+                } catch {
+                  // SHAN-645: this used to snap back to "Delete" with no word.
+                  setDeleteFailed(true);
                 } finally {
                   setBusy(false);
                   setConfirming(false);
@@ -896,6 +916,11 @@ function NoteItem({ n, actions, index }: { n: NoteRecord; actions: ThreadActions
         <div className="prose prose-invert prose-sm mt-1 max-w-none break-words text-[14px] leading-relaxed text-gray-200 prose-p:my-1 prose-a:text-blue-300">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{n.content}</ReactMarkdown>
         </div>
+        {deleteFailed && (
+          <p role="alert" className="mt-1 text-xs text-red-300">
+            Couldn&apos;t delete that note.
+          </p>
+        )}
       </div>
     </motion.li>
   );
@@ -1085,20 +1110,38 @@ function ThreadPopover({
  */
 export function OrphanNotes() {
   const ctx = useContext(OrphansContext);
-  if (!ctx || ctx.orphans.length === 0) return null;
+  if (!ctx) return null;
+  // SHAN-645: this sits under the text on every notes surface, so it is also
+  // where a failed notes load says so.
+  const loadAlert = ctx.loadError && (
+    <div role="alert" className="mt-10 flex items-center justify-between gap-3 rounded-2xl p-4 text-sm ring-1 ring-white/[0.08]">
+      <p className="text-gray-300">{ctx.loadError}</p>
+      <button
+        type="button"
+        onClick={ctx.retry}
+        className="inline-flex h-8 shrink-0 items-center rounded-full px-3 text-[13px] text-gray-200 ring-1 ring-inset ring-white/15 transition-colors hover:bg-white/[0.06]"
+      >
+        Retry
+      </button>
+    </div>
+  );
+  if (ctx.orphans.length === 0) return loadAlert || null;
   return (
-    <section aria-labelledby="orphan-notes-heading" className="mt-10 rounded-2xl p-5 ring-1 ring-white/[0.08]">
-      <h2 id="orphan-notes-heading" className="text-sm font-medium text-gray-200">
-        Notes on text that changed
-      </h2>
-      <p className="mt-1 text-xs text-gray-400">The words these were pinned to aren&apos;t on the page anymore.</p>
-      <div className="mt-4 space-y-5 divide-y divide-white/[0.06]">
-        {ctx.orphans.map((t) => (
-          <div key={t.root.id} className="pt-5 first:pt-0">
-            <ThreadView thread={t} actions={ctx.actions} onFocus={() => {}} showQuote />
-          </div>
-        ))}
-      </div>
-    </section>
+    <>
+      {loadAlert}
+      <section aria-labelledby="orphan-notes-heading" className="mt-10 rounded-2xl p-5 ring-1 ring-white/[0.08]">
+        <h2 id="orphan-notes-heading" className="text-sm font-medium text-gray-200">
+          Notes on text that changed
+        </h2>
+        <p className="mt-1 text-xs text-gray-400">The words these were pinned to aren&apos;t on the page anymore.</p>
+        <div className="mt-4 space-y-5 divide-y divide-white/[0.06]">
+          {ctx.orphans.map((t) => (
+            <div key={t.root.id} className="pt-5 first:pt-0">
+              <ThreadView thread={t} actions={ctx.actions} onFocus={() => {}} showQuote />
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
