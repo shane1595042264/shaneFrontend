@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { MarkdownEditor } from "@shane/ui";
 import { uploadImage } from "@/lib/api/images";
 
@@ -12,8 +12,9 @@ export interface QuickAddInput {
 }
 
 interface NoteInputProps {
-  onSubmit: (text: string) => void;
-  onQuickAdd: (input: QuickAddInput) => void;
+  /** Resolves true once the save landed; false leaves the draft in place. */
+  onSubmit: (text: string) => Promise<boolean>;
+  onQuickAdd: (input: QuickAddInput) => Promise<boolean>;
   loading: boolean;
   categories: string[];
 }
@@ -42,26 +43,46 @@ export function NoteInput({
   const [category, setCategory] = useState("");
   const [language, setLanguage] = useState("");
 
-  function submitAi() {
-    if (!text.trim() || loading) return;
-    onSubmit(text.trim());
-    setText("");
+  // SHAN-647: the draft used to be cleared the moment it was handed off, so a
+  // failed save threw away the whole note. Clear only after the save lands,
+  // and only a field still holding what was sent (the editor stays live while
+  // saving). The ref blocks a second submit before `loading` re-renders.
+  const submittingRef = useRef(false);
+
+  async function submitAi() {
+    const sent = text;
+    if (!sent.trim() || loading || submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      if (await onSubmit(sent.trim())) setText((cur) => (cur === sent ? "" : cur));
+    } finally {
+      submittingRef.current = false;
+    }
   }
 
-  function submitManual() {
-    if (!word.trim() || loading) return;
-    onQuickAdd({
-      word: word.trim(),
-      definition: definition.trim(),
-      // Default to "general" so a blank category never lands in "vocabulary"
-      // (the only category the backend would AI-enrich — though autoEnrich:false
-      // already blocks that, this keeps quick-adds out of the vocab bucket).
-      category: category.trim() || "general",
-      language: language.trim() || "n/a",
-    });
-    setWord("");
-    setDefinition("");
-    // Keep category + language: quick-adds tend to come in batches of the same kind.
+  async function submitManual() {
+    const sentWord = word;
+    const sentDefinition = definition;
+    if (!sentWord.trim() || loading || submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      const saved = await onQuickAdd({
+        word: sentWord.trim(),
+        definition: sentDefinition.trim(),
+        // Default to "general" so a blank category never lands in "vocabulary"
+        // (the only category the backend would AI-enrich — though autoEnrich:false
+        // already blocks that, this keeps quick-adds out of the vocab bucket).
+        category: category.trim() || "general",
+        language: language.trim() || "n/a",
+      });
+      if (saved) {
+        setWord((cur) => (cur === sentWord ? "" : cur));
+        setDefinition((cur) => (cur === sentDefinition ? "" : cur));
+      }
+      // Keep category + language: quick-adds tend to come in batches of the same kind.
+    } finally {
+      submittingRef.current = false;
+    }
   }
 
   function handleFormSubmit(e: React.FormEvent) {

@@ -131,19 +131,23 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
     setTimeout(() => setNotification(null), 3000);
   }
 
+  // Resolves whether the save landed, so AddWordForm keeps the word on a
+  // failure (SHAN-647).
   async function handleAddWord(data: {
     word: string;
     language: string;
     autoEnrich: boolean;
-  }) {
+  }): Promise<boolean> {
     setAdding(true);
     try {
       await createWord(data);
       await loadWords();
       loadMeta();
       showNotification(`Added "${data.word}"`, "success");
+      return true;
     } catch (err: any) {
       showNotification(err.message || "Failed to add word", "error");
+      return false;
     } finally {
       setAdding(false);
     }

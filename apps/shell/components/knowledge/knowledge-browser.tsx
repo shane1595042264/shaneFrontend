@@ -439,7 +439,10 @@ export function KnowledgeBrowser({
     lastClickedIndexRef.current = null;
   }
 
-  async function handleSubmitNote(text: string) {
+  // Both add handlers resolve whether the save landed, so NoteInput keeps the
+  // draft on a failure (SHAN-647). loadEntries/loadMeta report their own
+  // errors, so a failed refresh cannot turn a landed save into `false`.
+  async function handleSubmitNote(text: string): Promise<boolean> {
     setAdding(true);
     try {
       const { entry } = await submitNote(text);
@@ -449,14 +452,16 @@ export function KnowledgeBrowser({
         `Added "${entry.word}" to ${entry.category}`,
         "success"
       );
+      return true;
     } catch (err: any) {
       showNotification(err.message || "Failed to add note", "error");
+      return false;
     } finally {
       setAdding(false);
     }
   }
 
-  async function handleQuickAdd(input: QuickAddInput) {
+  async function handleQuickAdd(input: QuickAddInput): Promise<boolean> {
     setAdding(true);
     try {
       const entry = await createEntry({
@@ -472,8 +477,10 @@ export function KnowledgeBrowser({
       await loadEntries();
       loadMeta();
       showNotification(`Added "${entry.word}" to ${entry.category}`, "success");
+      return true;
     } catch (err: any) {
       showNotification(err.message || "Failed to add card", "error");
+      return false;
     } finally {
       setAdding(false);
     }

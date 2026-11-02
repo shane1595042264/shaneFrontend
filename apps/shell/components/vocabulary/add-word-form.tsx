@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface AddWordFormProps {
-  onSubmit: (data: { word: string; language: string; autoEnrich: boolean }) => void;
+  /** Resolves true once the save landed; false leaves the word in the box. */
+  onSubmit: (data: { word: string; language: string; autoEnrich: boolean }) => Promise<boolean>;
   loading: boolean;
 }
 
@@ -14,11 +15,22 @@ export function AddWordForm({ onSubmit, loading }: AddWordFormProps) {
   const [language, setLanguage] = useState("english");
   const [autoEnrich, setAutoEnrich] = useState(true);
 
-  function handleSubmit(e: React.FormEvent) {
+  // SHAN-647: clear only after the save lands, and only if the box still holds
+  // what was sent. The ref blocks a second Enter before `loading` re-renders.
+  const submittingRef = useRef(false);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!word.trim()) return;
-    onSubmit({ word: word.trim(), language, autoEnrich });
-    setWord("");
+    const sent = word;
+    if (!sent.trim() || loading || submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      if (await onSubmit({ word: sent.trim(), language, autoEnrich })) {
+        setWord((cur) => (cur === sent ? "" : cur));
+      }
+    } finally {
+      submittingRef.current = false;
+    }
   }
 
   return (
