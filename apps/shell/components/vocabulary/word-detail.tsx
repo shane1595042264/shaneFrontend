@@ -10,6 +10,7 @@ import {
 } from "@/lib/vocabulary-api";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 
 interface WordDetailProps {
   wordId: string;
@@ -39,7 +40,12 @@ export function WordDetail({
   const [showConnectForm, setShowConnectForm] = useState(false);
   const [connectTarget, setConnectTarget] = useState("");
   const [connectType, setConnectType] = useState<string>("related");
-  const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  // loadError only drives the pre-load dialog; actionError is the banner over
+  // a loaded word. Kept apart so a failed write never reads as a failed load.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const containerRef = useFocusTrap<HTMLDivElement>();
   useScrollLock();
 
@@ -56,53 +62,70 @@ export function WordDetail({
   }, [onClose]);
 
   async function loadWord() {
-    setError(null);
+    setLoadError(null);
     try {
       const data = await fetchWord(wordId);
       setWord(data.word);
       setConnections(data.connections);
       setConnectedWords(data.connectedWords);
-    } catch {
-      setError("Failed to load word details.");
+    } catch (err) {
+      setLoadError(humanizeError(err, "Failed to load word details."));
     }
   }
 
+  // SHAN-650: each write applies its own result instead of refetching the
+  // word, so a write that saved can never be reported as a failure by a
+  // refetch that didn't (which invited a duplicate add or a 404ing delete).
   async function handleEnrich() {
     setEnriching(true);
-    setError(null);
+    setActionError(null);
     try {
-      await enrichWordApi(wordId);
-      await loadWord();
+      setWord(await enrichWordApi(wordId));
       onWordUpdated();
-    } catch (err: any) {
-      setError(err.message || "Failed to enrich word.");
+    } catch (err) {
+      setActionError(humanizeActionError(err, "Failed to enrich word."));
     } finally {
       setEnriching(false);
     }
   }
 
   async function handleAddConnection() {
-    if (!connectTarget) return;
+    if (!connectTarget || adding) return;
+    setAdding(true);
+    setActionError(null);
     try {
-      await createConnection({
+      const connection = await createConnection({
         fromWordId: wordId,
         toWordId: connectTarget,
         connectionType: connectType,
       });
+      const target = allWords.find((w) => w.id === connectTarget);
+      setConnections((prev) => [...prev, connection]);
+      if (target) {
+        setConnectedWords((prev) =>
+          prev.some((w) => w.id === target.id) ? prev : [...prev, target]
+        );
+      }
       setShowConnectForm(false);
       setConnectTarget("");
-      await loadWord();
-    } catch (err: any) {
-      setError(err.message || "Failed to add connection.");
+    } catch (err) {
+      setActionError(humanizeActionError(err, "Failed to add connection."));
+    } finally {
+      setAdding(false);
     }
   }
 
   async function handleDeleteConnection(connId: string) {
+    if (removingId) return;
+    setRemovingId(connId);
+    setActionError(null);
     try {
       await deleteConnection(connId);
-      await loadWord();
-    } catch {
-      setError("Failed to delete connection.");
+      setConnections((prev) => prev.filter((c) => c.id !== connId));
+    } catch (err) {
+      setActionError(humanizeActionError(err, "Failed to delete connection."));
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -113,7 +136,7 @@ export function WordDetail({
         role="dialog"
         aria-modal="true"
         aria-label="Loading word"
-        aria-busy={!error}
+        aria-busy={!loadError}
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
         onClick={onClose}
       >
@@ -121,9 +144,9 @@ export function WordDetail({
           className="bg-gray-900 border border-white/10 rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto overscroll-contain"
           onClick={(e) => e.stopPropagation()}
         >
-          {error ? (
-            <div className="text-center space-y-3">
-              <p className="text-sm text-red-400">{error}</p>
+          {loadError ? (
+            <div role="alert" className="text-center space-y-3">
+              <p className="text-sm text-red-400">{loadError}</p>
               <div className="flex gap-2 justify-center">
                 <button
                   onClick={loadWord}
@@ -214,9 +237,9 @@ export function WordDetail({
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 px-3 py-2 rounded bg-red-500/10 border border-red-500/20 text-xs text-red-300">
-            {error}
+        {actionError && (
+          <div role="alert" className="mb-4 px-3 py-2 rounded bg-red-500/10 border border-red-500/20 text-xs text-red-300">
+            {actionError}
           </div>
         )}
 
@@ -306,10 +329,10 @@ export function WordDetail({
               </select>
               <button
                 onClick={handleAddConnection}
-                disabled={!connectTarget}
+                disabled={!connectTarget || adding}
                 className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white rounded transition-colors"
               >
-                Add
+                {adding ? "Adding..." : "Add"}
               </button>
             </div>
           )}
@@ -343,8 +366,9 @@ export function WordDetail({
                     </div>
                     <button
                       onClick={() => handleDeleteConnection(conn.id)}
-                      aria-label="Delete connection"
-                      className="text-xs text-gray-400 hover:text-red-400"
+                      disabled={removingId !== null}
+                      aria-label={removingId === conn.id ? "Deleting connection" : "Delete connection"}
+                      className="text-xs text-gray-400 hover:text-red-400 disabled:opacity-50 disabled:hover:text-gray-400"
                     >
                       &times;
                     </button>
