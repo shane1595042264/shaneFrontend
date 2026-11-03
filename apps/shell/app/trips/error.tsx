@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "@/components/transition-link";
+import { routeErrorMessage } from "@/lib/humanize-error";
+import { useRouteRetry } from "@/lib/use-route-retry";
 
 export default function TripsError({
   error,
@@ -9,6 +11,7 @@ export default function TripsError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const retry = useRouteRetry(reset);
   return (
     <div className="flex min-h-[40vh] items-center justify-center">
       <div className="text-center space-y-4 max-w-md">
@@ -19,11 +22,11 @@ export default function TripsError({
           Trips unavailable
         </h2>
         <p className="text-sm text-gray-400">
-          {error.message || "Failed to load your trips."}
+          {routeErrorMessage(error, "Failed to load your trips.")}
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
-            onClick={reset}
+            onClick={retry}
             className="px-4 py-2 text-sm bg-white/10 hover:bg-white/15 text-gray-200 rounded transition-colors"
           >
             Retry

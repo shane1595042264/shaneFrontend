@@ -10,6 +10,7 @@ import { assertSingleMainLandmark } from "./lib/main-landmark-guard";
 import { assertCursorDocsUseCompoundShape } from "./lib/docs/cursor-doc-guard";
 import { assertHeadingsNameThemselves } from "./lib/heading-name-guard";
 import { assertTransitionNavigation } from "./lib/transition-link-guard";
+import { assertErrorBoundariesAreSafe } from "./lib/error-boundary-guard";
 
 // SHAN-497: fail the build if an auth-gated page is missing from
 // CRAWLER_DISALLOW, which would leak it into robots.txt and sitemap.xml as a
@@ -113,6 +114,12 @@ assertTransitionNavigation(
   path.join(process.cwd(), "components", "transition-link.tsx"),
   path.join(process.cwd(), "lib", "view-transition.tsx"),
 );
+
+// SHAN-651: fail the build if an error.tsx renders error.message (Next's
+// redaction paragraph in production) or retries with a bare reset(), which
+// re-throws a Server Component error from the cached payload. Same
+// build-time-only execution story.
+assertErrorBoundariesAreSafe(path.join(process.cwd(), "app"));
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@shane/ui", "@shane/types"],

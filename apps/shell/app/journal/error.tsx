@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "@/components/transition-link";
+import { routeErrorMessage } from "@/lib/humanize-error";
+import { useRouteRetry } from "@/lib/use-route-retry";
 
 export default function JournalError({
   error,
@@ -9,6 +11,7 @@ export default function JournalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const retry = useRouteRetry(reset);
   return (
     <div className="flex h-full items-center justify-center py-32">
       <div className="text-center space-y-4 max-w-md">
@@ -19,11 +22,11 @@ export default function JournalError({
           Journal unavailable
         </h2>
         <p className="text-sm text-gray-400">
-          {error.message || "Failed to load the journal."}
+          {routeErrorMessage(error, "Failed to load the journal.")}
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
-            onClick={reset}
+            onClick={retry}
             className="px-4 py-2 text-sm bg-white/10 hover:bg-white/15 text-gray-200 rounded transition-colors"
           >
             Retry

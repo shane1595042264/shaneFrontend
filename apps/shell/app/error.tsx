@@ -1,5 +1,8 @@
 "use client";
 
+import { routeErrorMessage } from "@/lib/humanize-error";
+import { useRouteRetry } from "@/lib/use-route-retry";
+
 export default function RootError({
   error,
   reset,
@@ -7,6 +10,7 @@ export default function RootError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const retry = useRouteRetry(reset);
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-6">
       <div className="text-center space-y-4 max-w-md">
@@ -17,10 +21,10 @@ export default function RootError({
           Something went wrong
         </h2>
         <p className="text-sm text-gray-400">
-          {error.message || "An unexpected error occurred."}
+          {routeErrorMessage(error, "An unexpected error occurred.")}
         </p>
         <button
-          onClick={reset}
+          onClick={retry}
           className="px-4 py-2 text-sm bg-white/10 hover:bg-white/15 text-gray-200 rounded transition-colors"
         >
           Try again

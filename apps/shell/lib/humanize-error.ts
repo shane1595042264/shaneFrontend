@@ -59,3 +59,18 @@ export function humanizeActionError(e: unknown, fallback: string): string {
   const message = e instanceof Error ? e.message.trim() : "";
   return message || fallback;
 }
+
+/**
+ * The message an app/**\/error.tsx boundary shows (SHAN-651). Never the raw
+ * error.message: in a production build a Server Component error arrives with
+ * its message replaced by Next's "An error occurred in the Server Components
+ * render. The specific message is omitted in production builds..." paragraph,
+ * and a client render crash arrives as "Cannot read properties of undefined".
+ *
+ * Matches the message only, unlike isNetworkError: a render crash is a
+ * TypeError too, and a boundary must not blame the visitor's connection for a
+ * bug in the page.
+ */
+export function routeErrorMessage(error: Error, fallback: string): string {
+  return NETWORK_PATTERN.test((error.message ?? "").trim()) ? NETWORK_MESSAGE : fallback;
+}
