@@ -1,5 +1,6 @@
 import { getAuthHeaders } from "@/lib/auth-api";
 import { API_URL } from "@/lib/api-url";
+import type { ContentIssue, ContentStats, CourseContent, CourseProgress } from "@/lib/course-lessons";
 
 export type CourseDifficulty = "intro" | "intermediate" | "advanced";
 
@@ -14,7 +15,8 @@ export interface CourseRatingSummary {
 export interface Course {
   id: string;
   slug: string;
-  url: string;
+  /** The slide deck it launches. Null for a course that is only lessons. */
+  url: string | null;
   title: string;
   description: string | null;
   category: string;
@@ -27,6 +29,9 @@ export interface Course {
   rating: CourseRatingSummary;
   commentCount: number;
   myStars: number | null;
+  /** SHAN-652: interactive lessons played on this site. 0 = deck only. */
+  lessonCount: number;
+  stepCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -138,9 +143,14 @@ export async function findCourse(slug: string): Promise<Course | null> {
 }
 
 export const createCourse = (input: {
-  url: string;
+  url?: string;
   title?: string;
   visibility?: CourseVisibility;
+  description?: string | null;
+  category?: string;
+  difficulty?: CourseDifficulty;
+  tags?: string[];
+  content?: unknown;
 }) =>
   api<{ course: Course }>("/api/courses", {
     method: "POST",
@@ -156,7 +166,7 @@ export const updateCourse = (
     difficulty: CourseDifficulty;
     durationMinutes: number | null;
     tags: string[];
-    url: string;
+    url: string | null;
     visibility: CourseVisibility;
   }>,
 ) =>
@@ -227,3 +237,75 @@ export const editCourseComment = (id: string, content: string) =>
 
 export const deleteCourseComment = (id: string) =>
   api<void>(`/api/courses/comments/${id}`, { method: "DELETE" });
+
+// ---- SHAN-652: interactive lessons -----------------------------------------
+
+export interface CourseContentResponse {
+  content: CourseContent;
+  stats: ContentStats;
+  updatedAt: string;
+}
+
+/** Null when the course has no lessons (or is private to someone else). */
+export async function getCourseContent(courseId: string): Promise<CourseContentResponse | null> {
+  const res = await fetch(`${API_URL}/api/courses/${courseId}/content`, {
+    headers: getAuthHeaders(),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to load lessons (${res.status})`);
+  return res.json();
+}
+
+export type ValidationResponse =
+  | { ok: true; content: CourseContent; stats: ContentStats }
+  | { ok: false; issues: ContentIssue[] };
+
+/** Dry run: the server's own validator, so the editor and the API agree. */
+export async function validateContent(body: string): Promise<ValidationResponse> {
+  const res = await fetch(`${API_URL}/api/courses/content/validate`, {
+    method: "POST",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || `Validation failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export class ContentInvalidError extends Error {
+  constructor(public issues: ContentIssue[]) {
+    super("Course content is invalid");
+  }
+}
+
+export async function saveCourseContent(
+  courseId: string,
+  body: string,
+): Promise<CourseContentResponse & { course: Course }> {
+  const res = await fetch(`${API_URL}/api/courses/${courseId}/content`, {
+    method: "PUT",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 400 && Array.isArray((data as { issues?: unknown }).issues)) {
+    throw new ContentInvalidError((data as { issues: ContentIssue[] }).issues);
+  }
+  if (!res.ok) throw new Error((data as { error?: string }).error || `Save failed (${res.status})`);
+  const out = data as CourseContentResponse & { course: Course };
+  return { ...out, course: absolutize(out.course) };
+}
+
+export const listCourseProgress = (courseId: string) =>
+  api<{ progress: CourseProgress[] }>(`/api/courses/${courseId}/progress`).then((r) => r.progress);
+
+export const recordLessonProgress = (courseId: string, lessonId: string, score: number) =>
+  api<{ progress: CourseProgress }>(
+    `/api/courses/${courseId}/progress/${encodeURIComponent(lessonId)}`,
+    { method: "PUT", body: JSON.stringify({ score }) },
+  ).then((r) => r.progress);
+
+export const resetCourseProgress = (courseId: string) =>
+  api<void>(`/api/courses/${courseId}/progress`, { method: "DELETE" });

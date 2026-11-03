@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { CourseInteractive } from "@/components/courses/course-interactive";
 import type { Course } from "@/lib/api/courses";
+import type { CourseContent } from "@/lib/course-lessons";
 import { API_URL } from "@/lib/api-url";
 
 const SITE_URL = "https://shanejli.com";
@@ -59,6 +60,17 @@ async function fetchCourse(slug: string): Promise<Course | null> {
     : c;
 }
 
+// SHAN-652: lessons render into the server HTML too (their titles are the
+// course's outline), on the same revalidate window as the course itself.
+async function fetchContent(courseId: string): Promise<CourseContent | null> {
+  const res = await fetch(`${API_URL}/api/courses/${courseId}/content`, {
+    next: { revalidate },
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { content: CourseContent };
+  return data.content;
+}
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
@@ -98,6 +110,7 @@ export default async function CoursePage({ params }: PageProps) {
   const { slug } = await params;
   const course = await fetchCourse(slug);
   if (!course) notFound();
+  const content = course.lessonCount > 0 ? await fetchContent(course.id).catch(() => null) : null;
 
   const courseUrl = `${SITE_URL}/courses/${slug}`;
   // Google requires hasCourseInstance or offers for Course rich results;
@@ -155,7 +168,11 @@ export default async function CoursePage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafe(breadcrumbJsonLd) }}
       />
-      <CourseInteractive initialCourse={course} />
+      <CourseInteractive
+        initialCourse={course}
+        // null with lessons = the server fetch failed; let the client retry.
+        initialContent={course.lessonCount > 0 && !content ? undefined : content}
+      />
     </div>
   );
 }

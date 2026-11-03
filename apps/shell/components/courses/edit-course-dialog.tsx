@@ -27,7 +27,7 @@ export function EditCourseDialog({
     course.durationMinutes !== null ? String(course.durationMinutes) : "",
   );
   const [tags, setTags] = useState(course.tags.join(", "));
-  const [url, setUrl] = useState(course.url);
+  const [url, setUrl] = useState(course.url ?? "");
   const [isPrivate, setIsPrivate] = useState(course.visibility === "private");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +58,8 @@ export function EditCourseDialog({
           .map((t) => t.trim().toLowerCase())
           .filter(Boolean)
           .slice(0, 8),
-        url: url.trim(),
+        // SHAN-652: empty means "no deck", allowed once the course has lessons.
+        ...(url.trim() ? { url: url.trim() } : course.url ? { url: null } : {}),
         visibility: isPrivate ? "private" : "public",
       });
       onSaved(updated);
@@ -130,10 +131,12 @@ export function EditCourseDialog({
           </label>
         </div>
         <label className="block space-y-1">
-          <span className="text-xs text-gray-400">Course URL</span>
+          <span className="text-xs text-gray-400">
+            {course.lessonCount > 0 ? "Slide deck URL (optional with lessons)" : "Course URL"}
+          </span>
           <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} className={inputCls} />
         </label>
-        <PrivateCourseToggle checked={isPrivate} onChange={setIsPrivate} />
+        <PrivateCourseToggle checked={isPrivate} onChange={setIsPrivate} deck={!!course.url} />
         {error && (
           <p role="alert" className="text-sm text-red-400">{error}</p>
         )}
@@ -147,7 +150,7 @@ export function EditCourseDialog({
           </button>
           <button
             onClick={submit}
-            disabled={submitting || !title.trim() || !url.trim()}
+            disabled={submitting || !title.trim() || (!url.trim() && course.lessonCount === 0)}
             className="min-h-11 rounded-md bg-white px-4 text-sm font-medium text-black hover:bg-gray-200 disabled:opacity-50"
           >
             {submitting ? "Saving..." : "Save"}

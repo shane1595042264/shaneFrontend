@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "@/components/transition-link";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { useAuth } from "@/lib/auth-context";
@@ -9,6 +9,7 @@ import {
   coursePath,
   deleteCourse,
   getCourse,
+  getCourseContent,
   rateCourse,
   reclassifyCourse,
   removeCourseCover,
@@ -27,8 +28,21 @@ import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import type { CourseContent } from "@/lib/course-lessons";
+import { CourseLessons } from "./lessons/course-lessons";
+import { LessonEditor } from "./lessons/lesson-editor";
 
-export function CourseInteractive({ initialCourse }: { initialCourse: Course }) {
+export function CourseInteractive({
+  initialCourse,
+  initialContent,
+}: {
+  initialCourse: Course;
+  /**
+   * SHAN-652. The lesson document when the server already fetched it (the
+   * public, ISR page); undefined means fetch it here (the private page).
+   */
+  initialContent?: CourseContent | null;
+}) {
   const { user: authUser } = useAuth();
   const hydrated = useHydrated();
   // SHAN-504: the page is server-rendered signed out, so every auth-dependent
@@ -45,10 +59,40 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [adminBusy, setAdminBusy] = useState<string | null>(null);
+  const [content, setContent] = useState<CourseContent | null | undefined>(initialContent);
+  const [contentError, setContentError] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   useScrollLock(showDelete);
   useEscapeKey(() => setShowDelete(false), showDelete && adminBusy !== "delete");
 
   const isOwner = !!user && user.id === course.ownerId;
+  const hasLessons = course.lessonCount > 0;
+
+  // The private page has no server render, so its lessons load here.
+  useEffect(() => {
+    if (!hasLessons || content !== undefined) return;
+    let cancelled = false;
+    getCourseContent(course.id)
+      .then((c) => {
+        if (!cancelled) setContent(c?.content ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setContentError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasLessons, content, course.id]);
+
+  // A new lessons course lands here with ?edit=lessons, straight in the editor.
+  useEffect(() => {
+    if (!isOwner) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("edit") !== "lessons") return;
+    url.searchParams.delete("edit");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    setShowEditor(true);
+  }, [isOwner]);
   const style = categoryStyle(course.category);
 
   const flash = (msg: string) => {
@@ -176,6 +220,21 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
     }
   };
 
+  const rating = (
+    <div className="flex flex-col items-end gap-1">
+      <StarRating
+        average={course.rating.average}
+        count={course.rating.count}
+        mine={course.myStars}
+        canRate={!!user}
+        busy={ratingBusy}
+        onRate={handleRate}
+        onClear={handleClearRating}
+      />
+      {!user && <span className="text-xs text-gray-400">Sign in to rate</span>}
+    </div>
+  );
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-16">
       <nav className="flex items-center gap-3 py-4 text-sm">
@@ -216,6 +275,11 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
             <span className={`rounded border px-1.5 py-0.5 ${DIFFICULTY_STYLES[course.difficulty] ?? DIFFICULTY_STYLES.intermediate}`}>
               {course.difficulty}
             </span>
+            {course.lessonCount > 0 && (
+              <span className="rounded border border-teal-400/30 bg-teal-400/[0.08] px-1.5 py-0.5 text-teal-200">
+                {course.lessonCount} lesson{course.lessonCount === 1 ? "" : "s"}
+              </span>
+            )}
             {course.durationMinutes !== null && (
               <span className="rounded border border-white/20 px-1.5 py-0.5 text-gray-200">
                 {course.durationMinutes} min
@@ -230,32 +294,51 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
         </div>
       </div>
 
-      {/* CTA + rating */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <a
-          href={courseLaunchUrl(course.url)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="min-h-11 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-gray-200"
-        >
-          Launch course
-        </a>
-        <div className="flex flex-col items-end gap-1">
-          <StarRating
-            average={course.rating.average}
-            count={course.rating.count}
-            mine={course.myStars}
-            canRate={!!user}
-            busy={ratingBusy}
-            onRate={handleRate}
-            onClear={handleClearRating}
-          />
-          {!user && <span className="text-xs text-gray-400">Sign in to rate</span>}
-        </div>
-      </div>
+      {hasLessons ? (
+        <>
+          {course.description && (
+            <p className="mt-6 max-w-[68ch] text-sm leading-relaxed text-gray-300">{course.description}</p>
+          )}
+          {content ? (
+            <CourseLessons
+              course={course}
+              content={content}
+              deckHref={course.url ? courseLaunchUrl(course.url) : null}
+              aside={rating}
+            />
+          ) : contentError || content === null ? (
+            <p role="alert" className="mt-8 text-sm text-rose-300">
+              The lessons did not load. Refresh to try again.
+            </p>
+          ) : (
+            <div className="mt-8 space-y-3" aria-busy={true} aria-label="Loading lessons">
+              <div className="h-12 w-40 animate-pulse rounded-xl bg-white/[0.08]" />
+              <div className="h-1.5 animate-pulse rounded-full bg-white/[0.06]" />
+              <div className="mt-10 h-14 animate-pulse rounded-xl bg-white/[0.04]" />
+              <div className="h-14 animate-pulse rounded-xl bg-white/[0.04]" />
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+            {course.url && (
+              <a
+                href={courseLaunchUrl(course.url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-h-11 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-gray-200"
+              >
+                Launch course
+              </a>
+            )}
+            {rating}
+          </div>
 
-      {course.description && (
-        <p className="mt-6 text-sm leading-relaxed text-gray-300">{course.description}</p>
+          {course.description && (
+            <p className="mt-6 text-sm leading-relaxed text-gray-300">{course.description}</p>
+          )}
+        </>
       )}
 
       {toast && (
@@ -274,12 +357,20 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
             Edit
           </button>
           <button
+            onClick={() => setShowEditor(true)}
+            className="min-h-11 rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20"
+          >
+            {hasLessons ? "Edit lessons" : "Add lessons"}
+          </button>
+          {course.url && (
+          <button
             onClick={handleReclassify}
             disabled={adminBusy !== null}
             className="min-h-11 rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20 disabled:opacity-50"
           >
             {adminBusy === "reclassify" ? "Reclassifying..." : "Reclassify with AI"}
           </button>
+          )}
           <label className="flex min-h-11 cursor-pointer items-center rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20">
             {adminBusy === "cover" ? "Working..." : course.coverUrl ? "Replace cover" : "Upload cover"}
             <input
@@ -311,6 +402,19 @@ export function CourseInteractive({ initialCourse }: { initialCourse: Course }) 
 
       {/* Comments (thread renders its own heading with a live count) */}
       <CourseCommentsThread courseId={course.id} courseOwnerId={course.ownerId} />
+
+      {showEditor && (hasLessons ? content !== undefined : true) && (
+        <LessonEditor
+          course={course}
+          initial={content ?? null}
+          onClose={() => setShowEditor(false)}
+          onSaved={(saved, updated) => {
+            setContent(saved);
+            setCourse(updated);
+            bustServerCache();
+          }}
+        />
+      )}
 
       {showEdit && (
         <EditCourseDialog

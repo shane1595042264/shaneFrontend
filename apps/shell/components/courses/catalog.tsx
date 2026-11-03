@@ -268,7 +268,7 @@ export function CoursesCatalog({ initialCourses }: CoursesCatalogProps) {
       <AddCourseDialog
         open={showAdd}
         onClose={() => setShowAdd(false)}
-        onCreated={(course) => {
+        onCreated={(course, { openEditor }) => {
           setShowAdd(false);
           // SHAN-510: the index is server-rendered and cached now, so without
           // this a course the author just added is invisible to the next
@@ -276,7 +276,8 @@ export function CoursesCatalog({ initialCourses }: CoursesCatalogProps) {
           // same reason course-interactive.tsx does it: the write already
           // committed, so a revalidation failure must not read as a failed add.
           revalidateCoursesIndex().catch(() => {});
-          router.push(coursePath(course));
+          // SHAN-652: a lessons course opens straight in its editor.
+          router.push(openEditor ? `${coursePath(course)}?edit=lessons` : coursePath(course));
         }}
       />
     </div>

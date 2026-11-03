@@ -50,7 +50,7 @@ const API_FACTS: Record<string, ApiFacts> = {
   courses: {
     mount: "/api/courses",
     auth: "public reads; scoped writes",
-    what: "AI-classified course catalog, see [Courses API](/docs/courses-api)",
+    what: "course catalog: linked slide decks and interactive lessons anyone can write or upload, see [Courses API](/docs/courses-api)",
   },
   trips: {
     mount: "/api/trips",

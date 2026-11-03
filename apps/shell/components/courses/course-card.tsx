@@ -72,6 +72,11 @@ export function CourseCard({ course }: { course: Course }) {
             <span className={`rounded border px-1.5 py-0.5 ${DIFFICULTY_STYLES[course.difficulty] ?? DIFFICULTY_STYLES.intermediate}`}>
               {course.difficulty}
             </span>
+            {course.lessonCount > 0 && (
+              <span className="rounded border border-teal-400/30 bg-teal-400/[0.08] px-1.5 py-0.5 text-teal-200">
+                {course.lessonCount} lesson{course.lessonCount === 1 ? "" : "s"}
+              </span>
+            )}
             {course.durationMinutes !== null && (
               <span className="rounded border border-white/15 px-1.5 py-0.5 text-gray-300">
                 {course.durationMinutes} min
