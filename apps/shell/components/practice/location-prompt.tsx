@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LoadError } from "@/components/load-error";
 import { humanizeActionError } from "@/lib/humanize-error";
 import { listLocations, upsertLocation, type Location } from "@/lib/api/practice";
 
@@ -11,17 +12,26 @@ interface Props {
 }
 
 export function LocationPrompt({ onPick }: Props) {
-  const [locations, setLocations] = useState<Location[]>([]);
+  // null until the saved locations have loaded.
+  const [locations, setLocations] = useState<Location[] | null>(null);
   const [input, setInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // SHAN-649: kept apart from the save error, which every click clears, so a
+  // failed load stays on screen with its Retry until the chips come back.
+  const [loadError, setLoadError] = useState<string | null>(null);
   // `saving` disables the controls a render late; the ref stops a second
   // click in the same frame from saving the item twice.
   const busyRef = useRef(false);
 
-  useEffect(() => {
-    listLocations().then(setLocations).catch((e) => setError(humanizeActionError(e, "Couldn't load your saved locations")));
+  const load = useCallback(() => {
+    setLoadError(null);
+    listLocations()
+      .then(setLocations)
+      .catch((e) => setLoadError(humanizeActionError(e, "Couldn't load your saved locations")));
   }, []);
+
+  useEffect(load, [load]);
 
   const finish = async (resolve: () => Promise<{ id: string; name: string } | null>) => {
     if (busyRef.current) return;
@@ -49,7 +59,15 @@ export function LocationPrompt({ onPick }: Props) {
   return (
     <div className="rounded-md border border-white/10 bg-black/30 p-4">
       <h3 className="mb-2 text-sm font-medium">Where are you practicing?</h3>
-      {locations.length > 0 && (
+      {locations === null ? (
+        <div className="mb-3">
+          {loadError ? (
+            <LoadError message={loadError} onRetry={load} />
+          ) : (
+            <p className="text-xs text-gray-400">Loading your saved locations…</p>
+          )}
+        </div>
+      ) : locations.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2">
           {locations.map((l) => (
             <button
