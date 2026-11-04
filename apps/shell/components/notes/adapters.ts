@@ -28,7 +28,7 @@ export interface NoteRecord {
 export interface NotesAdapter {
   /** Changes when the notes being shown change (another entry, another post). */
   key: string;
-  surface: "journal" | "blog" | "knowledge";
+  surface: "journal" | "blog" | "knowledge" | "course";
   /** "shared": every journal member sees them. "private": only the reader does. */
   visibility: "shared" | "private";
   list(): Promise<NoteRecord[]>;

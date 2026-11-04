@@ -105,7 +105,7 @@ export const explainSelection = (input: {
   after: string;
   title?: string;
   heading?: string;
-  surface: "journal" | "blog" | "knowledge";
+  surface: "journal" | "blog" | "knowledge" | "course";
 }) => ai<Explanation>("/explain", { method: "POST", body: JSON.stringify(input) });
 
 export const getAiUsage = (days: number) => ai<UsageSummary>(`/usage?days=${days}`);

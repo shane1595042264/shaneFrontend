@@ -101,6 +101,8 @@ Rules the validator enforces, each reported with a path such as \`units[0].lesso
 - \`id\` is optional on units and lessons (\`[a-z0-9-]\`, up to 64) and derived from the title when missing. Lesson ids are unique across the course. Progress is keyed by lesson id, so once learners have started, keep a lesson's id when you rename it.
 - Limits: 30 units, 30 lessons a unit, 200 lessons, 40 steps a lesson, 512 KB.
 
+Signed-in learners can select words on a course page or inside a lesson card (a heading, a teach card, an explanation) to add a private note or Explain them with their own AI key (SHAN-653). Those are reader notes with \`surface: "course"\`, see [AI and Reader Notes API](/docs/ai-api).
+
 In the player, a step missed the first time comes back once at the end of the lesson. The score is the share of graded steps answered right on the first try. Signed-in progress is stored per lesson (the progress endpoints above); signed out, it stays in the browser.
 
 ## Private courses

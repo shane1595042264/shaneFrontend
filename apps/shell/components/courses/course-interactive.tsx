@@ -31,6 +31,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import type { CourseContent } from "@/lib/course-lessons";
 import { CourseLessons } from "./lessons/course-lessons";
 import { LessonEditor } from "./lessons/lesson-editor";
+import { NotedMarkdown, ReaderNotesScope } from "@/components/notes/reader-notes-scope";
 
 export function CourseInteractive({
   initialCourse,
@@ -235,237 +236,249 @@ export function CourseInteractive({
     </div>
   );
 
+  // SHAN-653: select words on the page or inside a lesson to add a private
+  // note or Explain them with the reader's own AI key, as on blog posts.
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-16">
-      <nav className="flex items-center gap-3 py-4 text-sm">
-        <Link href="/courses" className="text-gray-400 hover:text-gray-300">
-          &larr; Courses
-        </Link>
-      </nav>
+    <ReaderNotesScope surface="course" resourceId={course.id} title={course.title}>
+      <div className="mx-auto max-w-4xl px-4 pb-16">
+        <nav className="flex items-center gap-3 py-4 text-sm">
+          <Link href="/courses" className="text-gray-400 hover:text-gray-300">
+            &larr; Courses
+          </Link>
+        </nav>
 
-      {/* Hero */}
-      <div className={`relative aspect-[2/1] overflow-hidden rounded-xl border ${style.border}`}>
-        {course.coverUrl ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={course.coverUrl}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+        {/* Hero */}
+        <div className={`relative aspect-[2/1] overflow-hidden rounded-xl border ${style.border}`}>
+          {course.coverUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={course.coverUrl}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+            </>
+          ) : (
+            <GeneratedCover
+              title={course.title}
+              category={course.category}
+              slug={course.slug}
+              hideTitle
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-          </>
-        ) : (
-          <GeneratedCover
-            title={course.title}
-            category={course.category}
-            slug={course.slug}
-            hideTitle
-          />
-        )}
-        <div className="absolute inset-x-0 bottom-0 space-y-3 p-6">
-          <h1 className="text-3xl font-bold leading-tight tracking-tight text-white drop-shadow sm:text-4xl">
-            {course.title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-1.5 text-xs">
-            {course.visibility === "private" && <PrivateBadge />}
-            <span className={`rounded border px-1.5 py-0.5 ${style.border} ${style.bg} ${style.text}`}>
-              {course.category}
-            </span>
-            <span className={`rounded border px-1.5 py-0.5 ${DIFFICULTY_STYLES[course.difficulty] ?? DIFFICULTY_STYLES.intermediate}`}>
-              {course.difficulty}
-            </span>
-            {course.lessonCount > 0 && (
-              <span className="rounded border border-teal-400/30 bg-teal-400/[0.08] px-1.5 py-0.5 text-teal-200">
-                {course.lessonCount} lesson{course.lessonCount === 1 ? "" : "s"}
+          )}
+          <div className="absolute inset-x-0 bottom-0 space-y-3 p-6">
+            <h1 className="text-3xl font-bold leading-tight tracking-tight text-white drop-shadow sm:text-4xl">
+              {course.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              {course.visibility === "private" && <PrivateBadge />}
+              <span className={`rounded border px-1.5 py-0.5 ${style.border} ${style.bg} ${style.text}`}>
+                {course.category}
               </span>
-            )}
-            {course.durationMinutes !== null && (
-              <span className="rounded border border-white/20 px-1.5 py-0.5 text-gray-200">
-                {course.durationMinutes} min
+              <span className={`rounded border px-1.5 py-0.5 ${DIFFICULTY_STYLES[course.difficulty] ?? DIFFICULTY_STYLES.intermediate}`}>
+                {course.difficulty}
               </span>
-            )}
-            {course.tags.map((t) => (
-              <span key={t} className="rounded border border-white/10 px-1.5 py-0.5 text-gray-400">
-                {t}
-              </span>
-            ))}
+              {course.lessonCount > 0 && (
+                <span className="rounded border border-teal-400/30 bg-teal-400/[0.08] px-1.5 py-0.5 text-teal-200">
+                  {course.lessonCount} lesson{course.lessonCount === 1 ? "" : "s"}
+                </span>
+              )}
+              {course.durationMinutes !== null && (
+                <span className="rounded border border-white/20 px-1.5 py-0.5 text-gray-200">
+                  {course.durationMinutes} min
+                </span>
+              )}
+              {course.tags.map((t) => (
+                <span key={t} className="rounded border border-white/10 px-1.5 py-0.5 text-gray-400">
+                  {t}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {hasLessons ? (
-        <>
-          {course.description && (
-            <p className="mt-6 max-w-[68ch] text-sm leading-relaxed text-gray-300">{course.description}</p>
-          )}
-          {content ? (
-            <CourseLessons
-              course={course}
-              content={content}
-              deckHref={course.url ? courseLaunchUrl(course.url) : null}
-              aside={rating}
-            />
-          ) : contentError || content === null ? (
-            <p role="alert" className="mt-8 text-sm text-rose-300">
-              The lessons did not load. Refresh to try again.
-            </p>
-          ) : (
-            <div className="mt-8 space-y-3" aria-busy={true} aria-label="Loading lessons">
-              <div className="h-12 w-40 animate-pulse rounded-xl bg-white/[0.08]" />
-              <div className="h-1.5 animate-pulse rounded-full bg-white/[0.06]" />
-              <div className="mt-10 h-14 animate-pulse rounded-xl bg-white/[0.04]" />
-              <div className="h-14 animate-pulse rounded-xl bg-white/[0.04]" />
-            </div>
-          )}
-        </>
-      ) : (
-        <>
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-            {course.url && (
-              <a
-                href={courseLaunchUrl(course.url)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="min-h-11 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-gray-200"
-              >
-                Launch course
-              </a>
+        {hasLessons ? (
+          <>
+            {course.description && (
+              <NotedMarkdown
+                target="description"
+                content={course.description}
+                className="mt-6 max-w-[68ch] text-sm leading-relaxed text-gray-300"
+              />
             )}
-            {rating}
-          </div>
+            {content ? (
+              <CourseLessons
+                course={course}
+                content={content}
+                deckHref={course.url ? courseLaunchUrl(course.url) : null}
+                aside={rating}
+              />
+            ) : contentError || content === null ? (
+              <p role="alert" className="mt-8 text-sm text-rose-300">
+                The lessons did not load. Refresh to try again.
+              </p>
+            ) : (
+              <div className="mt-8 space-y-3" aria-busy={true} aria-label="Loading lessons">
+                <div className="h-12 w-40 animate-pulse rounded-xl bg-white/[0.08]" />
+                <div className="h-1.5 animate-pulse rounded-full bg-white/[0.06]" />
+                <div className="mt-10 h-14 animate-pulse rounded-xl bg-white/[0.04]" />
+                <div className="h-14 animate-pulse rounded-xl bg-white/[0.04]" />
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+              {course.url && (
+                <a
+                  href={courseLaunchUrl(course.url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-11 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-gray-200"
+                >
+                  Launch course
+                </a>
+              )}
+              {rating}
+            </div>
 
-          {course.description && (
-            <p className="mt-6 text-sm leading-relaxed text-gray-300">{course.description}</p>
-          )}
-        </>
-      )}
+            {course.description && (
+              <NotedMarkdown
+                target="description"
+                content={course.description}
+                className="mt-6 text-sm leading-relaxed text-gray-300"
+              />
+            )}
+          </>
+        )}
 
-      {toast && (
-        <p role="alert" className="mt-4 text-sm text-red-400">
-          {toast}
-        </p>
-      )}
+        {toast && (
+          <p role="alert" className="mt-4 text-sm text-red-400">
+            {toast}
+          </p>
+        )}
 
-      {/* Admin toolbar */}
-      {isOwner && (
-        <div className="mt-6 flex flex-wrap gap-2 rounded-lg border border-white/10 bg-black/20 p-3">
-          <button
-            onClick={() => setShowEdit(true)}
-            className="min-h-11 rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => setShowEditor(true)}
-            className="min-h-11 rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20"
-          >
-            {hasLessons ? "Edit lessons" : "Add lessons"}
-          </button>
-          {course.url && (
-          <button
-            onClick={handleReclassify}
-            disabled={adminBusy !== null}
-            className="min-h-11 rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20 disabled:opacity-50"
-          >
-            {adminBusy === "reclassify" ? "Reclassifying..." : "Reclassify with AI"}
-          </button>
-          )}
-          <label className="flex min-h-11 cursor-pointer items-center rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20">
-            {adminBusy === "cover" ? "Working..." : course.coverUrl ? "Replace cover" : "Upload cover"}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
-              onChange={handleCoverPick}
-              className="sr-only"
-              disabled={adminBusy !== null}
-            />
-          </label>
-          {course.coverUrl && (
+        {/* Admin toolbar */}
+        {isOwner && (
+          <div className="mt-6 flex flex-wrap gap-2 rounded-lg border border-white/10 bg-black/20 p-3">
             <button
-              onClick={handleRemoveCover}
+              onClick={() => setShowEdit(true)}
+              className="min-h-11 rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => setShowEditor(true)}
+              className="min-h-11 rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20"
+            >
+              {hasLessons ? "Edit lessons" : "Add lessons"}
+            </button>
+            {course.url && (
+            <button
+              onClick={handleReclassify}
               disabled={adminBusy !== null}
               className="min-h-11 rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20 disabled:opacity-50"
             >
-              Remove cover
+              {adminBusy === "reclassify" ? "Reclassifying..." : "Reclassify with AI"}
             </button>
-          )}
-          <button
-            onClick={() => setShowDelete(true)}
-            disabled={adminBusy !== null}
-            className="min-h-11 rounded-md bg-red-950/60 px-3 text-sm text-red-300 hover:bg-red-900/60 disabled:opacity-50"
+            )}
+            <label className="flex min-h-11 cursor-pointer items-center rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20">
+              {adminBusy === "cover" ? "Working..." : course.coverUrl ? "Replace cover" : "Upload cover"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                onChange={handleCoverPick}
+                className="sr-only"
+                disabled={adminBusy !== null}
+              />
+            </label>
+            {course.coverUrl && (
+              <button
+                onClick={handleRemoveCover}
+                disabled={adminBusy !== null}
+                className="min-h-11 rounded-md bg-white/10 px-3 text-sm text-gray-200 hover:bg-white/20 disabled:opacity-50"
+              >
+                Remove cover
+              </button>
+            )}
+            <button
+              onClick={() => setShowDelete(true)}
+              disabled={adminBusy !== null}
+              className="min-h-11 rounded-md bg-red-950/60 px-3 text-sm text-red-300 hover:bg-red-900/60 disabled:opacity-50"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+
+        {/* Comments (thread renders its own heading with a live count) */}
+        <CourseCommentsThread courseId={course.id} courseOwnerId={course.ownerId} />
+
+        {showEditor && (hasLessons ? content !== undefined : true) && (
+          <LessonEditor
+            course={course}
+            initial={content ?? null}
+            onClose={() => setShowEditor(false)}
+            onSaved={(saved, updated) => {
+              setContent(saved);
+              setCourse(updated);
+              bustServerCache();
+            }}
+          />
+        )}
+
+        {showEdit && (
+          <EditCourseDialog
+            key={course.updatedAt}
+            open={showEdit}
+            course={course}
+            onClose={() => setShowEdit(false)}
+            onSaved={async (updated) => {
+              const moved = updated.visibility !== course.visibility;
+              setCourse(updated);
+              setShowEdit(false);
+              await bustServerCache();
+              // SHAN-617: public and private courses read at different paths, so a
+              // visibility flip moves the page. replace, not push: the old path
+              // 404s now, so it is not worth a Back entry.
+              if (moved) router.replace(coursePath(updated));
+              else router.refresh();
+            }}
+          />
+        )}
+
+        {showDelete && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="course-delete-prompt"
           >
-            Delete
-          </button>
-        </div>
-      )}
-
-      {/* Comments (thread renders its own heading with a live count) */}
-      <CourseCommentsThread courseId={course.id} courseOwnerId={course.ownerId} />
-
-      {showEditor && (hasLessons ? content !== undefined : true) && (
-        <LessonEditor
-          course={course}
-          initial={content ?? null}
-          onClose={() => setShowEditor(false)}
-          onSaved={(saved, updated) => {
-            setContent(saved);
-            setCourse(updated);
-            bustServerCache();
-          }}
-        />
-      )}
-
-      {showEdit && (
-        <EditCourseDialog
-          key={course.updatedAt}
-          open={showEdit}
-          course={course}
-          onClose={() => setShowEdit(false)}
-          onSaved={async (updated) => {
-            const moved = updated.visibility !== course.visibility;
-            setCourse(updated);
-            setShowEdit(false);
-            await bustServerCache();
-            // SHAN-617: public and private courses read at different paths, so a
-            // visibility flip moves the page. replace, not push: the old path
-            // 404s now, so it is not worth a Back entry.
-            if (moved) router.replace(coursePath(updated));
-            else router.refresh();
-          }}
-        />
-      )}
-
-      {showDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="course-delete-prompt"
-        >
-          <FocusTrappedDiv className="w-full max-w-sm space-y-4 rounded-lg border border-white/15 bg-gray-950 p-5">
-            <p id="course-delete-prompt" className="text-sm text-gray-200">
-              Delete &quot;{course.title}&quot;? Ratings and comments go with it.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDelete(false)}
-                disabled={adminBusy === "delete"}
-                className="min-h-11 rounded-md bg-white/10 px-4 text-sm text-gray-200 hover:bg-white/20"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={adminBusy === "delete"}
-                className="min-h-11 rounded-md bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
-              >
-                {adminBusy === "delete" ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </FocusTrappedDiv>
-        </div>
-      )}
-    </div>
+            <FocusTrappedDiv className="w-full max-w-sm space-y-4 rounded-lg border border-white/15 bg-gray-950 p-5">
+              <p id="course-delete-prompt" className="text-sm text-gray-200">
+                Delete &quot;{course.title}&quot;? Ratings and comments go with it.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDelete(false)}
+                  disabled={adminBusy === "delete"}
+                  className="min-h-11 rounded-md bg-white/10 px-4 text-sm text-gray-200 hover:bg-white/20"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={adminBusy === "delete"}
+                  className="min-h-11 rounded-md bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+                >
+                  {adminBusy === "delete" ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </FocusTrappedDiv>
+          </div>
+        )}
+      </div>
+    </ReaderNotesScope>
   );
 }

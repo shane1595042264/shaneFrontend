@@ -38,6 +38,11 @@ import { useHydrated } from "@/lib/use-hydrated";
  * answer is saved as a note on that selection. That note is the cache: asking
  * again opens it instead of paying again.
  *
+ * SHAN-653 brought it to courses, including inside the full-screen lesson
+ * player (z-[60]): that is why the pill, the card and the thread popover sit
+ * at z-[70], and why the card and popover carry data-notes-popover, which the
+ * player checks before treating Enter or Escape as its own.
+ *
  * Two contexts on purpose. The data one changes only when notes do, and it is
  * what the bodies read to know which words to mark. The UI one changes on
  * every hover, and only the marks read it. Merged, every hover would re-render
@@ -315,11 +320,15 @@ export function NotesProvider({
         setDraft(null);
         return;
       }
+      const context = captureContext(a, range);
+      // A part with no heading of its own (a lesson card's text sits under a
+      // question rendered outside it) can borrow one from a wrapper.
+      context.heading ??= a.closest("[data-note-heading]")?.getAttribute("data-note-heading") || undefined;
       setDraft({
         anchor,
         box: docBox(range.getBoundingClientRect()),
         range: range.cloneRange(),
-        context: captureContext(a, range),
+        context,
         stage: "pill",
       });
     };
@@ -649,7 +658,7 @@ function DraftLayer({
           exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
           transition={SPRING}
           style={{ position: "absolute", left: barPos.left, top: barPos.top, borderRadius: 999 }}
-          className="z-50 flex h-10 items-center gap-0.5 bg-gray-950/90 p-1 shadow-[0_12px_32px_-8px_rgb(0_0_0/0.7)] ring-1 ring-white/[0.14] backdrop-blur-xl print:hidden"
+          className="z-[70] flex h-10 items-center gap-0.5 bg-gray-950/90 p-1 shadow-[0_12px_32px_-8px_rgb(0_0_0/0.7)] ring-1 ring-white/[0.14] backdrop-blur-xl print:hidden"
           role="toolbar"
           aria-label="Selected text"
         >
@@ -695,7 +704,8 @@ function DraftLayer({
             borderRadius: 18,
             transformOrigin: `${cardPos.originX}px ${cardPos.above ? "100%" : "0%"}`,
           }}
-          className="z-50 overflow-hidden bg-gray-950/92 shadow-[0_28px_70px_-18px_rgb(0_0_0/0.85)] ring-1 ring-white/[0.12] backdrop-blur-xl print:hidden"
+          data-notes-popover=""
+          className="z-[70] overflow-hidden bg-gray-950/92 shadow-[0_28px_70px_-18px_rgb(0_0_0/0.85)] ring-1 ring-white/[0.12] backdrop-blur-xl print:hidden"
         >
           {draft.stage === "explain" && (
             <div aria-hidden="true" className={`note-explain-rule ${explainState?.status === "loading" ? "is-loading" : ""}`} />
@@ -1087,7 +1097,8 @@ function ThreadPopover({
             width,
             transformOrigin: `${pos.originX}px ${pos.above ? "100%" : "0%"}`,
           }}
-          className="z-50 max-h-[min(28rem,70vh)] overflow-y-auto overscroll-contain rounded-2xl bg-gray-950/90 shadow-[0_28px_70px_-18px_rgb(0_0_0/0.85)] ring-1 ring-white/[0.12] backdrop-blur-xl print:hidden"
+          data-notes-popover=""
+          className="z-[70] max-h-[min(28rem,70vh)] overflow-y-auto overscroll-contain rounded-2xl bg-gray-950/90 shadow-[0_28px_70px_-18px_rgb(0_0_0/0.85)] ring-1 ring-white/[0.12] backdrop-blur-xl print:hidden"
         >
           <div aria-hidden="true" className={allAi ? "note-explain-rule" : "h-px bg-gradient-to-r from-amber-300/70 via-amber-200/20 to-transparent"} />
           <div className="divide-y divide-white/[0.06]">

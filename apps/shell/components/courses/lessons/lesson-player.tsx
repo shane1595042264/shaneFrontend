@@ -202,6 +202,13 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
   const onKey = useCallback(
     (e: KeyboardEvent) => {
       const root = rootRef.current;
+      // SHAN-653: the notes layer (Add note, Explain) is portaled to <body>,
+      // outside this dialog. Keys typed in a note, and Enter or Escape while
+      // an explanation is open, belong to it: Escape closes the card, not the
+      // lesson, and Enter does not check an answer behind it.
+      const t = e.target;
+      if (root && t instanceof Element && t !== document.body && !root.contains(t)) return;
+      if (e.key !== "Tab" && document.querySelector("[data-notes-popover]")) return;
       if (e.key === "Tab" && root) {
         const items = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
           (el) => el.offsetParent !== null,
@@ -331,6 +338,7 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
                   {step && (
                     <StepCard
                       step={step}
+                      noteKey={`${lesson.id}.${idx}`}
                       promptRef={promptRef}
                       isRetry={isRetry}
                       lessonTitle={lesson.title}
@@ -380,9 +388,10 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
                 {status !== "idle" && step && step.type !== "teach" && (
                   <Feedback
                     step={step}
+                    noteKey={`${lesson.id}.${idx}`}
                     correct={status === "correct"}
                     streak={streak}
-                    pickedWhy={picked?.why}
+                    picked={picked?.why ? { index: choice[0], why: picked.why } : null}
                     comesBack={status === "wrong" && queue.lastIndexOf(idx) > pos}
                     misses={step.type === "match" ? match.mistakes : 0}
                   />
@@ -456,14 +465,23 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
   );
 }
 
+/**
+ * SHAN-653: the words a learner can select for Add note and Explain. Each
+ * piece is named `<lesson id>.<step index>.<part>` (b body, h heading, x
+ * explanation, y<n> the why of choice n), so a note finds its text again on
+ * the next visit and on the second try of the same card. Answers and tiles are
+ * buttons and are left out.
+ */
 function StepCard({
   step,
+  noteKey,
   promptRef,
   isRetry,
   lessonTitle,
   children,
 }: {
   step: CourseStep;
+  noteKey: string;
   promptRef: React.RefObject<HTMLHeadingElement | null>;
   isRetry: boolean;
   lessonTitle: string;
@@ -478,7 +496,7 @@ function StepCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <article>
+    <article data-note-heading={h ?? undefined}>
       {/* The kicker says what to do; when there is no prompt it becomes the
           heading instead, so it is never printed twice. */}
       {(h || isRetry) && (
@@ -492,11 +510,21 @@ function StepCard({
         tabIndex={-1}
         className="mt-2 text-balance text-2xl font-semibold leading-tight tracking-tight text-white outline-none md:text-[28px]"
       >
-        {h ?? (step.type === "teach" ? lessonTitle : kicker(step))}
+        {h ? (
+          <LessonText inline noteTarget={`${noteKey}.h`}>
+            {h}
+          </LessonText>
+        ) : step.type === "teach" ? (
+          lessonTitle
+        ) : (
+          kicker(step)
+        )}
       </h2>
       {step.type === "teach" ? (
         <div className="mt-6 space-y-6">
-          <LessonText className="max-w-[62ch] text-[17px] leading-relaxed text-gray-300">{step.body}</LessonText>
+          <LessonText noteTarget={`${noteKey}.b`} className="max-w-[62ch] text-[17px] leading-relaxed text-gray-300">
+            {step.body}
+          </LessonText>
           {step.code && <CodeBlock code={step.code} language={step.language} />}
         </div>
       ) : (
@@ -511,16 +539,18 @@ function StepCard({
 
 function Feedback({
   step,
+  noteKey,
   correct,
   streak,
-  pickedWhy,
+  picked,
   comesBack,
   misses,
 }: {
   step: Exclude<CourseStep, { type: "teach" }>;
+  noteKey: string;
   correct: boolean;
   streak: number;
-  pickedWhy?: string;
+  picked: { index: number; why: string } | null;
   comesBack: boolean;
   misses: number;
 }) {
@@ -538,9 +568,12 @@ function Feedback({
       );
     else if (step.type === "match") answer = `All pairs placed, with ${misses} miss${misses === 1 ? "" : "es"} on the way.`;
   }
-  const why = [pickedWhy, step.explanation].filter(Boolean) as string[];
+  const why = [
+    picked && { target: `${noteKey}.y${picked.index}`, text: picked.why },
+    step.explanation && { target: `${noteKey}.x`, text: step.explanation },
+  ].filter(Boolean) as { target: string; text: string }[];
   return (
-    <div className={correct ? "text-teal-50" : "text-rose-50"}>
+    <div className={correct ? "text-teal-50" : "text-rose-50"} data-note-heading={heading(step) ?? undefined}>
       <p className={`text-lg font-semibold ${correct ? "text-teal-200" : "text-rose-200"}`}>
         {correct ? (streak >= 3 ? `Correct. ${streak} in a row.` : "Correct") : "Not quite"}
       </p>
@@ -552,8 +585,10 @@ function Feedback({
       )}
       {why.length > 0 && (
         <div className="mt-1.5 max-w-[68ch] space-y-1 text-sm text-white/80">
-          {why.map((w, i) => (
-            <LessonText key={i}>{w}</LessonText>
+          {why.map((w) => (
+            <LessonText key={w.target} noteTarget={w.target}>
+              {w.text}
+            </LessonText>
           ))}
         </div>
       )}

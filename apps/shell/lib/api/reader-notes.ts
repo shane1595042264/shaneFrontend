@@ -6,7 +6,7 @@ import type { NoteMeta } from "@/lib/api/comments";
 // SHAN-596: inline notes on blog posts and knowledge cards. Private to the
 // signed-in reader; the server scopes every read and write to them.
 
-export type ReaderSurface = "blog" | "knowledge";
+export type ReaderSurface = "blog" | "knowledge" | "course";
 
 export interface ReaderNote {
   id: string;

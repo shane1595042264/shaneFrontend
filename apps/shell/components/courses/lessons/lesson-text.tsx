@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { NoteMark, useNotesFor } from "@/components/notes/inline-notes";
+import { rehypeNoteMarks, type MarkableNote } from "@/lib/rehype-note-marks";
 
 /**
  * SHAN-652. Author-written prose in a lesson: bold, italics, inline code,
@@ -38,20 +40,63 @@ const components: Components = {
   ),
 };
 
-export function LessonText({ children, className }: { children: string; className?: string }) {
+const withMarks: Components = { ...components, mark: NoteMark };
+// A heading's text: one line of inline markdown, no paragraph around it.
+const inlineComponents: Components = { ...components, p: ({ children }) => <>{children}</> };
+const inlineWithMarks: Components = { ...inlineComponents, mark: NoteMark };
+
+// Memoized: the notes provider re-renders on every hover, and a re-render here
+// re-parses the markdown. Its notes array is stable until a note changes.
+const Markdown = memo(function Markdown({
+  text,
+  notes,
+  inline,
+}: {
+  text: string;
+  notes: MarkableNote[];
+  inline: boolean;
+}) {
   return (
-    <div className={className}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={components}
-        disallowedElements={["img"]}
-        unwrapDisallowed
-      >
-        {children}
-      </ReactMarkdown>
-    </div>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      rehypePlugins={notes.length ? [[rehypeNoteMarks, { notes }]] : []}
+      components={inline ? (notes.length ? inlineWithMarks : inlineComponents) : notes.length ? withMarks : components}
+      disallowedElements={["img"]}
+      unwrapDisallowed
+    >
+      {text}
+    </ReactMarkdown>
+  );
+});
+
+/**
+ * `noteTarget` (SHAN-653) makes the text selectable for Add note and Explain
+ * and draws the reader's saved notes on it. It names this piece of text within
+ * the course, so it has to stay the same between visits: the player builds it
+ * from the lesson id, the step's index and which part of the step it is.
+ */
+export function LessonText({
+  children,
+  className,
+  noteTarget,
+  inline = false,
+}: {
+  children: string;
+  className?: string;
+  noteTarget?: string;
+  /** For a heading: a span with no paragraph inside. */
+  inline?: boolean;
+}) {
+  const notes = useNotesFor(noteTarget ?? "");
+  const Tag = inline ? "span" : "div";
+  return (
+    <Tag className={className} data-note-target={noteTarget}>
+      <Markdown text={children} notes={noteTarget ? notes : NO_NOTES} inline={inline} />
+    </Tag>
   );
 }
+
+const NO_NOTES: MarkableNote[] = [];
 
 export function CodeBlock({ code, language }: { code: string; language?: string }) {
   const [copied, setCopied] = useState(false);

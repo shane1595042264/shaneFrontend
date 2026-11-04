@@ -1,6 +1,6 @@
 const body = `# AI and Reader Notes API
 
-Bring-your-own-key AI for Explain, and private inline notes on blog posts and knowledge cards. Mounted at \`/api/ai\` and \`/api/reader-notes\`.
+Bring-your-own-key AI for Explain, and private inline notes on blog posts, knowledge cards and courses. Mounted at \`/api/ai\` and \`/api/reader-notes\`.
 
 **Both are browser-session only.** Every route needs a signed-in session JWT; any PAT gets 403 whatever its scopes. These routes read which keys a person has and spend money on them, which is not something to hand to a script.
 
@@ -21,7 +21,7 @@ The check lists the key's models, keeps the text models, ranks them cheapest fir
 
 ## Explain
 
-\`POST /api/ai/explain\` with \`{quote 1..600, before?, after? (each up to 2000 chars), title?, heading?, surface: "journal" | "blog" | "knowledge"}\`, strict. There is no prompt field: the server wraps the selection and its context in a fixed template. The site sends about 120 words before the selection and 80 after, cut at the edge of the part it is in, plus the page title and the nearest heading.
+\`POST /api/ai/explain\` with \`{quote 1..600, before?, after? (each up to 2000 chars), title?, heading?, surface: "journal" | "blog" | "knowledge" | "course"}\`, strict. There is no prompt field: the server wraps the selection and its context in a fixed template. The site sends about 120 words before the selection and 80 after, cut at the edge of the part it is in, plus the page title and the nearest heading.
 
 Key and model: the preferred provider's key if it is working, else the first working key added; that key's \`preferredModel\`, else its \`defaultModel\`. 200 \`{explanation, provider, model, usage: {inputTokens, outputTokens, costMicroUsd}}\`. 409 \`{code: "no_key"}\` when there is no working key; 502 \`{code: "provider", kind}\` when the provider refused (\`kind\` auth, quota, model, rate or other). An auth or quota refusal marks the key \`failing\`.
 
@@ -33,18 +33,18 @@ The answer is not stored by this route. The site saves it as a note on the selec
 
 ## Reader notes
 
-Inline notes on public pages, private to the reader who wrote them.
+Inline notes on blog posts, knowledge cards and courses, private to the reader who wrote them. Courses since 2026-11-03 (SHAN-653).
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | /reader-notes?surface=blog or knowledge&resource=:id | your notes on one blog post (post id) or knowledge card (card id), oldest first |
+| GET | /reader-notes?surface=blog, knowledge or course&resource=:id | your notes on one blog post (post id), knowledge card (card id) or course (course id), oldest first |
 | POST | /reader-notes | \`{surface, resource, content 1..10000, anchor?, parentId?, meta?}\`, strict |
 | DELETE | /reader-notes/:id | your own only; deletes its replies too |
 
-A note needs \`anchor\` (\`{target, quote, prefix?, suffix?}\`, the same shape as journal inline notes, with \`target\` naming the part of the page: \`body\` on a post, \`definition\` or \`example\` on a card). A reply sets \`parentId\` to one of your own top-level notes on the same resource and carries no anchor or meta. \`meta\` is \`{kind: "ai", provider, model}\` on an Explain answer.
+A note needs \`anchor\` (\`{target, quote, prefix?, suffix?}\`, the same shape as journal inline notes, with \`target\` naming the part of the page: \`body\` on a post, \`definition\` or \`example\` on a card, \`description\` on a course page, and \`<lesson id>.<step index>.<part>\` inside a lesson, where part is \`h\` the heading, \`b\` a teach card's body, \`x\` the explanation and \`y<n>\` the why of choice n). A reply sets \`parentId\` to one of your own top-level notes on the same resource and carries no anchor or meta. \`meta\` is \`{kind: "ai", provider, model}\` on an Explain answer.
 
 ## Notes become knowledge cards
 
-A new note, typed or explained, on any of the three surfaces is also handed to the knowledge classifier, which turns it into a card the same way \`POST /api/knowledge/notes\` does. Only the selected words and the note text go in, never the text around them: cards are public and a journal is not. Replies are not filed. Turn it off with \`PATCH /api/ai/settings {notesToKnowledge: false}\`.
+A new note, typed or explained, on any of these surfaces is also handed to the knowledge classifier, which turns it into a card the same way \`POST /api/knowledge/notes\` does. Only the selected words and the note text go in, never the text around them: cards are public and a journal is not. A note on a private course is not filed at all, since its quote would be public on the card. Replies are not filed. Turn it off with \`PATCH /api/ai/settings {notesToKnowledge: false}\`.
 `;
 export default body;
