@@ -21,6 +21,7 @@ import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { resolveViewerTimezone, timezoneTagFor } from "@/lib/timezone";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 interface Props {
   date: string;
@@ -81,7 +82,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
       setReplyTo(null);
       await refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to post");
+      setError(humanizeActionError(e, "Failed to post"));
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +103,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
       setDeleteConfirmId(null);
       await refresh();
     } catch (e: unknown) {
-      setDeleteError(e instanceof Error ? e.message : "Failed to delete");
+      setDeleteError(humanizeActionError(e, "Failed to delete"));
     } finally {
       setDeletingId(null);
     }
@@ -137,7 +138,7 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
       setEditText("");
       await refresh();
     } catch (e: unknown) {
-      setEditError(e instanceof Error ? e.message : "Failed to save edit");
+      setEditError(humanizeActionError(e, "Failed to save edit"));
     } finally {
       setEditingSubmitting(false);
     }

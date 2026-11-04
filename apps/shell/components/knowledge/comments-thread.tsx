@@ -18,6 +18,7 @@ import { RelativeTime } from "@/lib/format-time";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 interface Props {
   entryId: string;
@@ -73,7 +74,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
       setReplyTo(null);
       await refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to post");
+      setError(humanizeActionError(e, "Failed to post"));
     } finally {
       setSubmitting(false);
     }
@@ -94,7 +95,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
       setDeleteConfirmId(null);
       await refresh();
     } catch (e: unknown) {
-      setDeleteError(e instanceof Error ? e.message : "Failed to delete");
+      setDeleteError(humanizeActionError(e, "Failed to delete"));
     } finally {
       setDeletingId(null);
     }
@@ -129,7 +130,7 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
       setEditText("");
       await refresh();
     } catch (e: unknown) {
-      setEditError(e instanceof Error ? e.message : "Failed to save edit");
+      setEditError(humanizeActionError(e, "Failed to save edit"));
     } finally {
       setEditingSubmitting(false);
     }

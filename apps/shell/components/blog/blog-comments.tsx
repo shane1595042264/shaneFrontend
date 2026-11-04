@@ -20,6 +20,7 @@ import {
 } from "@/lib/api/blog-social";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 interface Props {
   slug: string;
@@ -97,7 +98,7 @@ export function BlogComments({ slug, postAuthorId }: Props) {
       setText("");
       await refresh();
     } catch (e) {
-      setPostError(e instanceof Error ? e.message : "Failed to post");
+      setPostError(humanizeActionError(e, "Failed to post"));
     } finally {
       setSubmitting(false);
     }
@@ -114,7 +115,7 @@ export function BlogComments({ slug, postAuthorId }: Props) {
       setEditText("");
       await refresh();
     } catch (e) {
-      setEditError(e instanceof Error ? e.message : "Failed to save edit");
+      setEditError(humanizeActionError(e, "Failed to save edit"));
     } finally {
       setEditSaving(false);
     }
@@ -129,7 +130,7 @@ export function BlogComments({ slug, postAuthorId }: Props) {
       setDeleteId(null);
       await refresh();
     } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "Failed to delete");
+      setDeleteError(humanizeActionError(e, "Failed to delete"));
     } finally {
       setDeleting(false);
     }
