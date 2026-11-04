@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
+import { humanizeError } from "@/lib/humanize-error";
+import { LoadError } from "@/components/load-error";
 import { listCourseProgress, recordLessonProgress, type Course } from "@/lib/api/courses";
 import {
   exerciseCount,
@@ -53,6 +55,9 @@ export function CourseLessons({
   const hydrated = useHydrated();
   const user = hydrated ? authUser : null;
   const [progress, setProgress] = useState<CourseProgress[]>([]);
+  // SHAN-654: a failed load is not "nothing done yet". Retry bumps the attempt.
+  const [progressError, setProgressError] = useState<string | null>(null);
+  const [progressAttempt, setProgressAttempt] = useState(0);
   const [active, setActive] = useState<string | null>(null);
   const [run, setRun] = useState(0);
   // True while the open lesson is a history entry we pushed, so closing it
@@ -63,11 +68,14 @@ export function CourseLessons({
   const byId = useMemo(() => new Map(lessons.map((l) => [l.lesson.id, l])), [lessons]);
   const done = useMemo(() => new Map(progress.map((p) => [p.lessonId, p])), [progress]);
   const doneCount = lessons.filter((l) => done.has(l.lesson.id)).length;
-  const nextUp = lessons.find((l) => !done.has(l.lesson.id)) ?? null;
+  // With the load failed we do not know where the learner is, so nothing is
+  // marked as next.
+  const nextUp = progressError ? null : (lessons.find((l) => !done.has(l.lesson.id)) ?? null);
 
   useEffect(() => {
     if (!hydrated || authLoading) return;
     let cancelled = false;
+    setProgressError(null);
     if (!authUser) {
       setProgress(readLocalProgress(course.id));
       return;
@@ -76,13 +84,13 @@ export function CourseLessons({
       .then((p) => {
         if (!cancelled) setProgress(p);
       })
-      .catch(() => {
-        /* the path still works without progress */
+      .catch((e) => {
+        if (!cancelled) setProgressError(humanizeError(e, "Could not load your progress."));
       });
     return () => {
       cancelled = true;
     };
-  }, [hydrated, authLoading, authUser, course.id]);
+  }, [hydrated, authLoading, authUser, course.id, progressAttempt]);
 
   // Deep link on arrival, and Back/Forward while here.
   useEffect(() => {
@@ -134,13 +142,22 @@ export function CourseLessons({
       }
       const p = await recordLessonProgress(course.id, lessonId, score);
       setProgress((all) => [...all.filter((x) => x.lessonId !== lessonId), p]);
+      // The list we hold is only this lesson; load the real one now that the
+      // server is answering again.
+      if (progressError) setProgressAttempt((n) => n + 1);
       return "saved";
     },
-    [current, authUser, course.id],
+    [current, authUser, course.id, progressError],
   );
 
   const allDone = doneCount === lessons.length && lessons.length > 0;
-  const primaryLabel = allDone ? "Practice again" : doneCount > 0 ? "Continue" : "Start course";
+  const primaryLabel = progressError
+    ? "Open the first lesson"
+    : allDone
+      ? "Practice again"
+      : doneCount > 0
+        ? "Continue"
+        : "Start course";
   const primaryTarget = (nextUp ?? lessons[0])?.lesson.id;
 
   return (
@@ -181,14 +198,20 @@ export function CourseLessons({
             />
           ))}
         </div>
-        <p className="mt-2 text-sm text-gray-400">
-          <span className="tabular-nums">
-            {doneCount} of {lessons.length}
-          </span>{" "}
-          lessons done
-          {nextUp && doneCount > 0 ? <span className="text-gray-300">. Next: {nextUp.lesson.title}</span> : null}
-          {!user && hydrated && !authLoading && doneCount > 0 ? <span>. Saved on this device.</span> : null}
-        </p>
+        {progressError ? (
+          <div className="mt-2">
+            <LoadError message={progressError} onRetry={() => setProgressAttempt((n) => n + 1)} />
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-gray-400">
+            <span className="tabular-nums">
+              {doneCount} of {lessons.length}
+            </span>{" "}
+            lessons done
+            {nextUp && doneCount > 0 ? <span className="text-gray-300">. Next: {nextUp.lesson.title}</span> : null}
+            {!user && hydrated && !authLoading && doneCount > 0 ? <span>. Saved on this device.</span> : null}
+          </p>
+        )}
       </div>
 
       <section aria-labelledby="course-lessons-heading" className="mt-12">
