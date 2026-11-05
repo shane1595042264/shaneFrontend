@@ -10,6 +10,7 @@ import {
   isGraded,
   type CourseLesson,
   type CourseStep,
+  type LessonCardSnapshot,
   type LessonRun,
 } from "@/lib/course-lessons";
 import {
@@ -34,6 +35,12 @@ import { Kbd, ShortcutSheet } from "./shortcut-sheet";
  * exercises.tsx; Enter, Escape and ? here), and the place is handed to
  * `onProgress` after every card, so leaving costs nothing and Escape quits at
  * once. A `resume` run picks up on the card it stopped at.
+ *
+ * SHAN-660: Back (button or Left arrow) shows the cards already done, each as
+ * it was left: the answer given and the feedback seen, locked, because the
+ * score is first-try accuracy and a second go would only inflate it. The live
+ * card is never touched while looking back, so Next (Right arrow or Enter)
+ * returns to it exactly as it was, half-picked answers included.
  */
 
 export type SaveState = "saving" | "saved" | "local" | "preview" | "failed";
@@ -129,6 +136,10 @@ export function LessonPlayer({
   const [finished, setFinished] = useState<{ score: number; ms: number } | null>(null);
   const [save, setSave] = useState<SaveState>("saving");
   const [sheet, setSheet] = useState(false);
+  const [history, setHistory] = useState<(LessonCardSnapshot | null)[]>(() => resume?.history ?? []);
+  // The queue position being looked back at, or null for the live card.
+  const [view, setView] = useState<number | null>(null);
+  const [dir, setDir] = useState<1 | -1>(1);
   const resumedAt = useRef(resume ? resume.pos : null);
   const startedAt = useRef(Date.now() - (resume?.elapsedMs ?? 0));
   const promptRef = useRef<HTMLHeadingElement>(null);
@@ -147,8 +158,6 @@ export function LessonPlayer({
 
   const idx = queue[pos];
   const step = steps[idx];
-  const isRetry = pos >= steps.length;
-  const seed = `${lesson.id}:${idx}:${isRetry ? "r" : "a"}`;
 
   const ready = (() => {
     if (!step) return false;
@@ -207,6 +216,13 @@ export function LessonPlayer({
       finish(firstTry);
       return;
     }
+    const left: LessonCardSnapshot = { status, choice, blank, blankResults, order, match, streak };
+    setHistory((h) => {
+      const next = h.slice(0, pos);
+      next[pos] = left;
+      return next;
+    });
+    setDir(1);
     setPos(pos + 1);
     setStatus("idle");
     setChoice([]);
@@ -214,7 +230,22 @@ export function LessonPlayer({
     setBlankResults(null);
     setOrder([]);
     setMatch(EMPTY_MATCH);
-  }, [step, pos, queue.length, finish, firstTry]);
+  }, [step, pos, queue.length, finish, firstTry, status, choice, blank, blankResults, order, match, streak]);
+
+  // Looking back. Only cards with a snapshot can be shown, so a run resumed
+  // from before history was kept stops at the card it resumed on.
+  const shown = view ?? pos;
+  const canBack = !finished && shown > 0 && !!history[shown - 1];
+  const back = useCallback(() => {
+    if (!canBack) return;
+    setDir(-1);
+    setView(shown - 1);
+  }, [canBack, shown]);
+  const forward = useCallback(() => {
+    if (view === null) return;
+    setDir(1);
+    setView(view + 1 >= pos ? null : view + 1);
+  }, [view, pos]);
 
   // Matching resolves itself: the last pair placed is the answer.
   useEffect(() => {
@@ -231,6 +262,10 @@ export function LessonPlayer({
     if (finished) return;
     const at = status === "idle" ? pos : pos + 1;
     if (at === 0 || at >= queue.length) return;
+    // A checked card is saved as done, so its snapshot goes with it: Back
+    // after a resume can still reach it.
+    const kept = history.slice(0, pos);
+    if (status !== "idle") kept[pos] = { status, choice, blank, blankResults, order, match, streak };
     progressRef.current?.({
       queue,
       pos: at,
@@ -239,15 +274,16 @@ export function LessonPlayer({
       resolved,
       streak,
       elapsedMs: Date.now() - startedAt.current,
+      history: kept,
     });
-  }, [finished, status, pos, queue, firstTry, requeued, resolved, streak]);
+  }, [finished, status, pos, queue, firstTry, requeued, resolved, streak, history, choice, blank, blankResults, order, match]);
 
   // Each new card starts at the top. Focus moves in StepCard's own mount
   // effect: with AnimatePresence the new card mounts only after the old one
   // has animated out, so focusing from here would hit the leaving card.
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0 });
-  }, [pos]);
+  }, [pos, view]);
 
   // After Check, Continue takes focus so Enter or Space moves on.
   useEffect(() => {
@@ -301,7 +337,24 @@ export function LessonPlayer({
         onExit();
         return;
       }
+      if (
+        (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+        !finished &&
+        !isTyping(e.target) &&
+        !(e.altKey || e.metaKey || e.ctrlKey || e.shiftKey)
+      ) {
+        e.preventDefault();
+        if (e.key === "ArrowLeft") back();
+        else forward();
+        return;
+      }
       if (e.key !== "Enter" || finished) return;
+      if (view !== null) {
+        if (e.target instanceof HTMLButtonElement) return;
+        e.preventDefault();
+        forward();
+        return;
+      }
       // A focused button handles Enter itself; acting here too would double
       // it. Answer buttons are the exception: Enter checks, Space picks.
       if (e.target instanceof HTMLButtonElement) {
@@ -313,7 +366,7 @@ export function LessonPlayer({
       if (step?.type === "teach" || status !== "idle") advance();
       else check();
     },
-    [sheet, finished, status, ready, onExit, step, advance, check],
+    [sheet, finished, status, ready, onExit, step, advance, check, back, forward, view],
   );
 
   // On the window, not the dialog: between cards focus can briefly sit on
@@ -327,7 +380,16 @@ export function LessonPlayer({
   }, []);
 
   const progress = Math.min(1, resolved / steps.length);
-  const picked = step?.type === "choice" && choice.length === 1 ? step.choices[choice[0]] : null;
+
+  // The card on screen: the live one, or a snapshot when looking back.
+  const snap = view !== null ? (history[view] ?? null) : null;
+  const cIdx = queue[shown];
+  const cStep = steps[cIdx];
+  const cRetry = shown >= steps.length;
+  const cSeed = `${lesson.id}:${cIdx}:${cRetry ? "r" : "a"}`;
+  const c: LessonCardSnapshot = snap ?? { status, choice, blank, blankResults, order, match, streak };
+  const picked = cStep?.type === "choice" && c.choice.length === 1 ? cStep.choices[c.choice[0]] : null;
+  const noop = () => {};
 
   return (
     <div
@@ -411,44 +473,68 @@ export function LessonPlayer({
         <>
           <div ref={mainRef} className="min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-6 md:pt-12">
-              <AnimatePresence mode="wait" initial={false}>
+              <AnimatePresence mode="wait" initial={false} custom={dir}>
                 <motion.div
-                  key={`${pos}-${idx}`}
-                  initial={reduce ? { opacity: 0 } : { opacity: 0, x: 28 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={reduce ? { opacity: 0 } : { opacity: 0, x: -28 }}
+                  key={`${shown}-${cIdx}`}
+                  custom={dir}
+                  variants={{
+                    enter: (d: number) => (reduce ? { opacity: 0 } : { opacity: 0, x: 28 * d }),
+                    center: { opacity: 1, x: 0 },
+                    exit: (d: number) => (reduce ? { opacity: 0 } : { opacity: 0, x: -28 * d }),
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
                   transition={{ duration: reduce ? 0.12 : 0.3, ease }}
                 >
-                  {step && (
+                  {cStep && (
                     <StepCard
-                      step={step}
-                      noteKey={`${lesson.id}.${idx}`}
+                      step={cStep}
+                      noteKey={`${lesson.id}.${cIdx}`}
                       promptRef={promptRef}
-                      isRetry={isRetry}
+                      isRetry={cRetry}
+                      review={snap !== null}
                       lessonTitle={lesson.title}
                     >
                       <motion.div
-                        animate={status === "wrong" && !reduce ? { x: [0, -7, 7, -4, 4, 0] } : { x: 0 }}
+                        animate={c.status === "wrong" && !reduce && !snap ? { x: [0, -7, 7, -4, 4, 0] } : { x: 0 }}
                         transition={{ duration: 0.4 }}
                       >
-                        {step.type === "choice" && (
-                          <ChoiceExercise step={step} value={choice} onChange={setChoice} status={status} />
-                        )}
-                        {step.type === "blank" && (
-                          <BlankExercise
-                            step={step}
-                            value={blank}
-                            onChange={setBlank}
-                            status={status}
-                            seed={seed}
-                            results={blankResults}
+                        {cStep.type === "choice" && (
+                          <ChoiceExercise
+                            step={cStep}
+                            value={c.choice}
+                            onChange={snap ? noop : setChoice}
+                            status={c.status}
                           />
                         )}
-                        {step.type === "order" && (
-                          <OrderExercise step={step} value={order} onChange={setOrder} status={status} seed={seed} />
+                        {cStep.type === "blank" && (
+                          <BlankExercise
+                            step={cStep}
+                            value={c.blank}
+                            onChange={snap ? noop : setBlank}
+                            status={c.status}
+                            seed={cSeed}
+                            results={c.blankResults}
+                          />
                         )}
-                        {step.type === "match" && (
-                          <MatchExercise step={step} value={match} onChange={setMatch} status={status} seed={seed} />
+                        {cStep.type === "order" && (
+                          <OrderExercise
+                            step={cStep}
+                            value={c.order}
+                            onChange={snap ? noop : setOrder}
+                            status={c.status}
+                            seed={cSeed}
+                          />
+                        )}
+                        {cStep.type === "match" && (
+                          <MatchExercise
+                            step={cStep}
+                            value={c.match}
+                            onChange={snap ? noop : setMatch}
+                            status={c.status}
+                            seed={cSeed}
+                          />
                         )}
                       </motion.div>
                     </StepCard>
@@ -460,53 +546,79 @@ export function LessonPlayer({
 
           <footer
             className={`shrink-0 border-t transition-colors duration-300 ${
-              status === "correct"
+              c.status === "correct"
                 ? "border-teal-400/25 bg-teal-950/70"
-                : status === "wrong"
+                : c.status === "wrong"
                   ? "border-rose-400/25 bg-rose-950/60"
                   : "border-white/10 bg-black"
             }`}
           >
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-5 md:min-h-28 md:flex-row md:items-center md:justify-between">
               <div aria-live="polite" className="min-w-0 flex-1">
-                {status !== "idle" && step && step.type !== "teach" && (
+                {c.status !== "idle" && cStep && cStep.type !== "teach" && (
                   <Feedback
-                    step={step}
-                    noteKey={`${lesson.id}.${idx}`}
-                    correct={status === "correct"}
-                    streak={streak}
-                    picked={picked?.why ? { index: choice[0], why: picked.why } : null}
-                    comesBack={status === "wrong" && queue.lastIndexOf(idx) > pos}
-                    misses={step.type === "match" ? match.mistakes : 0}
+                    step={cStep}
+                    noteKey={`${lesson.id}.${cIdx}`}
+                    correct={c.status === "correct"}
+                    streak={c.streak}
+                    picked={picked?.why ? { index: c.choice[0], why: picked.why } : null}
+                    comesBack={c.status === "wrong" && queue.lastIndexOf(cIdx) > shown}
+                    misses={cStep.type === "match" ? c.match.mistakes : 0}
                   />
                 )}
-                {status === "idle" && step && <KeyHint step={step} resumedHere={resumedAt.current === pos} />}
+                {snap && c.status === "idle" && <ReviewHint />}
+                {!snap && status === "idle" && step && (
+                  <KeyHint step={step} resumedHere={resumedAt.current === pos} />
+                )}
               </div>
-              {step?.type === "teach" || status !== "idle" ? (
-                <button
-                  ref={continueRef}
-                  type="button"
-                  onClick={advance}
-                  aria-keyshortcuts="Enter"
-                  className={`min-h-12 shrink-0 rounded-xl px-8 text-[15px] font-semibold transition-[transform,background-color] active:translate-y-px md:min-w-40 ${
-                    status === "wrong"
-                      ? "bg-rose-300 text-rose-950 hover:bg-rose-200"
-                      : "bg-teal-300 text-teal-950 hover:bg-teal-200"
-                  }`}
-                >
-                  {pos + 1 >= queue.length ? "Finish" : "Continue"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={check}
-                  aria-keyshortcuts="Enter"
-                  disabled={!ready || step?.type === "match"}
-                  className="min-h-12 shrink-0 rounded-xl bg-white px-8 text-[15px] font-semibold text-black transition-[transform,background-color,opacity] hover:bg-gray-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-gray-400 md:min-w-40"
-                >
-                  {step?.type === "match" ? "Match every pair" : "Check"}
-                </button>
-              )}
+              <div className="flex shrink-0 gap-3">
+                {canBack && (
+                  <button
+                    type="button"
+                    onClick={back}
+                    aria-label="Back to the previous card"
+                    aria-keyshortcuts="ArrowLeft"
+                    className="min-h-12 shrink-0 rounded-xl bg-white/[0.07] px-5 text-[15px] text-gray-200 transition-[transform,background-color] hover:bg-white/[0.13] active:translate-y-px"
+                  >
+                    <span aria-hidden="true">&larr; </span>Back
+                  </button>
+                )}
+                {snap ? (
+                  <button
+                    type="button"
+                    onClick={forward}
+                    aria-keyshortcuts="ArrowRight Enter"
+                    className="min-h-12 flex-1 rounded-xl bg-white px-8 text-[15px] font-semibold text-black transition-[transform,background-color] hover:bg-gray-200 active:translate-y-px md:min-w-40 md:flex-none"
+                  >
+                    {view !== null && view + 1 >= pos ? "Back to my card" : "Next"}
+                    <span aria-hidden="true"> &rarr;</span>
+                  </button>
+                ) : step?.type === "teach" || status !== "idle" ? (
+                  <button
+                    ref={continueRef}
+                    type="button"
+                    onClick={advance}
+                    aria-keyshortcuts="Enter"
+                    className={`min-h-12 flex-1 rounded-xl px-8 text-[15px] font-semibold transition-[transform,background-color] active:translate-y-px md:min-w-40 md:flex-none ${
+                      status === "wrong"
+                        ? "bg-rose-300 text-rose-950 hover:bg-rose-200"
+                        : "bg-teal-300 text-teal-950 hover:bg-teal-200"
+                    }`}
+                  >
+                    {pos + 1 >= queue.length ? "Finish" : "Continue"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={check}
+                    aria-keyshortcuts="Enter"
+                    disabled={!ready || step?.type === "match"}
+                    className="min-h-12 flex-1 rounded-xl bg-white px-8 text-[15px] font-semibold text-black transition-[transform,background-color,opacity] hover:bg-gray-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-gray-400 md:min-w-40 md:flex-none"
+                  >
+                    {step?.type === "match" ? "Match every pair" : "Check"}
+                  </button>
+                )}
+              </div>
             </div>
           </footer>
         </>
@@ -514,6 +626,19 @@ export function LessonPlayer({
 
       {sheet && <ShortcutSheet scope="lesson" onClose={() => setSheet(false)} />}
     </div>
+  );
+}
+
+/** Footer line on a card that has no feedback to show again (a teach card). */
+function ReviewHint() {
+  return (
+    <p className="text-sm leading-7 text-gray-400">
+      You read this one already.
+      <span className="hidden [@media(pointer:fine)]:inline">
+        {" "}
+        <Kbd>&larr;</Kbd> <Kbd>&rarr;</Kbd> move between cards
+      </span>
+    </p>
   );
 }
 
@@ -577,6 +702,7 @@ function StepCard({
   noteKey,
   promptRef,
   isRetry,
+  review = false,
   lessonTitle,
   children,
 }: {
@@ -584,6 +710,8 @@ function StepCard({
   noteKey: string;
   promptRef: React.RefObject<HTMLHeadingElement | null>;
   isRetry: boolean;
+  /** An earlier card shown again by Back: locked, labelled as such. */
+  review?: boolean;
   lessonTitle: string;
   children: React.ReactNode;
 }) {
@@ -591,7 +719,7 @@ function StepCard({
   // A screen reader announces each card as it arrives. A typed blank keeps
   // focus in its first input instead, so the learner can just type.
   useEffect(() => {
-    if (!(step.type === "blank" && !step.bank)) promptRef.current?.focus({ preventScroll: true });
+    if (review || !(step.type === "blank" && !step.bank)) promptRef.current?.focus({ preventScroll: true });
     // Mount only: StepCard is keyed per card.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -599,8 +727,9 @@ function StepCard({
     <article data-note-heading={h ?? undefined}>
       {/* The kicker says what to do; when there is no prompt it becomes the
           heading instead, so it is never printed twice. */}
-      {(h || isRetry) && (
+      {(h || isRetry || review) && (
         <p className="text-sm text-gray-400">
+          {review ? <span className="text-gray-200">Looking back. </span> : null}
           {isRetry ? <span className="text-amber-200/90">Second try. </span> : null}
           {h ? kicker(step) : null}
         </p>

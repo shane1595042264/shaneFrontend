@@ -261,6 +261,20 @@ export function clearLocalProgress(courseId: string): void {
  * includes the missed ones re-queued at the end, so a resumed run brings them
  * back too.
  */
+/**
+ * A card as the learner left it, so Back can show it again exactly: the
+ * answer they gave and the feedback they saw, locked (SHAN-660).
+ */
+export interface LessonCardSnapshot {
+  status: "idle" | "correct" | "wrong";
+  choice: number[];
+  blank: string[];
+  blankResults: boolean[] | null;
+  order: string[];
+  match: { matched: number[]; mistakes: number };
+  streak: number;
+}
+
 export interface LessonRun {
   queue: number[];
   pos: number;
@@ -269,6 +283,8 @@ export interface LessonRun {
   resolved: number;
   streak: number;
   elapsedMs: number;
+  /** One per queue position already left behind; a gap means Back stops there. */
+  history?: (LessonCardSnapshot | null)[];
 }
 
 export interface SavedLessonRun {
@@ -304,7 +320,11 @@ export function readLessonRun(courseId: string, lessons: Map<string, CourseLesso
       Number.isInteger(r.pos) &&
       r.pos > 0 &&
       r.pos < r.queue.length;
-    if (fits) return saved;
+    if (fits) {
+      // Runs saved before SHAN-660 have no history; a bad one only costs Back.
+      if (r.history !== undefined && !Array.isArray(r.history)) delete r.history;
+      return saved;
+    }
     localStorage.removeItem(RUN_KEY(courseId));
   } catch {
     /* unreadable: treat as no run */

@@ -51,6 +51,14 @@ const LESSON: Row[] = [
   },
   { keys: <Kbd>Backspace</Kbd>, does: "Take back the last tile, item or pick" },
   { keys: <Kbd>Enter</Kbd>, does: "Check, then continue" },
+  {
+    keys: (
+      <>
+        <Kbd>&larr;</Kbd> <Kbd>&rarr;</Kbd>
+      </>
+    ),
+    does: "Back to an earlier card, and forward again",
+  },
   { keys: <Kbd>Tab</Kbd>, does: "Next blank when typing, or next button" },
   { keys: <Kbd>Esc</Kbd>, does: "Leave the lesson. Your place is kept" },
 ];
