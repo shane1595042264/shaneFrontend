@@ -251,3 +251,86 @@ export function clearLocalProgress(courseId: string): void {
     /* ignore */
   }
 }
+
+// ---- a lesson left halfway (SHAN-659) -----------------------------------------
+
+/**
+ * Where a learner stopped inside a lesson, so it can be picked up again. One
+ * per course, on this device: opening another lesson and answering a card
+ * replaces it, finishing the lesson clears it. `queue` holds step indexes and
+ * includes the missed ones re-queued at the end, so a resumed run brings them
+ * back too.
+ */
+export interface LessonRun {
+  queue: number[];
+  pos: number;
+  firstTry: Record<number, boolean>;
+  requeued: number[];
+  resolved: number;
+  streak: number;
+  elapsedMs: number;
+}
+
+export interface SavedLessonRun {
+  lessonId: string;
+  /** Changes when the lesson's steps are edited; a run for old steps is dropped. */
+  fingerprint: string;
+  savedAt: string;
+  run: LessonRun;
+}
+
+const RUN_KEY = (courseId: string) => `shane:course-run:${courseId}`;
+
+export function lessonFingerprint(lesson: CourseLesson): string {
+  const s = JSON.stringify(lesson.steps);
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return `${lesson.steps.length}:${(h >>> 0).toString(36)}`;
+}
+
+/** The saved run if it still fits the lesson as it is now, else null (and it is dropped). */
+export function readLessonRun(courseId: string, lessons: Map<string, CourseLesson>): SavedLessonRun | null {
+  try {
+    const raw = localStorage.getItem(RUN_KEY(courseId));
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as SavedLessonRun;
+    const lesson = lessons.get(saved?.lessonId);
+    const r = saved?.run;
+    const fits =
+      lesson &&
+      saved.fingerprint === lessonFingerprint(lesson) &&
+      Array.isArray(r?.queue) &&
+      r.queue.every((i) => Number.isInteger(i) && i >= 0 && i < lesson.steps.length) &&
+      Number.isInteger(r.pos) &&
+      r.pos > 0 &&
+      r.pos < r.queue.length;
+    if (fits) return saved;
+    localStorage.removeItem(RUN_KEY(courseId));
+  } catch {
+    /* unreadable: treat as no run */
+  }
+  return null;
+}
+
+export function writeLessonRun(courseId: string, lesson: CourseLesson, run: LessonRun): SavedLessonRun {
+  const saved: SavedLessonRun = {
+    lessonId: lesson.id,
+    fingerprint: lessonFingerprint(lesson),
+    savedAt: new Date().toISOString(),
+    run,
+  };
+  try {
+    localStorage.setItem(RUN_KEY(courseId), JSON.stringify(saved));
+  } catch {
+    /* storage full or blocked: the place just is not remembered */
+  }
+  return saved;
+}
+
+export function clearLessonRun(courseId: string): void {
+  try {
+    localStorage.removeItem(RUN_KEY(courseId));
+  } catch {
+    /* ignore */
+  }
+}

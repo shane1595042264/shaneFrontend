@@ -19,8 +19,68 @@ import {
  */
 export type ExerciseStatus = "idle" | "correct" | "wrong";
 
-const isTyping = (t: EventTarget | null) =>
-  t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+export const isTyping = (t: EventTarget | null) =>
+  t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+
+/**
+ * SHAN-659: every answer has a key, so a lesson runs without a mouse. Keys go
+ * 1-9, then 0, then a-z, in reading order. An item keeps its key while
+ * others are placed, so the key printed on a tile is always the one that
+ * places it. In a match the right column carries on from the left: with five
+ * pairs that is 1-5 and 6-0.
+ */
+export function keyLabel(i: number): string {
+  if (i < 9) return String(i + 1);
+  if (i === 9) return "0";
+  return String.fromCharCode(97 + i - 10);
+}
+
+function keyIndex(key: string): number {
+  if (/^[1-9]$/.test(key)) return Number(key) - 1;
+  if (key === "0") return 9;
+  if (/^[a-z]$/.test(key)) return 10 + key.charCodeAt(0) - 97;
+  return -1;
+}
+
+/** An open notes card or the shortcut sheet owns the keyboard while it is up. */
+export const keysBlocked = () => document.querySelector("[data-notes-popover], [data-keys-sheet]") !== null;
+
+function useAnswerKeys(enabled: boolean, count: number, onPick: (i: number) => void, onBack?: () => void) {
+  const ref = useRef({ onPick, onBack });
+  ref.current = { onPick, onBack };
+  useEffect(() => {
+    if (!enabled) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target) || keysBlocked()) return;
+      if (e.key === "Backspace") {
+        if (!ref.current.onBack) return;
+        e.preventDefault();
+        ref.current.onBack();
+        return;
+      }
+      const i = keyIndex(e.key);
+      if (i < 0 || i >= count) return;
+      e.preventDefault();
+      ref.current.onPick(i);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [enabled, count]);
+}
+
+/** The key that picks an answer, printed on it. Pointer-only screens skip it. */
+export function KeyBadge({ i, active, className = "" }: { i: number; active?: boolean; className?: string }) {
+  return (
+    <kbd
+      aria-hidden="true"
+      className={`hidden h-6 min-w-6 shrink-0 place-items-center rounded-md border px-1 font-mono text-[11px] leading-none [@media(pointer:fine)]:grid ${
+        active ? "border-gray-200/60 text-white" : "border-white/15 text-gray-400"
+      } ${className}`}
+    >
+      {keyLabel(i)}
+    </kbd>
+  );
+}
 
 // One shape for every tappable answer, so choices, tiles and pairs press the
 // same way. Pressed = the learner's pick before checking.
@@ -57,22 +117,8 @@ export function ChoiceExercise({
     else onChange(value.includes(i) ? value.filter((v) => v !== i) : [...value, i].sort((a, b) => a - b));
   };
 
-  // 1-9 picks a choice, the way the number badges promise.
-  const toggleRef = useRef(toggle);
-  toggleRef.current = toggle;
-  useEffect(() => {
-    if (locked) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
-      const n = Number(e.key);
-      if (Number.isInteger(n) && n >= 1 && n <= step.choices.length) {
-        e.preventDefault();
-        toggleRef.current(n - 1);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [locked, step.choices.length]);
+  // 1-8 picks a choice, the way the number badges promise. Backspace clears.
+  useAnswerKeys(!locked, step.choices.length, toggle, () => onChange([]));
 
   return (
     <div>
@@ -87,6 +133,7 @@ export function ChoiceExercise({
               data-answer=""
               role={multi ? "checkbox" : "radio"}
               aria-checked={picked}
+              aria-keyshortcuts={keyLabel(i)}
               disabled={locked}
               onClick={() => toggle(i)}
               className={`${pressable} flex min-h-14 w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-[15px] leading-snug ${tone({
@@ -167,6 +214,23 @@ export function BlankExercise({
     setSlots(next);
   };
 
+  // A tile's key places it; pressing it again once placed takes it back out.
+  // Backspace empties the last filled blank.
+  useAnswerKeys(
+    !locked && !!step.bank,
+    tiles.length,
+    (t) => {
+      const at = slotTile.indexOf(t);
+      if (at >= 0) clearSlot(at);
+      else placeTile(t);
+    },
+    () => {
+      for (let i = slotTile.length - 1; i >= 0; i--) {
+        if (slotTile[i] !== null) return clearSlot(i);
+      }
+    },
+  );
+
   const slotTone = (i: number) =>
     results ? (results[i] ? "border-teal-400 text-teal-100" : "border-rose-400 text-rose-100") : "border-gray-400/60";
 
@@ -230,11 +294,13 @@ export function BlankExercise({
                 disabled={locked || used}
                 onClick={() => placeTile(t)}
                 aria-hidden={used}
+                aria-keyshortcuts={used ? undefined : keyLabel(t)}
                 tabIndex={used ? -1 : 0}
-                className={`${pressable} min-h-11 rounded-xl px-4 text-[15px] ${
+                className={`${pressable} inline-flex min-h-11 items-center gap-2.5 rounded-xl pl-4 pr-4 [@media(pointer:fine)]:pl-2.5 text-[15px] ${
                   used ? "border-dashed border-white/10 bg-transparent text-transparent" : tone({})
                 }`}
               >
+                <KeyBadge i={t} className={used ? "invisible" : ""} />
                 {tile}
               </button>
             );
@@ -263,6 +329,18 @@ export function OrderExercise({
   const pool = useMemo(() => seededShuffle(step.items, seed), [step.items, seed]);
   const locked = status !== "idle";
   const remaining = pool.filter((it) => !value.includes(it));
+
+  // An item's key (its place in the shuffled pool) appends it, or takes it
+  // back if it is already placed. Backspace takes back the last one.
+  useAnswerKeys(
+    !locked,
+    pool.length,
+    (i) => {
+      const it = pool[i];
+      onChange(value.includes(it) ? value.filter((v) => v !== it) : [...value, it]);
+    },
+    () => onChange(value.slice(0, -1)),
+  );
 
   return (
     <div className="space-y-6">
@@ -310,9 +388,11 @@ export function OrderExercise({
               key={it}
               type="button"
               data-answer=""
+              aria-keyshortcuts={keyLabel(pool.indexOf(it))}
               onClick={() => onChange([...value, it])}
-              className={`${pressable} min-h-11 rounded-xl px-4 text-left text-[15px] ${tone({})}`}
+              className={`${pressable} inline-flex min-h-11 items-center gap-2.5 rounded-xl pl-4 pr-4 [@media(pointer:fine)]:pl-2.5 text-left text-[15px] ${tone({})}`}
             >
+              <KeyBadge i={pool.indexOf(it)} />
               {it}
             </button>
           ))}
@@ -374,7 +454,16 @@ export function MatchExercise({
     onChange({ ...value, mistakes: value.mistakes + 1 });
   };
 
-  const cell = (side: 0 | 1, pair: number) => {
+  // Keys run down the left column and carry on down the right one.
+  const n = step.pairs.length;
+  useAnswerKeys(
+    !locked,
+    n * 2,
+    (i) => (i < n ? pick(0, lefts[i]) : pick(1, rights[i - n])),
+    () => setSel(null),
+  );
+
+  const cell = (side: 0 | 1, pair: number, k: number) => {
     const done = value.matched.includes(pair);
     const selected = sel?.side === side && sel.pair === pair;
     const flashing = miss && (side === 0 ? miss.a === pair : miss.b === pair);
@@ -382,15 +471,17 @@ export function MatchExercise({
       <button
         key={`${side}-${pair}`}
         type="button"
-              data-answer=""
+        data-answer=""
         aria-pressed={selected}
+        aria-keyshortcuts={done ? undefined : keyLabel(k)}
         disabled={locked || done}
         onClick={() => pick(side, pair)}
-        className={`${pressable} min-h-14 w-full rounded-xl px-4 py-3 text-left text-[15px] leading-snug ${
+        className={`${pressable} flex min-h-14 w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] leading-snug [@media(pointer:fine)]:pl-3 ${
           done ? "border-teal-400/30 bg-teal-400/[0.06] text-teal-100/70" : tone({ pressed: selected, wrong: !!flashing })
         }`}
       >
-        {step.pairs[pair][side]}
+        <KeyBadge i={k} active={selected} className={done ? "invisible" : ""} />
+        <span className="min-w-0">{step.pairs[pair][side]}</span>
       </button>
     );
   };
@@ -402,8 +493,8 @@ export function MatchExercise({
         {value.mistakes > 0 ? `, ${value.mistakes} miss${value.mistakes === 1 ? "" : "es"}` : ""}
       </p>
       <div className="grid grid-cols-2 gap-2.5 md:gap-4">
-        <div className="grid content-start gap-2.5">{lefts.map((p) => cell(0, p))}</div>
-        <div className="grid content-start gap-2.5">{rights.map((p) => cell(1, p))}</div>
+        <div className="grid content-start gap-2.5">{lefts.map((p, k) => cell(0, p, k))}</div>
+        <div className="grid content-start gap-2.5">{rights.map((p, k) => cell(1, p, n + k))}</div>
       </div>
     </div>
   );

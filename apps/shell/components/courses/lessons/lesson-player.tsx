@@ -10,15 +10,30 @@ import {
   isGraded,
   type CourseLesson,
   type CourseStep,
+  type LessonRun,
 } from "@/lib/course-lessons";
-import { BlankExercise, ChoiceExercise, MatchExercise, OrderExercise, type ExerciseStatus, type MatchValue } from "./exercises";
+import {
+  BlankExercise,
+  ChoiceExercise,
+  MatchExercise,
+  OrderExercise,
+  isTyping,
+  type ExerciseStatus,
+  type MatchValue,
+} from "./exercises";
 import { CodeBlock, LessonText } from "./lesson-text";
+import { Kbd, ShortcutSheet } from "./shortcut-sheet";
 
 /**
  * SHAN-652. One lesson, one card at a time, Duolingo-shaped: answer, Check,
  * read the feedback, Continue. A step missed the first time comes back once
  * at the end of the lesson, and the score is the share of exercises answered
  * right on the first try, so the retry teaches without inflating the number.
+ *
+ * SHAN-659: the whole run works from the keyboard (answer keys live in
+ * exercises.tsx; Enter, Escape and ? here), and the place is handed to
+ * `onProgress` after every card, so leaving costs nothing and Escape quits at
+ * once. A `resume` run picks up on the card it stopped at.
  */
 
 export type SaveState = "saving" | "saved" | "local" | "preview" | "failed";
@@ -32,6 +47,12 @@ interface Props {
   onNext: () => void;
   /** Called once when the last card is done; resolves to where it was saved. */
   onFinish: (score: number) => Promise<SaveState>;
+  /** A run left halfway, to pick up instead of starting at card one. */
+  resume?: LessonRun | null;
+  /** The place after each card, to be offered back as `resume`. */
+  onProgress?: (run: LessonRun) => void;
+  /** Throw the saved place away and start the lesson from card one. */
+  onRestart?: () => void;
 }
 
 const EMPTY_MATCH: MatchValue = { matched: [], mistakes: 0 };
@@ -76,28 +97,40 @@ function clock(ms: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext, onFinish }: Props) {
+export function LessonPlayer({
+  lesson,
+  unitTitle,
+  position,
+  next,
+  onExit,
+  onNext,
+  onFinish,
+  resume,
+  onProgress,
+  onRestart,
+}: Props) {
   useScrollLock(true);
   const reduce = useReducedMotion() ?? false;
   const steps = lesson.steps;
   const graded = useMemo(() => steps.filter(isGraded).length, [steps]);
 
-  const [queue, setQueue] = useState<number[]>(() => steps.map((_, i) => i));
-  const [pos, setPos] = useState(0);
+  const [queue, setQueue] = useState<number[]>(() => resume?.queue ?? steps.map((_, i) => i));
+  const [pos, setPos] = useState(resume?.pos ?? 0);
   const [status, setStatus] = useState<ExerciseStatus>("idle");
   const [choice, setChoice] = useState<number[]>([]);
   const [blank, setBlank] = useState<string[]>([]);
   const [blankResults, setBlankResults] = useState<boolean[] | null>(null);
   const [order, setOrder] = useState<string[]>([]);
   const [match, setMatch] = useState<MatchValue>(EMPTY_MATCH);
-  const [firstTry, setFirstTry] = useState<Record<number, boolean>>({});
-  const [requeued, setRequeued] = useState<Set<number>>(() => new Set());
-  const [resolved, setResolved] = useState(0);
-  const [streak, setStreak] = useState(0);
+  const [firstTry, setFirstTry] = useState<Record<number, boolean>>(() => resume?.firstTry ?? {});
+  const [requeued, setRequeued] = useState<Set<number>>(() => new Set(resume?.requeued ?? []));
+  const [resolved, setResolved] = useState(resume?.resolved ?? 0);
+  const [streak, setStreak] = useState(resume?.streak ?? 0);
   const [finished, setFinished] = useState<{ score: number; ms: number } | null>(null);
   const [save, setSave] = useState<SaveState>("saving");
-  const [confirmQuit, setConfirmQuit] = useState(false);
-  const startedAt = useRef(Date.now());
+  const [sheet, setSheet] = useState(false);
+  const resumedAt = useRef(resume ? resume.pos : null);
+  const startedAt = useRef(Date.now() - (resume?.elapsedMs ?? 0));
   const promptRef = useRef<HTMLHeadingElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const continueRef = useRef<HTMLButtonElement>(null);
@@ -106,10 +139,11 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
   // Its own focus trap rather than FocusTrappedDiv, which focuses the first
   // button on open: here that is Close, and Enter would quit the lesson. Focus
   // starts on the card instead (StepCard) and returns where it was on close.
-  useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null;
-    return () => prev?.focus?.({ preventScroll: true });
-  }, []);
+  // Read during the first render: by the time this component's effects run,
+  // StepCard's (a child's, so earlier) has already moved focus to the card,
+  // and focus would "return" to a heading that is about to unmount (SHAN-659).
+  const [returnTo] = useState(() => document.activeElement as HTMLElement | null);
+  useEffect(() => () => returnTo?.focus?.({ preventScroll: true }), [returnTo]);
 
   const idx = queue[pos];
   const step = steps[idx];
@@ -187,6 +221,27 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
     if (step?.type === "match" && status === "idle" && match.matched.length === step.pairs.length) check();
   }, [step, status, match.matched.length, check]);
 
+  // Hand the place up after every card. A checked card counts as done, so a
+  // learner who leaves on the feedback comes back to the next card. Card one
+  // untouched is not worth saving, and neither is the last card checked: the
+  // next step there is the finish screen, which saves for real.
+  const progressRef = useRef(onProgress);
+  progressRef.current = onProgress;
+  useEffect(() => {
+    if (finished) return;
+    const at = status === "idle" ? pos : pos + 1;
+    if (at === 0 || at >= queue.length) return;
+    progressRef.current?.({
+      queue,
+      pos: at,
+      firstTry,
+      requeued: [...requeued],
+      resolved,
+      streak,
+      elapsedMs: Date.now() - startedAt.current,
+    });
+  }, [finished, status, pos, queue, firstTry, requeued, resolved, streak]);
+
   // Each new card starts at the top. Focus moves in StepCard's own mount
   // effect: with AnimatePresence the new card mounts only after the old one
   // has animated out, so focusing from here would hit the leaving card.
@@ -209,6 +264,18 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
       const t = e.target;
       if (root && t instanceof Element && t !== document.body && !root.contains(t)) return;
       if (e.key !== "Tab" && document.querySelector("[data-notes-popover]")) return;
+      if (sheet && e.key !== "Tab") {
+        if (e.key === "Escape" || e.key === "?") {
+          e.preventDefault();
+          setSheet(false);
+        }
+        return;
+      }
+      if (e.key === "?" && !isTyping(e.target)) {
+        e.preventDefault();
+        setSheet(true);
+        return;
+      }
       if (e.key === "Tab" && root) {
         const items = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
           (el) => el.offsetParent !== null,
@@ -231,12 +298,10 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
       }
       if (e.key === "Escape") {
         e.preventDefault();
-        if (confirmQuit) setConfirmQuit(false);
-        else if (finished || (pos === 0 && status === "idle")) onExit();
-        else setConfirmQuit(true);
+        onExit();
         return;
       }
-      if (e.key !== "Enter" || finished || confirmQuit) return;
+      if (e.key !== "Enter" || finished) return;
       // A focused button handles Enter itself; acting here too would double
       // it. Answer buttons are the exception: Enter checks, Space picks.
       if (e.target instanceof HTMLButtonElement) {
@@ -248,7 +313,7 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
       if (step?.type === "teach" || status !== "idle") advance();
       else check();
     },
-    [confirmQuit, finished, pos, status, ready, onExit, step, advance, check],
+    [sheet, finished, status, ready, onExit, step, advance, check],
   );
 
   // On the window, not the dialog: between cards focus can briefly sit on
@@ -275,8 +340,9 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
       <header className="mx-auto flex h-16 w-full max-w-3xl shrink-0 items-center gap-4 px-4">
         <button
           type="button"
-          onClick={() => (finished || (pos === 0 && status === "idle") ? onExit() : setConfirmQuit(true))}
-          aria-label="Close lesson"
+          onClick={onExit}
+          aria-label={pos > 0 && !finished ? "Close lesson. Your place is saved" : "Close lesson"}
+          aria-keyshortcuts="Escape"
           className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-2xl leading-none text-gray-400 transition-colors hover:bg-white/[0.06] hover:text-white"
         >
           <span aria-hidden="true">&times;</span>
@@ -294,6 +360,24 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
             style={{ transform: `scaleX(${finished ? 1 : progress})` }}
           />
         </div>
+        {resumedAt.current !== null && onRestart && !finished && (
+          <button
+            type="button"
+            onClick={onRestart}
+            className="shrink-0 rounded-lg px-2 py-1.5 text-sm text-gray-400 transition-colors hover:bg-white/[0.06] hover:text-white"
+          >
+            Start over
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setSheet(true)}
+          aria-label="Keyboard shortcuts"
+          aria-keyshortcuts="?"
+          className="hidden h-8 w-8 shrink-0 place-items-center rounded-lg font-mono text-sm text-gray-400 transition-colors hover:bg-white/[0.06] hover:text-white [@media(pointer:fine)]:grid"
+        >
+          ?
+        </button>
         <span
           aria-live="polite"
           className={`w-20 shrink-0 text-right text-sm tabular-nums transition-opacity duration-300 ${
@@ -396,21 +480,14 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
                     misses={step.type === "match" ? match.mistakes : 0}
                   />
                 )}
-                {status === "idle" && step && step.type !== "teach" && (
-                  <p className="hidden text-sm text-gray-400 md:block">
-                    {step.type === "choice"
-                      ? "Press a number to pick, Enter to check."
-                      : step.type === "match"
-                        ? "Tap one on each side to pair them."
-                        : "Press Enter to check."}
-                  </p>
-                )}
+                {status === "idle" && step && <KeyHint step={step} resumedHere={resumedAt.current === pos} />}
               </div>
               {step?.type === "teach" || status !== "idle" ? (
                 <button
                   ref={continueRef}
                   type="button"
                   onClick={advance}
+                  aria-keyshortcuts="Enter"
                   className={`min-h-12 shrink-0 rounded-xl px-8 text-[15px] font-semibold transition-[transform,background-color] active:translate-y-px md:min-w-40 ${
                     status === "wrong"
                       ? "bg-rose-300 text-rose-950 hover:bg-rose-200"
@@ -423,6 +500,7 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
                 <button
                   type="button"
                   onClick={check}
+                  aria-keyshortcuts="Enter"
                   disabled={!ready || step?.type === "match"}
                   className="min-h-12 shrink-0 rounded-xl bg-white px-8 text-[15px] font-semibold text-black transition-[transform,background-color,opacity] hover:bg-gray-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-gray-400 md:min-w-40"
                 >
@@ -434,34 +512,56 @@ export function LessonPlayer({ lesson, unitTitle, position, next, onExit, onNext
         </>
       )}
 
-      {confirmQuit && (
-        <div className="fixed inset-0 z-[61] flex items-end justify-center bg-black/70 p-4 md:items-center">
-          <div role="alertdialog" aria-labelledby="quit-heading" className="w-full max-w-sm rounded-2xl border border-white/10 bg-gray-950 p-5">
-            <h2 id="quit-heading" className="text-lg font-semibold text-white">
-              Leave this lesson?
-            </h2>
-            <p className="mt-1 text-sm text-gray-400">Your answers in this run are not saved until you finish.</p>
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                type="button"
-                autoFocus
-                onClick={() => setConfirmQuit(false)}
-                className="min-h-11 rounded-lg bg-white px-4 text-sm font-semibold text-black hover:bg-gray-200"
-              >
-                Keep going
-              </button>
-              <button
-                type="button"
-                onClick={onExit}
-                className="min-h-11 rounded-lg bg-white/[0.08] px-4 text-sm text-gray-200 hover:bg-white/[0.14]"
-              >
-                Leave
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {sheet && <ShortcutSheet scope="lesson" onClose={() => setSheet(false)} />}
     </div>
+  );
+}
+
+/** What the keys do on this card, for screens with a keyboard and pointer. */
+function KeyHint({ step, resumedHere }: { step: CourseStep; resumedHere: boolean }) {
+  let hint: React.ReactNode;
+  switch (step.type) {
+    case "teach":
+      hint = (
+        <>
+          <Kbd>Enter</Kbd> to continue
+        </>
+      );
+      break;
+    case "choice":
+      hint = (
+        <>
+          <Kbd>1</Kbd>-<Kbd>{String(Math.min(step.choices.length, 9))}</Kbd> to pick, <Kbd>Enter</Kbd> to check
+        </>
+      );
+      break;
+    case "blank":
+      hint = step.bank ? (
+        <>
+          A tile&apos;s key places it, <Kbd>Backspace</Kbd> takes one back, <Kbd>Enter</Kbd> to check
+        </>
+      ) : (
+        <>
+          Type, <Kbd>Tab</Kbd> to the next blank, <Kbd>Enter</Kbd> to check
+        </>
+      );
+      break;
+    case "order":
+      hint = (
+        <>
+          Press the keys in order, <Kbd>Backspace</Kbd> takes one back, <Kbd>Enter</Kbd> to check
+        </>
+      );
+      break;
+    case "match":
+      hint = <>Press a key on each side to pair them</>;
+      break;
+  }
+  return (
+    <p className="hidden text-sm leading-7 text-gray-400 [@media(pointer:fine)]:block">
+      {resumedHere ? <span className="text-gray-300">Picked up where you left off. </span> : null}
+      {hint}. <Kbd>?</Kbd> for every key
+    </p>
   );
 }
 

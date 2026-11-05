@@ -105,6 +105,8 @@ Signed-in learners can select words on a course page or inside a lesson card (a 
 
 In the player, a step missed the first time comes back once at the end of the lesson. The score is the share of graded steps answered right on the first try. Signed-in progress is stored per lesson (the progress endpoints above); signed out, it stays in the browser until the next signed-in visit to that course, which adds each lesson the account has not finished yet as one run at its best score.
 
+A lesson left halfway is not sent to the API. The player keeps the place (cards answered, first-try results, the missed cards queued for the end) in the browser, one lesson per course, and the course page offers Resume. A run whose lesson steps were edited since is dropped. Everything in the player has a key: each answer, tile, item and match cell shows its key (1 to 9, then 0, then a to z; in a match the right column carries on from the left), Backspace takes back the last pick, Enter checks and continues, Escape leaves. On the course page j and k move between lessons, r resumes, and ? lists every key (SHAN-659).
+
 ## Private courses
 
 Shipped 2026-10-25 (SHAN-617), for decks on material that should not be public. A course created or patched with \`"visibility": "private"\` is visible only to the account that created it and to the site owner (the journal's owner, who invites everyone else). For anyone else, signed in or not, it does not exist:
