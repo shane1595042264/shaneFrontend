@@ -188,7 +188,18 @@ export function BlankExercise({
     () => (step.bank ? seededShuffle([...answers.map((a) => a[0]), ...step.bank], seed) : []),
     [answers, step.bank, seed],
   );
-  const [slotTile, setSlotTile] = useState<(number | null)[]>(() => answers.map(() => null));
+  // Seeded from `value`, because the player remounts a card on Back and Next
+  // (SHAN-660) and the tiles must come back where they were (SHAN-661). Each
+  // filled blank takes the first unused tile with its text.
+  const [slotTile, setSlotTile] = useState<(number | null)[]>(() => {
+    const used = new Set<number>();
+    return answers.map((_, i) => {
+      const t = value[i] ? tiles.findIndex((tile, j) => tile === value[i] && !used.has(j)) : -1;
+      if (t < 0) return null;
+      used.add(t);
+      return t;
+    });
+  });
   const firstInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
