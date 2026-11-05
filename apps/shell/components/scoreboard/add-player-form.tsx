@@ -7,6 +7,7 @@ import {
   updatePlayer,
   type Player,
 } from "@/lib/api/scoreboard";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { colorStyles } from "./palette";
 
 export function AddPlayerForm({
@@ -34,7 +35,7 @@ export function AddPlayerForm({
       setName("");
       await onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add the player");
+      setError(humanizeActionError(err, "Could not add the player"));
     } finally {
       setSaving(false);
     }
@@ -64,7 +65,7 @@ export function AddPlayerForm({
       setEditingId(null);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not rename the player");
+      setError(humanizeActionError(err, "Could not rename the player"));
     } finally {
       setSaving(false);
     }
@@ -76,7 +77,7 @@ export function AddPlayerForm({
       await deletePlayer(id);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not remove the player");
+      setError(humanizeActionError(err, "Could not remove the player"));
     }
   }
 

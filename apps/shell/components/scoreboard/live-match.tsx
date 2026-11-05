@@ -10,6 +10,7 @@ import {
   type Match,
 } from "@/lib/api/scoreboard";
 import { GameIcon, CrownIcon } from "./game-icon";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { colorStyles } from "./palette";
 
 export function LiveMatch({
@@ -61,7 +62,7 @@ export function LiveMatch({
         ...s,
         [playerId]: Math.max((s[playerId] ?? 0) - applied, 0),
       }));
-      setError(err instanceof Error ? err.message : "Score did not save");
+      setError(humanizeActionError(err, "Score did not save"));
     } finally {
       inFlight.current.delete(request);
     }
@@ -81,7 +82,7 @@ export function LiveMatch({
       setEditingLocation(false);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the address");
+      setError(humanizeActionError(err, "Could not save the address"));
     }
   }
 
@@ -95,7 +96,7 @@ export function LiveMatch({
       setCelebrating(await finishMatch(match.id));
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not finish the match");
+      setError(humanizeActionError(err, "Could not finish the match"));
     } finally {
       setFinishing(false);
     }

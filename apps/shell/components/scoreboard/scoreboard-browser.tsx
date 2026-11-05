@@ -16,6 +16,7 @@ import { Hall } from "@/components/scoreboard/hall";
 import { Cabinet } from "@/components/scoreboard/cabinet";
 import { LiveMatch } from "@/components/scoreboard/live-match";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 /**
  * SHAN-508: the interactive half of /scoreboard, seeded by the server
@@ -102,7 +103,7 @@ export function ScoreboardBrowser({
       setLoaded(true);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load the scoreboard");
+      setError(humanizeActionError(e, "Failed to load the scoreboard"));
     }
   }, []);
 

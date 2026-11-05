@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/scoreboard";
 import { GameIcon, CrownIcon } from "./game-icon";
 import { GameForm } from "./game-form";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { colorStyles } from "./palette";
 
 export function Cabinet({
@@ -66,7 +67,7 @@ export function Cabinet({
       await refresh();
       onOpenMatch(match.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start the match");
+      setError(humanizeActionError(err, "Could not start the match"));
       setBusy(false);
     }
   }
@@ -79,7 +80,7 @@ export function Cabinet({
       await refresh();
       onBack();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete the game");
+      setError(humanizeActionError(err, "Could not delete the game"));
     }
   }
 
@@ -90,7 +91,7 @@ export function Cabinet({
       await refresh();
       onOpenMatch(id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not reopen the match");
+      setError(humanizeActionError(err, "Could not reopen the match"));
     }
   }
 
@@ -114,7 +115,7 @@ export function Cabinet({
       setEditingLocationId(null);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the address");
+      setError(humanizeActionError(err, "Could not save the address"));
     }
   }
 
@@ -125,7 +126,7 @@ export function Cabinet({
       await deleteMatch(id);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete the match");
+      setError(humanizeActionError(err, "Could not delete the match"));
     }
   }
 

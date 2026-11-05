@@ -8,6 +8,7 @@ import {
   type Game,
   type IconCandidate,
 } from "@/lib/api/scoreboard";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { COLOR_TOKENS, colorStyles } from "./palette";
 
 const iconPreviewUrl = (slug: string) =>
@@ -129,9 +130,7 @@ export function GameForm({
       await onSaved();
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : `Could not ${editing ? "save" : "create"} the game`,
+        humanizeActionError(err, `Could not ${editing ? "save" : "create"} the game`),
       );
       setSaving(false);
     }

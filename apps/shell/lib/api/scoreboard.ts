@@ -72,7 +72,9 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || `${res.status}`);
+    // No `{ error }` body (a gateway 502 serves HTML) leaves the message empty,
+    // so the caller's humanizeActionError fallback shows instead of a bare "502".
+    throw new Error((err as { error?: string }).error ?? "");
   }
   // DELETE returns 204 with no body.
   if (res.status === 204) return undefined as T;
