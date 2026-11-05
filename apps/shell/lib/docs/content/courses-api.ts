@@ -103,7 +103,7 @@ Rules the validator enforces, each reported with a path such as \`units[0].lesso
 
 Signed-in learners can select words on a course page or inside a lesson card (a heading, a teach card, an explanation) to add a private note or Explain them with their own AI key (SHAN-653). Those are reader notes with \`surface: "course"\`, see [AI and Reader Notes API](/docs/ai-api).
 
-In the player, a step missed the first time comes back once at the end of the lesson. The score is the share of graded steps answered right on the first try. Signed-in progress is stored per lesson (the progress endpoints above); signed out, it stays in the browser.
+In the player, a step missed the first time comes back once at the end of the lesson. The score is the share of graded steps answered right on the first try. Signed-in progress is stored per lesson (the progress endpoints above); signed out, it stays in the browser until the next signed-in visit to that course, which adds each lesson the account has not finished yet as one run at its best score.
 
 ## Private courses
 

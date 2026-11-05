@@ -7,6 +7,7 @@ import { humanizeError } from "@/lib/humanize-error";
 import { LoadError } from "@/components/load-error";
 import { listCourseProgress, recordLessonProgress, type Course } from "@/lib/api/courses";
 import {
+  clearLocalProgress,
   exerciseCount,
   flatLessons,
   lessonMinutes,
@@ -16,6 +17,44 @@ import {
   type CourseProgress,
 } from "@/lib/course-lessons";
 import { LessonPlayer, type SaveState } from "./lesson-player";
+
+// One load per course at a time, so an effect that re-runs while uploads are
+// in flight (auth settling, Strict Mode) waits for them instead of recording
+// the same lesson a second time.
+const loading = new Map<string, Promise<CourseProgress[]>>();
+
+/**
+ * SHAN-656. The signed-in progress list, with anything this browser finished
+ * signed out added to the account first. A local lesson is uploaded only when
+ * the server has no row for it (the server's row wins) and the course still
+ * has it (the server would 404). It goes up as one run at its best score; the
+ * local attempt count is not carried over. The local copy is cleared once
+ * every upload has landed. A failed one stays local and stays shown as done,
+ * and the next load retries it; lessons that did land are skipped then.
+ */
+function loadProgress(courseId: string, lessonIds: Set<string>): Promise<CourseProgress[]> {
+  const inFlight = loading.get(courseId);
+  if (inFlight) return inFlight;
+  const run = (async () => {
+    const server = await listCourseProgress(courseId);
+    const have = new Set(server.map((p) => p.lessonId));
+    const pending = readLocalProgress(courseId).filter(
+      (p) => lessonIds.has(p.lessonId) && !have.has(p.lessonId),
+    );
+    const kept: CourseProgress[] = [];
+    for (const p of pending) {
+      try {
+        server.push(await recordLessonProgress(courseId, p.lessonId, p.bestScore));
+      } catch {
+        kept.push(p);
+      }
+    }
+    if (kept.length === 0) clearLocalProgress(courseId);
+    return [...server, ...kept];
+  })().finally(() => loading.delete(courseId));
+  loading.set(courseId, run);
+  return run;
+}
 
 /**
  * SHAN-652. The lesson path on a course page and the player it opens.
@@ -66,6 +105,7 @@ export function CourseLessons({
 
   const lessons = useMemo(() => flatLessons(content), [content]);
   const byId = useMemo(() => new Map(lessons.map((l) => [l.lesson.id, l])), [lessons]);
+  const lessonIds = useMemo(() => new Set(byId.keys()), [byId]);
   const done = useMemo(() => new Map(progress.map((p) => [p.lessonId, p])), [progress]);
   const doneCount = lessons.filter((l) => done.has(l.lesson.id)).length;
   // With the load failed we do not know where the learner is, so nothing is
@@ -80,7 +120,7 @@ export function CourseLessons({
       setProgress(readLocalProgress(course.id));
       return;
     }
-    listCourseProgress(course.id)
+    loadProgress(course.id, lessonIds)
       .then((p) => {
         if (!cancelled) setProgress(p);
       })
@@ -90,7 +130,7 @@ export function CourseLessons({
     return () => {
       cancelled = true;
     };
-  }, [hydrated, authLoading, authUser, course.id, progressAttempt]);
+  }, [hydrated, authLoading, authUser, course.id, lessonIds, progressAttempt]);
 
   // Deep link on arrival, and Back/Forward while here.
   useEffect(() => {
