@@ -7,6 +7,7 @@ import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { useAuth } from "@/lib/auth-context";
 import { CourseInteractive } from "@/components/courses/course-interactive";
 import { coursePath, findCourse, type Course } from "@/lib/api/courses";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 /**
  * SHAN-617. Where a private course is read.
@@ -52,7 +53,7 @@ export default function PrivateCoursePage() {
       })
       .catch((e: unknown) => {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Failed to load this course");
+        setError(humanizeActionError(e, "Failed to load this course"));
         setState("error");
       });
     return () => {

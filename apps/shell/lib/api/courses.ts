@@ -88,7 +88,9 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || `${res.status}`);
+    // No `{ error }` body (a gateway 502 serves HTML) leaves the message empty,
+    // so the caller's humanizeActionError fallback shows instead of a bare "502".
+    throw new Error((err as { error?: string }).error ?? "");
   }
   if (res.status === 204) return undefined as T;
   return res.json();
@@ -136,7 +138,7 @@ export async function findCourse(slug: string): Promise<Course | null> {
   if (res.status === 404) return null;
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || `${res.status}`);
+    throw new Error((err as { error?: string }).error ?? "");
   }
   const data = (await res.json()) as { course: Course };
   return absolutize(data.course);
@@ -194,7 +196,7 @@ export async function uploadCourseCover(id: string, file: File): Promise<string>
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || `Upload failed (${res.status})`);
+    throw new Error((err as { error?: string }).error ?? "");
   }
   const data = (await res.json()) as { coverUrl: string };
   return data.coverUrl.startsWith("/") ? `${API_URL}${data.coverUrl}` : data.coverUrl;
@@ -269,7 +271,7 @@ export async function validateContent(body: string): Promise<ValidationResponse>
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || `Validation failed (${res.status})`);
+    throw new Error((err as { error?: string }).error ?? "");
   }
   return res.json();
 }
@@ -293,7 +295,7 @@ export async function saveCourseContent(
   if (res.status === 400 && Array.isArray((data as { issues?: unknown }).issues)) {
     throw new ContentInvalidError((data as { issues: ContentIssue[] }).issues);
   }
-  if (!res.ok) throw new Error((data as { error?: string }).error || `Save failed (${res.status})`);
+  if (!res.ok) throw new Error((data as { error?: string }).error ?? "");
   const out = data as CourseContentResponse & { course: Course };
   return { ...out, course: absolutize(out.course) };
 }

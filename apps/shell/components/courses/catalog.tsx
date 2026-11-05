@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
 import { coursePath, listCourses, type Course } from "@/lib/api/courses";
 import { revalidateCoursesIndex } from "@/lib/courses-revalidate";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { CourseCard } from "./course-card";
 import { AddCourseDialog } from "./add-course-dialog";
@@ -92,7 +93,7 @@ export function CoursesCatalog({ initialCourses }: CoursesCatalogProps) {
     listCourses()
       .then(setCourses)
       .catch((e: unknown) =>
-        setError(e instanceof Error ? e.message : "Failed to load courses"),
+        setError(humanizeActionError(e, "Failed to load courses")),
       );
   };
 

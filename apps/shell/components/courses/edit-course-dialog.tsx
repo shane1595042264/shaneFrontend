@@ -7,6 +7,7 @@ import { CATEGORY_STYLES } from "./category-styles";
 import { PrivateCourseToggle } from "./add-course-dialog";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 export function EditCourseDialog({
   open,
@@ -64,7 +65,7 @@ export function EditCourseDialog({
       });
       onSaved(updated);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to save");
+      setError(humanizeActionError(e, "Failed to save"));
     } finally {
       setSubmitting(false);
     }

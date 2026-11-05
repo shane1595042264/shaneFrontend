@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { humanizeActionError } from "@/lib/humanize-error";
 import {
   ContentInvalidError,
   saveCourseContent,
@@ -231,7 +232,7 @@ export function LessonEditor({
           } else setCheck({ kind: "invalid", issues: r.issues });
         })
         .catch((e: unknown) => {
-          if (!cancelled) setCheck({ kind: "error", message: e instanceof Error ? e.message : "Could not check" });
+          if (!cancelled) setCheck({ kind: "error", message: humanizeActionError(e, "Could not check") });
         });
     }, 450);
     return () => {
@@ -271,7 +272,7 @@ export function LessonEditor({
       if (e instanceof ContentInvalidError) {
         setCheck({ kind: "invalid", issues: e.issues });
         setTab("issues");
-      } else setSaveError(e instanceof Error ? e.message : "Save failed");
+      } else setSaveError(humanizeActionError(e, "Save failed"));
     } finally {
       setSaving(false);
     }

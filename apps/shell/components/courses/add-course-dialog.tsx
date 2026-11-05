@@ -6,6 +6,7 @@ import { createCourse, validateContent, type Course, type CourseDifficulty } fro
 import type { ContentIssue } from "@/lib/course-lessons";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { CATEGORY_STYLES } from "./category-styles";
 import { STARTER_CONTENT } from "./lessons/starter-template";
 
@@ -134,7 +135,7 @@ export function AddCourseDialog({
       reset();
       onCreated(course, { openEditor: true });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to add course");
+      setError(humanizeActionError(e, "Failed to add course"));
     } finally {
       setSubmitting(false);
     }

@@ -18,6 +18,7 @@ import {
 } from "@/lib/api/courses";
 import { courseLaunchUrl } from "@/lib/course-launch-url";
 import { revalidateCourse } from "@/lib/courses-revalidate";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { categoryStyle, DIFFICULTY_STYLES } from "./category-styles";
 import { GeneratedCover } from "./generated-cover";
 import { StarRating } from "./star-rating";
@@ -131,7 +132,7 @@ export function CourseInteractive({
       bustServerCache();
     } catch (e: unknown) {
       setCourse(prev);
-      flash(e instanceof Error ? e.message : "Rating failed");
+      flash(humanizeActionError(e, "Rating failed"));
     } finally {
       setRatingBusy(false);
     }
@@ -152,7 +153,7 @@ export function CourseInteractive({
       bustServerCache();
     } catch (e: unknown) {
       setCourse(prev);
-      flash(e instanceof Error ? e.message : "Rating failed");
+      flash(humanizeActionError(e, "Rating failed"));
     } finally {
       setRatingBusy(false);
     }
@@ -173,7 +174,7 @@ export function CourseInteractive({
       await bustServerCache();
       router.refresh();
     } catch (err: unknown) {
-      flash(err instanceof Error ? err.message : "Upload failed");
+      flash(humanizeActionError(err, "Upload failed"));
     } finally {
       setAdminBusy(null);
     }
@@ -187,7 +188,7 @@ export function CourseInteractive({
       await bustServerCache();
       router.refresh();
     } catch (err: unknown) {
-      flash(err instanceof Error ? err.message : "Failed to remove cover");
+      flash(humanizeActionError(err, "Failed to remove cover"));
     } finally {
       setAdminBusy(null);
     }
@@ -200,7 +201,7 @@ export function CourseInteractive({
       bustServerCache();
       flash("Reclassified.");
     } catch (err: unknown) {
-      flash(err instanceof Error ? err.message : "Reclassify failed");
+      flash(humanizeActionError(err, "Reclassify failed"));
     } finally {
       setAdminBusy(null);
     }
@@ -215,7 +216,7 @@ export function CourseInteractive({
       await bustServerCache();
       router.push("/courses");
     } catch (err: unknown) {
-      flash(err instanceof Error ? err.message : "Delete failed");
+      flash(humanizeActionError(err, "Delete failed"));
       setAdminBusy(null);
       setShowDelete(false);
     }
