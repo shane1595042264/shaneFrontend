@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { listVersions, getVersion, getEntry, revertEntry, type JournalVersion } from "@/lib/api/journal";
 import { RelativeTime } from "@/lib/format-time";
-import { humanizeError } from "@/lib/humanize-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { SuggestionDiff } from "@/components/journal/suggestion-diff";
 import { LoadError } from "@/components/load-error";
@@ -151,7 +151,7 @@ export default function HistoryPage() {
             : "Someone else edited the entry. Refresh and try again."
         );
       } else {
-        setRevertError(e.message ?? "Revert failed");
+        setRevertError(humanizeActionError(e, "Revert failed"));
       }
       setReverting(null);
       return;

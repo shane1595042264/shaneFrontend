@@ -15,7 +15,7 @@ import {
 } from "@/lib/api/suggestions";
 import { SuggestionDiff } from "@/components/journal/suggestion-diff";
 import { RelativeTime } from "@/lib/format-time";
-import { humanizeError } from "@/lib/humanize-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { LoadError } from "@/components/load-error";
 
@@ -161,7 +161,7 @@ export default function SuggestionDetailPage() {
         );
         await refresh();
       } else {
-        setError(e.message ?? "Approve failed");
+        setError(humanizeActionError(e, "Approve failed"));
       }
     } finally {
       setBusy(false);
@@ -188,7 +188,7 @@ export default function SuggestionDetailPage() {
       await rejectSuggestion(id, reason, date);
       router.push(`/journal/${date}/suggestions`);
     } catch (e: any) {
-      setRejectError(e.message ?? "Reject failed");
+      setRejectError(humanizeActionError(e, "Reject failed"));
     } finally {
       setBusy(false);
     }
@@ -221,7 +221,7 @@ export default function SuggestionDetailPage() {
         setWithdrawError(DECIDED_MESSAGES[e.currentStatus as string] ?? "This suggestion is no longer pending.");
         await refresh();
       } else {
-        setWithdrawError(e.message ?? "Withdraw failed");
+        setWithdrawError(humanizeActionError(e, "Withdraw failed"));
       }
     } finally {
       setBusy(false);
