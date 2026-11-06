@@ -14,6 +14,7 @@ import { LoginButton } from "@/components/login-button";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { markdownComponents } from "@/lib/markdown-mermaid";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 export default function SuggestPage() {
   const params = useParams<{ date: string }>();
@@ -158,7 +159,11 @@ export default function SuggestPage() {
       skipPromptRef.current = true;
       router.push(`/journal/${date}/suggestions?submitted=${created.id}`);
     } catch (err: any) {
-      setError(err.message ?? "Failed to submit suggestion");
+      if (err.message === "CANNOT_SUGGEST_OWN") {
+        setError("This is your entry, so edit it directly instead of suggesting a change.");
+      } else {
+        setError(humanizeActionError(err, "Failed to submit suggestion"));
+      }
       setSaving(false);
     }
   };

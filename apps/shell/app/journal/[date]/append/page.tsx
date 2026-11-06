@@ -12,6 +12,7 @@ import { LoginButton } from "@/components/login-button";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { markdownComponents } from "@/lib/markdown-mermaid";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 export default function AppendEntryPage() {
   const params = useParams<{ date: string }>();
@@ -163,7 +164,7 @@ export default function AppendEntryPage() {
     } catch (err: any) {
       if (err.message === "NOT_AUTHOR") setError("Only the author can append.");
       else if (err.message === "ENTRY_NOT_FOUND") setError("Entry no longer exists.");
-      else setError(err.message ?? "Failed to append");
+      else setError(humanizeActionError(err, "Failed to append"));
       setSaving(false);
     }
   };

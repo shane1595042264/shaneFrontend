@@ -11,6 +11,7 @@ import { MarkdownEditor } from "@shane/ui";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { markdownComponents } from "@/lib/markdown-mermaid";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 export default function EditEntryPage() {
   const params = useParams<{ date: string }>();
@@ -148,7 +149,7 @@ export default function EditEntryPage() {
       if (err.message === "ENTRY_EXISTS") {
         setError("Someone created an entry for this date before you. Try suggesting an edit instead.");
       } else {
-        setError(err.message ?? "Failed to save");
+        setError(humanizeActionError(err, "Failed to save"));
       }
       setSaving(false);
     }

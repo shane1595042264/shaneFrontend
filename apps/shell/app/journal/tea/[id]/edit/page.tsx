@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/tea-entries";
 import { LoginButton } from "@/components/login-button";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { MarkdownEditor } from "@shane/ui";
 
 export default function EditTeaEntryPage() {
@@ -86,8 +87,7 @@ export default function EditTeaEntryPage() {
       router.push(`/journal/tea/${params.id}`);
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to save";
-      setError(msg);
+      setError(humanizeActionError(err, "Failed to save"));
       setSaving(false);
     }
   };

@@ -9,6 +9,7 @@ import {
   requestJournalAccess,
   type JournalAccessState,
 } from "@/lib/api/journal-access";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 /**
  * Google-Docs-style access gate for the journal (SHAN-475, Phase 2 of SHAN-472).
@@ -56,7 +57,7 @@ export function JournalAccessGate({ children }: { children: React.ReactNode }) {
         requestMessage: message.trim() || null,
       }));
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Couldn't send your request");
+      setSubmitError(humanizeActionError(err, "Couldn't send your request"));
     } finally {
       setSubmitting(false);
     }

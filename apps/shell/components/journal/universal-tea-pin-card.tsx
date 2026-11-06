@@ -6,6 +6,7 @@ import {
   getUniversalTeaPinState,
   setUniversalTeaPin,
 } from "@/lib/api/user-prefs";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 interface Props {
   className?: string;
@@ -74,7 +75,7 @@ export function UniversalTeaPinCard({ className = "" }: Props) {
       setShowPin(false);
       setSavedNote("Universal PIN saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save PIN.");
+      setError(humanizeActionError(err, "Failed to save PIN."));
     } finally {
       setSaving(false);
     }
@@ -93,7 +94,7 @@ export function UniversalTeaPinCard({ className = "" }: Props) {
       setShowPin(false);
       setSavedNote("Universal PIN cleared.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to clear PIN.");
+      setError(humanizeActionError(err, "Failed to clear PIN."));
     } finally {
       setSaving(false);
     }
