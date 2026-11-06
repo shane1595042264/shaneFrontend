@@ -16,6 +16,7 @@ import {
   type BlogVersion,
   type VersionConflict,
 } from "@/lib/api/blog";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 const PAGE_SIZE = 25;
 
@@ -96,7 +97,7 @@ export default function BlogHistoryPage() {
         setIsDraft(post.post.status === "draft");
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load history");
+        if (!cancelled) setError(humanizeActionError(e, "Failed to load history"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -121,7 +122,7 @@ export default function BlogHistoryPage() {
         ...prev,
         [versionNum]: {
           status: "error",
-          message: e instanceof Error ? e.message : "Failed to load this version",
+          message: humanizeActionError(e, "Failed to load this version"),
         },
       }));
     } finally {
@@ -147,7 +148,7 @@ export default function BlogHistoryPage() {
       setVersions((prev) => [...prev, ...page.versions]);
       setNextCursor(page.nextCursor);
     } catch (e) {
-      setMoreError(e instanceof Error ? e.message : "Failed to load older versions");
+      setMoreError(humanizeActionError(e, "Failed to load older versions"));
     } finally {
       setLoadingMore(false);
     }
@@ -185,7 +186,7 @@ export default function BlogHistoryPage() {
             : "Someone else edited this post. Reload and try again.",
         );
       } else {
-        setRevertError(e instanceof Error ? e.message : "Revert failed");
+        setRevertError(humanizeActionError(e, "Revert failed"));
       }
       setReverting(false);
       return;

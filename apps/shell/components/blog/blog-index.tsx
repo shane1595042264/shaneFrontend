@@ -7,6 +7,7 @@ import { useHydrated } from "@/lib/use-hydrated";
 import { listPosts, type BlogPost } from "@/lib/api/blog";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { PostCard } from "./post-card";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 const PAGE_SIZE = 24;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -177,7 +178,7 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
       .catch((e: unknown) => {
         // An aborted request is a superseded keystroke, not a failure.
         if (controller.signal.aborted) return;
-        setError(e instanceof Error ? e.message : "Failed to load posts");
+        setError(humanizeActionError(e, "Failed to load posts"));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -200,7 +201,7 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
         mergeTags(page.posts);
       })
       .catch((e: unknown) =>
-        setError(e instanceof Error ? e.message : "Failed to load more posts"),
+        setError(humanizeActionError(e, "Failed to load more posts")),
       )
       .finally(() => setLoadingMore(false));
   };

@@ -16,6 +16,7 @@ import {
   type VersionConflict,
 } from "@/lib/api/blog";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 // Backend caps: tags max 10 at 40 chars each, title 200.
 const MAX_TAGS = 10;
@@ -133,7 +134,7 @@ export function PostEditor({ existing }: Props) {
       // relative keeps resolving if the backend origin ever moves.
       setCover(`/api/journal/images/${id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Cover upload failed");
+      setError(humanizeActionError(e, "Cover upload failed"));
     } finally {
       setCoverUploading(false);
       // Clear the input so re-picking the same file fires onChange again.
@@ -183,7 +184,7 @@ export function PostEditor({ existing }: Props) {
       if (err?.message === "VERSION_CONFLICT") {
         setConflictAt(err.currentVersionNum ?? null);
       } else {
-        setError(e instanceof Error ? e.message : "Failed to save");
+        setError(humanizeActionError(e, "Failed to save"));
       }
       setSaving(false);
     }

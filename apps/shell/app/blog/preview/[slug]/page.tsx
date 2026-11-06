@@ -15,6 +15,7 @@ import {
   readingTimeMinutes,
   stripLeadingTitleHeading,
 } from "@/lib/journal-text";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 /**
  * SHAN-487. The draft reading surface.
@@ -58,7 +59,7 @@ export default function BlogPreviewPage() {
       })
       .catch((e: unknown) => {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Failed to load this post");
+        setError(humanizeActionError(e, "Failed to load this post"));
         setState("error");
       });
     return () => {

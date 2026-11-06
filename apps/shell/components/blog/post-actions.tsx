@@ -8,6 +8,7 @@ import { useHydrated } from "@/lib/use-hydrated";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { deletePost } from "@/lib/api/blog";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 /**
  * SHAN-487. Author-only controls on the post page.
@@ -50,7 +51,7 @@ export function PostActions({ slug, authorId }: { slug: string; authorId: string
       router.push("/blog");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete");
+      setError(humanizeActionError(e, "Failed to delete"));
       setDeleting(false);
     }
   };

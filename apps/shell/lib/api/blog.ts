@@ -110,7 +110,9 @@ export async function listPosts(opts: ListPostsOptions = {}): Promise<BlogPostPa
   });
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(err.error || `Failed to load posts (${res.status})`);
+    // No `{ error }` body (a gateway 502 serves HTML) leaves the message empty,
+    // so the caller's humanizeActionError fallback shows instead of a bare "502".
+    throw new Error(err.error ?? "");
   }
   return res.json();
 }
@@ -123,7 +125,7 @@ export async function getPost(slug: string): Promise<BlogPostDetail | null> {
   if (res.status === 404) return null;
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(err.error || `Failed to load post (${res.status})`);
+    throw new Error(err.error ?? "");
   }
   return res.json();
 }
@@ -210,7 +212,7 @@ export async function createPost(
   });
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(err.error || `Failed to publish (${res.status})`);
+    throw new Error(err.error ?? "");
   }
   const json = (await res.json()) as { post: BlogPost; currentVersionNum: number };
   // Fire-and-forget: a revalidation failure must not lose the author's write,
@@ -251,7 +253,7 @@ export async function updatePost(
   if (res.status === 409) throw conflictError(await res.json().catch(() => ({})));
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(err.error || `Failed to save (${res.status})`);
+    throw new Error(err.error ?? "");
   }
   const json = (await res.json()) as { post: BlogPost; currentVersionNum: number };
   await revalidateBlogPost(slug).catch(() => {});
@@ -264,7 +266,7 @@ export async function deletePost(slug: string): Promise<void> {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
-  if (!res.ok && res.status !== 404) throw new Error(`Failed to delete (${res.status})`);
+  if (!res.ok && res.status !== 404) throw new Error("");
   await revalidateBlogPost(slug).catch(() => {});
 }
 
@@ -280,7 +282,7 @@ export async function listPostVersions(
     `${API_URL}/api/blog/posts/${encodeURIComponent(slug)}/versions${suffix}`,
     { headers: getAuthHeaders() },
   );
-  if (!res.ok) throw new Error(`Failed to load history (${res.status})`);
+  if (!res.ok) throw new Error("");
   const json = await res.json();
   return { versions: json.versions, nextCursor: json.nextCursor ?? null };
 }
@@ -293,7 +295,7 @@ export async function getPostVersion(
     `${API_URL}/api/blog/posts/${encodeURIComponent(slug)}/versions/${versionNum}`,
     { headers: getAuthHeaders() },
   );
-  if (!res.ok) throw new Error(`Failed to load version ${versionNum} (${res.status})`);
+  if (!res.ok) throw new Error("");
   return (await res.json()).version;
 }
 
@@ -315,7 +317,7 @@ export async function revertPost(
   if (res.status === 409) throw conflictError(await res.json().catch(() => ({})));
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(err.error || `Failed to revert (${res.status})`);
+    throw new Error(err.error ?? "");
   }
   const json = (await res.json()) as { versionNum: number; versionId: string };
   await revalidateBlogPost(slug).catch(() => {});

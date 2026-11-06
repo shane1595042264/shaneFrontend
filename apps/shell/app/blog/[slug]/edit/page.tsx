@@ -8,6 +8,7 @@ import { AuthorOnly } from "@/components/blog/author-only";
 import { PostEditor } from "@/components/blog/post-editor";
 import { LoadError } from "@/components/load-error";
 import { getPost, type BlogPostDetail } from "@/lib/api/blog";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 /**
  * SHAN-487. Loads the post with the author's JWT attached and hands it to the
@@ -39,7 +40,7 @@ function EditForm() {
       })
       .catch((e: unknown) => {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Failed to load this post");
+        setError(humanizeActionError(e, "Failed to load this post"));
         setState("error");
       });
     return () => {
