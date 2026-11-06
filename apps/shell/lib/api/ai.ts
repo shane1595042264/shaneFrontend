@@ -72,8 +72,10 @@ async function ai<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
+    // No `{ error }` body (a gateway 502 serves HTML) leaves the message empty,
+    // so the caller's humanizeActionError fallback shows instead of a bare "502".
     throw new AiApiError(
-      typeof body.error === "string" ? body.error : `Request failed (${res.status})`,
+      typeof body.error === "string" ? body.error : "",
       res.status,
       body.code ?? null,
       body.kind ?? null

@@ -21,6 +21,7 @@ import {
 } from "@/lib/api/ai";
 import { PROVIDER_COLOR, UsageChart } from "@/components/settings/ai-usage-chart";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 
@@ -224,7 +225,7 @@ function AddKeyForm({ onAdded }: { onAdded: (k: AiKey) => void }) {
       setAdded(k);
       setValue("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't add that key");
+      setError(humanizeActionError(err, "Couldn't add that key. Try again."));
     } finally {
       setBusy(false);
     }
@@ -335,7 +336,7 @@ function KeyCard({
     try {
       await fn();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "That didn't work");
+      setError(humanizeActionError(e, "That didn't work. Try again."));
     } finally {
       setBusy(null);
     }

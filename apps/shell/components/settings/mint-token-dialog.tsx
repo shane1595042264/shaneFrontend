@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { mintToken } from "@/lib/api/tokens";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { useScrollLock } from "@/lib/use-scroll-lock";
@@ -51,7 +52,7 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
       const res = await mintToken(name.trim(), scopes);
       setRaw(res.token);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create token");
+      setError(humanizeActionError(err, "Failed to create token"));
     } finally {
       setSaving(false);
     }

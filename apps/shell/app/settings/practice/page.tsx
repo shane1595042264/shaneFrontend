@@ -5,6 +5,7 @@ import Link from "@/components/transition-link";
 import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { getSettings, updateSettings, type PracticeSettings } from "@/lib/api/practice";
 
 const ADMIN_EMAIL = "a1595042264@gmail.com"; // matches ADMIN_EMAILS on Railway
@@ -40,7 +41,7 @@ export default function PracticeSettingsPage() {
         setVmem(s.vocabLevelToMemorize);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setLoadError(e instanceof Error ? e.message : "Failed to load settings");
+        if (!cancelled) setLoadError(humanizeActionError(e, "Couldn't load practice settings"));
       });
     return () => {
       cancelled = true;
@@ -101,7 +102,7 @@ export default function PracticeSettingsPage() {
       setSettings(updated);
       setStatus({ kind: "ok", msg: "Saved." });
     } catch (e) {
-      setStatus({ kind: "err", msg: (e as Error).message ?? "Failed" });
+      setStatus({ kind: "err", msg: humanizeActionError(e, "Couldn't save practice settings") });
     } finally {
       setSaving(false);
     }

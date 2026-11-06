@@ -8,6 +8,7 @@ import { MintTokenDialog } from "@/components/settings/mint-token-dialog";
 import { RevokeTokenDialog } from "@/components/settings/revoke-token-dialog";
 import { TimezoneSection } from "@/components/settings/timezone-section";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 export default function TokensPage() {
   const [tokens, setTokens] = useState<ApiToken[]>([]);
@@ -65,7 +66,7 @@ export default function TokensPage() {
       setRevokeConfirmId(null);
       refresh();
     } catch (err: unknown) {
-      setRevokeError(err instanceof Error ? err.message : "Failed to revoke token");
+      setRevokeError(humanizeActionError(err, "Failed to revoke token"));
     } finally {
       setRevokingId(null);
     }

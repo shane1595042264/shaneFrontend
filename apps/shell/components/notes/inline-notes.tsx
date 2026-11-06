@@ -20,7 +20,7 @@ import type { NoteRecord, NotesAdapter } from "@/components/notes/adapters";
 import { AiApiError, explainSelection } from "@/lib/api/ai";
 import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
-import { humanizeError } from "@/lib/humanize-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 import { captureAnchor, captureContext, collapse, type NoteAnchor } from "@/lib/journal-notes";
 import type { MarkableNote } from "@/lib/rehype-note-marks";
 import { markReadingAt } from "@/lib/reading-position";
@@ -428,7 +428,7 @@ export function NotesProvider({
       if (run !== explainRun.current) return;
       setExplainState({
         status: "error",
-        message: err instanceof Error ? err.message : "Explain failed",
+        message: humanizeActionError(err, "Explain didn't answer. Try again."),
         code: err instanceof AiApiError ? err.code : null,
       });
     }
