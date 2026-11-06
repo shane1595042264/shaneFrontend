@@ -50,6 +50,14 @@ const LESSON: Row[] = [
     does: "Pick the answer, tile or item with that key",
   },
   { keys: <Kbd>Backspace</Kbd>, does: "Take back the last tile, item or pick" },
+  {
+    keys: (
+      <>
+        <Kbd>Alt</Kbd> <Kbd>&uarr;</Kbd> <Kbd>&darr;</Kbd>
+      </>
+    ),
+    does: "Move the focused item up or down an order",
+  },
   { keys: <Kbd>Enter</Kbd>, does: "Check, then continue" },
   {
     keys: (

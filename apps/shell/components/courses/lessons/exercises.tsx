@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Reorder } from "framer-motion";
 import {
   blankAnswers,
   parseBlankText,
@@ -324,6 +325,17 @@ export function BlankExercise({
 
 // ---- put in order -----------------------------------------------------------
 
+/** Six dots: the "this moves" mark on a placed item. Plain spans, no icon set. */
+function Grip() {
+  return (
+    <span aria-hidden="true" className="grid shrink-0 grid-cols-2 gap-[3px] opacity-60">
+      {Array.from({ length: 6 }, (_, k) => (
+        <span key={k} className="h-[3px] w-[3px] rounded-full bg-current" />
+      ))}
+    </span>
+  );
+}
+
 export function OrderExercise({
   step,
   value,
@@ -353,31 +365,75 @@ export function OrderExercise({
     () => onChange(value.slice(0, -1)),
   );
 
+  // SHAN-665: placed items can be dragged into a new order. A drag ends in a
+  // click on the same button, which would take the item back out, so a click
+  // right after a drag is swallowed. Alt+Up/Down does the same from the keys.
+  const dragged = useRef(false);
+  const buttons = useRef(new Map<string, HTMLButtonElement>());
+  const move = (from: number, to: number) => {
+    if (to < 0 || to >= value.length) return;
+    const it = value[from];
+    const next = [...value];
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    onChange(next);
+    // Reordering moves DOM nodes, which can drop focus; keep it on the item.
+    requestAnimationFrame(() => buttons.current.get(it)?.focus({ preventScroll: true }));
+  };
+
   return (
     <div className="space-y-6">
-      <ol aria-label="Your order" className="grid gap-2">
+      <Reorder.Group as="ol" axis="y" values={value} onReorder={onChange} aria-label="Your order" className="grid gap-2">
         {value.map((it, i) => {
           const right = locked && it === step.items[i];
           return (
-            <li key={it} className="flex items-center gap-3">
+            <Reorder.Item
+              key={it}
+              value={it}
+              as="li"
+              dragListener={!locked}
+              onDragStart={() => {
+                dragged.current = true;
+              }}
+              onDragEnd={() => {
+                setTimeout(() => {
+                  dragged.current = false;
+                }, 0);
+              }}
+              whileDrag={{ scale: 1.02, zIndex: 10 }}
+              className={`relative flex items-center gap-3 ${locked ? "" : "cursor-grab active:cursor-grabbing"}`}
+            >
               <span aria-hidden="true" className="w-6 shrink-0 text-right font-mono text-xs tabular-nums text-gray-400">
                 {i + 1}
               </span>
               <button
+                ref={(el) => {
+                  if (el) buttons.current.set(it, el);
+                  else buttons.current.delete(it);
+                }}
                 type="button"
                 data-answer=""
                 disabled={locked}
-                onClick={() => onChange(value.filter((v) => v !== it))}
-                aria-label={`${i + 1}. ${it}. Tap to take it back`}
-                className={`${pressable} flex min-h-11 flex-1 items-center rounded-xl px-4 text-left text-[15px] ${tone({
+                onClick={() => {
+                  if (dragged.current) return;
+                  onChange(value.filter((v) => v !== it));
+                }}
+                onKeyDown={(e) => {
+                  if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+                  e.preventDefault();
+                  move(i, e.key === "ArrowUp" ? i - 1 : i + 1);
+                }}
+                aria-label={`${i + 1}. ${it}. Drag or Alt+arrow to move, tap to take it back`}
+                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                className={`${pressable} flex min-h-11 flex-1 cursor-[inherit] select-none items-center gap-3 rounded-xl px-4 text-left text-[15px] ${tone({
                   pressed: !locked,
                   right,
                   wrong: locked && !right,
                 })}`}
               >
-                {it}
+                <span className="min-w-0 flex-1">{it}</span>
+                {!locked && value.length > 1 && <Grip />}
               </button>
-            </li>
+            </Reorder.Item>
           );
         })}
         {/* Only the next slot is drawn, so a long list never pushes the
@@ -386,11 +442,11 @@ export function OrderExercise({
           <li aria-hidden="true" className="flex items-center gap-3">
             <span className="w-6 shrink-0 text-right font-mono text-xs tabular-nums text-gray-400">{value.length + 1}</span>
             <span className="flex min-h-11 flex-1 items-center rounded-xl border border-dashed border-white/15 px-4 text-sm text-gray-400">
-              {value.length === 0 ? "Tap the first one below" : "Tap the next one"}
+              {value.length === 0 ? "Tap the first one below" : "Tap the next one, or drag these to reorder"}
             </span>
           </li>
         )}
-      </ol>
+      </Reorder.Group>
 
       {!locked && remaining.length > 0 && (
         <div className="flex flex-wrap gap-2.5 pl-9" aria-label="Items to place">

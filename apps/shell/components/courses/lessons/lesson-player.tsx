@@ -674,7 +674,7 @@ function KeyHint({ step, resumedHere }: { step: CourseStep; resumedHere: boolean
     case "order":
       hint = (
         <>
-          Press the keys in order, <Kbd>Backspace</Kbd> takes one back, <Kbd>Enter</Kbd> to check
+          Press the keys in order, drag or <Kbd>Alt</Kbd>+<Kbd>&uarr;</Kbd><Kbd>&darr;</Kbd> to reorder, <Kbd>Enter</Kbd> to check
         </>
       );
       break;
