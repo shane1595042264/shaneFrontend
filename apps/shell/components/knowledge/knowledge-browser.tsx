@@ -21,6 +21,7 @@ import { CategoryTabs } from "@/components/knowledge/category-tabs";
 import { EntryCard } from "@/components/knowledge/entry-card";
 import { EntryDetail } from "@/components/knowledge/entry-detail";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { PracticeButton } from "@/components/practice/practice-button";
 import { ProgressChip } from "@/components/practice/progress-chip";
 import { listPracticeableItems, type PracticeableItem } from "@/lib/api/practice";
@@ -454,7 +455,7 @@ export function KnowledgeBrowser({
       );
       return true;
     } catch (err: any) {
-      showNotification(err.message || "Failed to add note", "error");
+      showNotification(humanizeActionError(err, "Failed to add note"), "error");
       return false;
     } finally {
       setAdding(false);
@@ -479,7 +480,7 @@ export function KnowledgeBrowser({
       showNotification(`Added "${entry.word}" to ${entry.category}`, "success");
       return true;
     } catch (err: any) {
-      showNotification(err.message || "Failed to add card", "error");
+      showNotification(humanizeActionError(err, "Failed to add card"), "error");
       return false;
     } finally {
       setAdding(false);
@@ -494,7 +495,7 @@ export function KnowledgeBrowser({
       loadMeta();
       if (selectedEntryId === id) closeEntry();
     } catch (err: any) {
-      showNotification(err.message || "Failed to delete entry", "error");
+      showNotification(humanizeActionError(err, "Failed to delete entry"), "error");
     } finally {
       setDeletingId(null);
       setDeleteConfirmId(null);
@@ -515,7 +516,7 @@ export function KnowledgeBrowser({
       setBulkConfirmOpen(false);
       exitEditMode();
     } catch (err: any) {
-      showNotification(err.message || "Failed to delete entries", "error");
+      showNotification(humanizeActionError(err, "Failed to delete entries"), "error");
     } finally {
       setBulkDeleting(false);
     }

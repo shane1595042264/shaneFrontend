@@ -12,6 +12,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { responsiveTableComponents } from "@/lib/markdown-table";
+import { humanizeActionError } from "@/lib/humanize-error";
 import {
   deleteEntry,
   submitRecital,
@@ -310,7 +311,7 @@ function ReciteCard({
         if (!reduce) void shake.start({ x: [0, -9, 8, -5, 3, 0], transition: { duration: 0.42 } });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't grade that");
+      setError(humanizeActionError(e, "Couldn't grade that"));
     } finally {
       setChecking(false);
     }
@@ -323,7 +324,7 @@ function ReciteCard({
       await deleteEntry(card.id);
       done("deleted");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't delete this card");
+      setError(humanizeActionError(e, "Couldn't delete this card"));
       setDeleting(false);
       setConfirmDelete(false);
     }

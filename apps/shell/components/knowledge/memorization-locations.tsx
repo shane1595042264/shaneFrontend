@@ -7,6 +7,7 @@ import {
   type KnowledgeEntry,
 } from "@/lib/knowledge-api";
 import { listLocations, upsertLocation, type Location } from "@/lib/api/practice";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 interface Props {
   entry: KnowledgeEntry;
@@ -50,7 +51,7 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
       onUpdated(updated);
       return true;
     } catch (e) {
-      setError((e as Error)?.message ?? "Failed to update locations");
+      setError(humanizeActionError(e, "Failed to update locations"));
       return false;
     } finally {
       setSaving(false);

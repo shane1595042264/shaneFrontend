@@ -19,6 +19,7 @@ import { NotedMarkdown, ReaderNotesScope } from "@/components/notes/reader-notes
 import { OrphanNotes } from "@/components/notes/inline-notes";
 import { MemorizationLocations } from "./memorization-locations";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 interface EntryDetailProps {
   entryId: string;
@@ -125,7 +126,7 @@ export function EntryDetail({
       setEntry(await enrichEntryApi(entryId));
       onEntryUpdated();
     } catch (err) {
-      setError((err as Error)?.message || "Failed to enrich entry.");
+      setError(humanizeActionError(err, "Failed to enrich entry."));
     } finally {
       setEnriching(false);
     }
@@ -164,7 +165,7 @@ export function EntryDetail({
       setEditing(false);
       onEntryUpdated();
     } catch (err: any) {
-      setError(err?.message || "Failed to save changes.");
+      setError(humanizeActionError(err, "Failed to save changes."));
     } finally {
       setSaving(false);
     }
@@ -182,7 +183,7 @@ export function EntryDetail({
       setConnectTarget("");
       await loadEntry();
     } catch (err: any) {
-      setError(err.message || "Failed to add connection.");
+      setError(humanizeActionError(err, "Failed to add connection."));
     }
   }
 
@@ -191,7 +192,7 @@ export function EntryDetail({
       await deleteConnection(connId);
       await loadEntry();
     } catch (err: any) {
-      setError(err.message || "Failed to delete connection.");
+      setError(humanizeActionError(err, "Failed to delete connection."));
     }
   }
 

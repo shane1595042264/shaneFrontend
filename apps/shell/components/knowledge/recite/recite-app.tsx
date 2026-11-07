@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "@/components/transition-link";
 import { ReciteSession, type ReciteOutcome } from "@/components/knowledge/recite/recite-session";
 import { formatRelativeTime } from "@/lib/format-time";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { listLocations } from "@/lib/api/practice";
 import {
   fetchMemorizationLocations,
@@ -56,7 +57,7 @@ export function ReciteApp() {
       const deck = await fetchReciteDeck(name);
       setPhase({ kind: "what", deck });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't load your cards");
+      setError(humanizeActionError(e, "Couldn't load your cards"));
     } finally {
       setLoadingPlace(null);
     }
