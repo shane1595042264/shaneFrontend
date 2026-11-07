@@ -35,7 +35,7 @@ export interface UpdateLoanInput {
   direction?: LoanDirection;
 }
 
-async function unwrapError(res: Response, fallback: string): Promise<never> {
+async function unwrapError(res: Response): Promise<never> {
   const err = await res.json().catch(() => ({}));
   // SHAN-451: every backend error is now { error: string }, and validation
   // failures add a structured { details: [{ path?, message }] }. Prefer the
@@ -54,12 +54,14 @@ async function unwrapError(res: Response, fallback: string): Promise<never> {
   if (typeof err.error === "string") {
     throw new Error(err.error);
   }
-  throw new Error(`${fallback}: ${res.status}`);
+  // No usable body (a gateway 502 serves HTML) leaves the message empty, so
+  // the page's humanizeActionError fallback shows instead of "...: 502".
+  throw new Error("");
 }
 
 export async function fetchLoans(): Promise<LoanEntry[]> {
   const res = await fetch(`${API_URL}/api/loans`, { headers: getAuthHeaders() });
-  if (!res.ok) await unwrapError(res, "Failed to fetch loans");
+  if (!res.ok) await unwrapError(res);
   const data = await res.json();
   return data.entries as LoanEntry[];
 }
@@ -70,7 +72,7 @@ export async function createLoan(input: CreateLoanInput): Promise<LoanEntry> {
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(input),
   });
-  if (!res.ok) await unwrapError(res, "Failed to create loan");
+  if (!res.ok) await unwrapError(res);
   const data = await res.json();
   return data.entry as LoanEntry;
 }
@@ -81,7 +83,7 @@ export async function updateLoan(id: string, patch: UpdateLoanInput): Promise<Lo
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(patch),
   });
-  if (!res.ok) await unwrapError(res, "Failed to update loan");
+  if (!res.ok) await unwrapError(res);
   const data = await res.json();
   return data.entry as LoanEntry;
 }
@@ -91,5 +93,5 @@ export async function deleteLoan(id: string): Promise<void> {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
-  if (!res.ok) await unwrapError(res, "Failed to delete loan");
+  if (!res.ok) await unwrapError(res);
 }

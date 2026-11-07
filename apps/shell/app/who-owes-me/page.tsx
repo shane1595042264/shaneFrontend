@@ -6,7 +6,7 @@ import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { useAuth } from "@/lib/auth-context";
 import { RelativeTime } from "@/lib/format-time";
-import { humanizeError } from "@/lib/humanize-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 import {
   fetchLoans,
   createLoan,
@@ -193,7 +193,7 @@ function WhoOwesMeContent() {
       setDescription("");
       setDirection("owed_to_me");
     } catch (e) {
-      setError((e as Error).message);
+      setError(humanizeActionError(e, "Could not add the loan. Try again."));
     } finally {
       setSubmitting(false);
     }
@@ -205,7 +205,7 @@ function WhoOwesMeContent() {
       const updated = await updateLoan(entry.id, { status: nextStatus });
       setEntries((prev) => prev.map((e) => (e.id === entry.id ? updated : e)));
     } catch (e) {
-      setError((e as Error).message);
+      setError(humanizeActionError(e, "Could not update the loan. Try again."));
     }
   }
 
@@ -229,7 +229,7 @@ function WhoOwesMeContent() {
       setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (e) {
-      setDeleteError((e as Error).message);
+      setDeleteError(humanizeActionError(e, "Could not delete the loan. Try again."));
     } finally {
       setDeleting(false);
     }
@@ -615,7 +615,7 @@ function LoanRowEdit({
     try {
       await onSave(patch);
     } catch (e) {
-      setLocalError((e as Error).message);
+      setLocalError(humanizeActionError(e, "Could not save your changes. Try again."));
       setSaving(false);
     }
   }
