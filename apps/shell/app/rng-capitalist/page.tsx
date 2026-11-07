@@ -9,6 +9,9 @@ import { BanList } from "@/components/rng/ban-list";
 import { fetchBudget, fetchHistory, fetchBans, evaluateProduct, evaluateManual, type BudgetInfo, type EvaluationResult, type Decision, type Ban } from "@/lib/rng-api";
 import { AuthGate } from "@/components/auth-gate";
 import { useAuth } from "@/lib/auth-context";
+import { humanizeActionError } from "@/lib/humanize-error";
+
+const EVALUATE_FAILED = "Couldn't evaluate that product. Try again.";
 
 export default function RngCapitalistPage() {
   return (
@@ -100,12 +103,8 @@ function RngCapitalistContent() {
       setResult(res);
       refreshAfterEval();
     } catch (err: any) {
-      if (err.needsManual) {
-        setNeedsManual(true);
-        setError(err.message);
-      } else {
-        setError(err.message);
-      }
+      if (err.needsManual) setNeedsManual(true);
+      setError(humanizeActionError(err, EVALUATE_FAILED));
     } finally { setLoading(false); }
   }
 
@@ -115,7 +114,7 @@ function RngCapitalistContent() {
       const res = await evaluateManual(productName, price, getOverrideParams());
       setResult(res);
       refreshAfterEval();
-    } catch (err: any) { setError(err.message); } finally { setLoading(false); }
+    } catch (err) { setError(humanizeActionError(err, EVALUATE_FAILED)); } finally { setLoading(false); }
   }
 
   return (

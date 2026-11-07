@@ -5,6 +5,7 @@ import { usePlaidLink } from "react-plaid-link";
 import type { BudgetInfo } from "@/lib/rng-api";
 import { createPlaidLinkToken, exchangePlaidToken } from "@/lib/rng-api";
 import { LoadError } from "@/components/load-error";
+import { humanizeError } from "@/lib/humanize-error";
 
 function formatMoney(n: number | null): string {
   if (n === null) return "—";
@@ -24,7 +25,7 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
       setLinkToken(token);
     } catch (err) {
       console.error("Failed to create link token:", err);
-      setError(err instanceof Error ? err.message : "Failed to start bank connect");
+      setError(humanizeError(err, "Failed to start bank connect"));
     } finally {
       setLoading(false);
     }
@@ -38,7 +39,7 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
         onConnected();
       } catch (err) {
         console.error("Failed to exchange token:", err);
-        setError(err instanceof Error ? err.message : "Failed to link bank account");
+        setError(humanizeError(err, "Failed to link bank account"));
       }
     },
     [onConnected]

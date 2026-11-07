@@ -55,7 +55,9 @@ export async function evaluateProduct(url: string, overrides?: BudgetOverride): 
   const res = await fetch(`${API_URL}/api/rng/evaluate`, { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ url, ...overrides }) });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    const error = new Error(err.error || `Evaluation failed: ${res.status}`) as any;
+    // No `{ error }` body (a gateway 502 serves HTML) leaves the message empty,
+    // so the page's humanizeActionError fallback shows instead of "Evaluation failed: 502".
+    const error = new Error(err.error || "") as any;
     error.needsManual = !!err.needs_manual;
     throw error;
   }
@@ -64,7 +66,7 @@ export async function evaluateProduct(url: string, overrides?: BudgetOverride): 
 
 export async function evaluateManual(productName: string, price: number, overrides?: BudgetOverride): Promise<EvaluationResult> {
   const res = await fetch(`${API_URL}/api/rng/evaluate`, { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ product_name: productName, price, ...overrides }) });
-  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Evaluation failed: ${res.status}`); }
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || ""); }
   return res.json();
 }
 
