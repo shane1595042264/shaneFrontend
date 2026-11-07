@@ -16,6 +16,7 @@ import {
   type SkincareRoutines,
   type TimeOfDay,
 } from "@/lib/api/skincare";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 const inputCls =
   "rounded-md border border-white/20 bg-black/30 px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:border-white/40 focus:outline-none";
@@ -78,7 +79,7 @@ function SkincareContent() {
       setRoutines((r) => (r ? { ...r, [timeOfDay]: [...r[timeOfDay], product] } : r));
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add product");
+      setError(humanizeActionError(e, "Failed to add product"));
       return false;
     } finally {
       setBusy(false);
@@ -100,7 +101,7 @@ function SkincareContent() {
       );
       setEditingId(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save changes");
+      setError(humanizeActionError(e, "Failed to save changes"));
     } finally {
       setBusy(false);
     }
@@ -113,7 +114,7 @@ function SkincareContent() {
       await deleteProduct(id);
       patchRoutine(timeOfDay, (routines?.[timeOfDay] ?? []).filter((p) => p.id !== id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete product");
+      setError(humanizeActionError(e, "Failed to delete product"));
     } finally {
       setBusy(false);
     }
@@ -135,7 +136,7 @@ function SkincareContent() {
     } catch (e) {
       // Revert on failure so the UI never diverges from the server order.
       patchRoutine(timeOfDay, current);
-      setError(e instanceof Error ? e.message : "Failed to reorder");
+      setError(humanizeActionError(e, "Failed to reorder"));
     } finally {
       setBusy(false);
     }
