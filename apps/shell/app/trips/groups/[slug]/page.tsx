@@ -42,6 +42,7 @@ import {
 } from "@/lib/api/trip-groups";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 
 function InviteLinkBox({ slug }: { slug: string }) {
   const [url, setUrl] = useState(`https://shanejli.com/trips/groups/${slug}`);
@@ -450,7 +451,7 @@ function GroupDetail() {
       setNotes(await apiListNotes(slug));
       setNotesError(null);
     } catch (err) {
-      setNotesError((err as Error).message);
+      setNotesError(humanizeActionError(err, "Could not load the notes."));
     }
   }, [slug]);
 
@@ -488,14 +489,14 @@ function GroupDetail() {
       void refetchPhotos();
       void refetchNotes();
     } catch (err) {
-      const message = (err as Error).message;
+      const message = err instanceof Error ? err.message : "";
       if (message.toLowerCase().includes("not a member")) {
         setForbidden(true);
         setError(null);
       } else if (message.toLowerCase().includes("not found")) {
         setError("This group doesn't exist.");
       } else {
-        setError(message);
+        setError(humanizeError(err, "Could not load this group."));
       }
     } finally {
       setLoading(false);
@@ -519,7 +520,7 @@ function GroupDetail() {
       setIdeaBody("");
       setDeleteError(null);
     } catch (err) {
-      setPostError((err as Error).message);
+      setPostError(humanizeActionError(err, "Could not post your idea. Try again."));
     } finally {
       setPosting(false);
     }
@@ -535,7 +536,7 @@ function GroupDetail() {
       );
       setDeleteError(null);
     } catch (err) {
-      setDeleteError((err as Error).message);
+      setDeleteError(humanizeActionError(err, "Could not delete the idea. Try again."));
     }
   }
 
@@ -564,7 +565,7 @@ function GroupDetail() {
       }
       void refetchPhotos();
     } catch (err) {
-      setConsolidateError((err as Error).message);
+      setConsolidateError(humanizeActionError(err, "Could not consolidate the itinerary. Try again."));
     } finally {
       setConsolidating(false);
     }
@@ -576,7 +577,7 @@ function GroupDetail() {
       await deletePhoto(slug, photoId);
       setPhotos((prev) => prev.filter((p) => p.id !== photoId));
     } catch (err) {
-      setPhotoError((err as Error).message);
+      setPhotoError(humanizeActionError(err, "Could not delete the photo. Try again."));
     }
   }
 
@@ -596,7 +597,7 @@ function GroupDetail() {
         );
       }
     } catch (err) {
-      setPhotoError((err as Error).message);
+      setPhotoError(humanizeActionError(err, "Could not fill photos from Unsplash. Try again."));
     } finally {
       setFilling(false);
     }
@@ -625,7 +626,7 @@ function GroupDetail() {
       }
       void refetchPhotos();
     } catch (err) {
-      setConsolidateError((err as Error).message);
+      setConsolidateError(humanizeActionError(err, "Could not save the itinerary. Try again."));
       throw err;
     } finally {
       setSavingDraft(false);
@@ -651,7 +652,7 @@ function GroupDetail() {
       setView("list");
       setConsolidateNotice("Itinerary reset — consolidate to draft a fresh one from the inbox.");
     } catch (err) {
-      setConsolidateError((err as Error).message);
+      setConsolidateError(humanizeActionError(err, "Could not reset the itinerary. Try again."));
     }
   }
 
@@ -682,7 +683,7 @@ function GroupDetail() {
       }
       setDraft(null);
     } catch (err) {
-      setConsolidateError((err as Error).message);
+      setConsolidateError(humanizeActionError(err, "Could not save the itinerary. Try again."));
     } finally {
       setSavingDraft(false);
     }
@@ -707,7 +708,7 @@ function GroupDetail() {
       }
       await refetchSuggestions();
     } catch (err) {
-      setSuggestionError((err as Error).message);
+      setSuggestionError(humanizeActionError(err, "Could not resolve the suggestion. Try again."));
     } finally {
       setResolvingId(null);
     }
@@ -721,7 +722,7 @@ function GroupDetail() {
       await joinGroup(slug);
       await refetch();
     } catch (err) {
-      setJoinError((err as Error).message);
+      setJoinError(humanizeActionError(err, "Could not join the group. Try again."));
       setJoining(false);
     }
   }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 import {
   getCalendarStatus,
   connectCalendar,
@@ -74,14 +75,13 @@ function ExportFlow({
           (skippedDays.length > 0 ? `. Days without dates were skipped: ${skippedDays.join(", ")}.` : "."),
       );
     } catch (err) {
-      const msg = (err as Error).message;
-      if (msg === "calendar_not_connected") {
+      if (err instanceof Error && err.message === "calendar_not_connected") {
         // Token gone (revoked or never granted) — fall back to consent.
         setConnected(false);
         connect();
         return;
       }
-      setError(msg);
+      setError(humanizeActionError(err, "Could not export to Google Calendar. Try again."));
     } finally {
       setBusy(false);
     }
@@ -98,7 +98,7 @@ function ExportFlow({
         setConnected(true);
         await runExport();
       } catch (err) {
-        setError((err as Error).message);
+        setError(humanizeActionError(err, "Could not connect Google Calendar. Try again."));
         setBusy(false);
       }
     },

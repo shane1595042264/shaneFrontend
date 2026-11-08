@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { RelativeTime } from "@/lib/format-time";
+import { humanizeActionError } from "@/lib/humanize-error";
 import type { TripGroupNote } from "@/lib/api/trip-groups";
 
 /**
@@ -70,7 +71,7 @@ export function NotesMargin({
     try {
       await onDelete(noteId);
     } catch (err) {
-      setDeleteError({ id: noteId, message: (err as Error).message });
+      setDeleteError({ id: noteId, message: humanizeActionError(err, "Could not delete the note. Try again.") });
     } finally {
       deleteInFlight.current = false;
       setDeletingId(null);
@@ -91,7 +92,7 @@ export function NotesMargin({
       setBody("");
       setError(null);
     } catch (err) {
-      setError((err as Error).message);
+      setError(humanizeActionError(err, "Could not add the note. Try again."));
     }
   }
 

@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/trip-groups";
 import { fmtDayDate } from "@/components/trips/itinerary-calendar";
 import { InlineErrorState } from "@/components/inline-error-state";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { buildPhotoResolver, photoBgStyle, PhotoCredit } from "@/components/trips/trip-photos";
 import { NotesMargin, type NoteAnchorOption } from "@/components/trips/margin-notes";
 import {
@@ -112,7 +113,7 @@ function DayDetail() {
       setNotes(await apiListNotes(slug));
       setNotesError(null);
     } catch (err) {
-      setNotesError((err as Error).message);
+      setNotesError(humanizeActionError(err, "Could not load the notes."));
     }
   }, [slug]);
 
@@ -125,7 +126,7 @@ function DayDetail() {
       setPhotos(p);
       setError(null);
     } catch (err) {
-      setError((err as Error).message);
+      setError(humanizeActionError(err, "Could not load this day."));
     } finally {
       setLoading(false);
     }
@@ -172,7 +173,7 @@ function DayDetail() {
         setEditing(null);
       }
     } catch (err) {
-      setError((err as Error).message);
+      setError(humanizeActionError(err, "Could not save your changes. Try again."));
     } finally {
       setSaving(false);
     }
@@ -205,7 +206,7 @@ function DayDetail() {
       const photo = await uploadPhoto(slug, d, file);
       setPhotos((prev) => [...prev, photo]);
     } catch (err) {
-      setError((err as Error).message);
+      setError(humanizeActionError(err, "Could not upload the photo. Try again."));
     } finally {
       setUploading(false);
     }
@@ -217,7 +218,7 @@ function DayDetail() {
       await deletePhoto(slug, photoId);
       setPhotos((prev) => prev.filter((p) => p.id !== photoId));
     } catch (err) {
-      setError((err as Error).message);
+      setError(humanizeActionError(err, "Could not delete the photo. Try again."));
     }
   }
 

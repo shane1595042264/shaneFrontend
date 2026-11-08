@@ -72,9 +72,11 @@ export interface TripGroupDetail {
   ideas: TripIdea[];
 }
 
-async function unwrap(res: Response, fallback: string): Promise<never> {
+async function unwrap(res: Response): Promise<never> {
   const err = await res.json().catch(() => ({}));
-  throw new Error(err.error || `${fallback}: ${res.status}`);
+  // No `{ error }` body (a gateway 502 serves HTML) leaves the message empty,
+  // so the page's humanizeActionError fallback shows instead of "...: 502".
+  throw new Error(typeof err.error === "string" ? err.error : "");
 }
 
 export async function listMyGroups(): Promise<TripGroupSummary[]> {
@@ -82,7 +84,7 @@ export async function listMyGroups(): Promise<TripGroupSummary[]> {
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) await unwrap(res, "Failed to list groups");
+  if (!res.ok) await unwrap(res);
   return (await res.json()).groups;
 }
 
@@ -92,7 +94,7 @@ export async function createGroup(title: string): Promise<{ slug: string; title:
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ title }),
   });
-  if (!res.ok) await unwrap(res, "Failed to create group");
+  if (!res.ok) await unwrap(res);
   const body = await res.json();
   return { slug: body.group.slug, title: body.group.title };
 }
@@ -102,7 +104,7 @@ export async function getGroupDetail(slug: string): Promise<TripGroupDetail> {
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) await unwrap(res, "Failed to load group");
+  if (!res.ok) await unwrap(res);
   return (await res.json()).group;
 }
 
@@ -115,7 +117,7 @@ export async function joinGroup(slug: string): Promise<{
     method: "POST",
     headers: getAuthHeaders(),
   });
-  if (!res.ok) await unwrap(res, "Failed to join group");
+  if (!res.ok) await unwrap(res);
   return res.json();
 }
 
@@ -125,7 +127,7 @@ export async function postIdea(slug: string, body: string): Promise<TripIdea> {
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ body }),
   });
-  if (!res.ok) await unwrap(res, "Failed to post idea");
+  if (!res.ok) await unwrap(res);
   return (await res.json()).idea;
 }
 
@@ -155,7 +157,7 @@ export async function consolidateItinerary(slug: string): Promise<{
     method: "POST",
     headers: getAuthHeaders(),
   });
-  if (!res.ok) await unwrap(res, "Failed to consolidate itinerary");
+  if (!res.ok) await unwrap(res);
   return res.json();
 }
 
@@ -164,7 +166,7 @@ export async function listSuggestions(slug: string): Promise<TripItinerarySugges
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) await unwrap(res, "Failed to load suggestions");
+  if (!res.ok) await unwrap(res);
   return (await res.json()).suggestions;
 }
 
@@ -176,7 +178,7 @@ export async function approveSuggestion(
     `${API_URL}/api/trip-groups/${slug}/itinerary/suggestions/${suggestionId}/approve`,
     { method: "POST", headers: getAuthHeaders() },
   );
-  if (!res.ok) await unwrap(res, "Failed to approve suggestion");
+  if (!res.ok) await unwrap(res);
   return res.json();
 }
 
@@ -185,7 +187,7 @@ export async function rejectSuggestion(slug: string, suggestionId: string): Prom
     `${API_URL}/api/trip-groups/${slug}/itinerary/suggestions/${suggestionId}/reject`,
     { method: "POST", headers: getAuthHeaders() },
   );
-  if (!res.ok) await unwrap(res, "Failed to reject suggestion");
+  if (!res.ok) await unwrap(res);
 }
 
 export async function deleteIdea(slug: string, ideaId: string): Promise<void> {
@@ -193,7 +195,7 @@ export async function deleteIdea(slug: string, ideaId: string): Promise<void> {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
-  if (!res.ok && res.status !== 404) await unwrap(res, "Failed to delete idea");
+  if (!res.ok && res.status !== 404) await unwrap(res);
 }
 
 export interface TripGroupPhoto {
@@ -216,7 +218,7 @@ export async function listPhotos(slug: string): Promise<TripGroupPhoto[]> {
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) await unwrap(res, "Failed to load photos");
+  if (!res.ok) await unwrap(res);
   const { photos } = await res.json();
   return photos.map((p: TripGroupPhoto) => ({ ...p, url: absolutePhotoUrl(p.url) }));
 }
@@ -230,7 +232,7 @@ export async function uploadPhoto(slug: string, day: number, file: File): Promis
     headers: getAuthHeaders(),
     body: form,
   });
-  if (!res.ok) await unwrap(res, "Failed to upload photo");
+  if (!res.ok) await unwrap(res);
   const { photo } = await res.json();
   return { ...photo, url: absolutePhotoUrl(photo.url) };
 }
@@ -240,7 +242,7 @@ export async function deletePhoto(slug: string, photoId: string): Promise<void> 
     method: "DELETE",
     headers: getAuthHeaders(),
   });
-  if (!res.ok && res.status !== 404) await unwrap(res, "Failed to delete photo");
+  if (!res.ok && res.status !== 404) await unwrap(res);
 }
 
 export async function unsplashFill(slug: string): Promise<{
@@ -251,7 +253,7 @@ export async function unsplashFill(slug: string): Promise<{
     method: "POST",
     headers: getAuthHeaders(),
   });
-  if (!res.ok) await unwrap(res, "Failed to fill photos from Unsplash");
+  if (!res.ok) await unwrap(res);
   const body = await res.json();
   return {
     photos: (body.photos ?? []).map((p: TripGroupPhoto) => ({ ...p, url: absolutePhotoUrl(p.url) })),
@@ -281,7 +283,7 @@ export async function updateItinerary(
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ itinerary, base }),
   });
-  if (!res.ok) await unwrap(res, "Failed to save itinerary");
+  if (!res.ok) await unwrap(res);
   return res.json();
 }
 
@@ -292,7 +294,7 @@ export async function getCalendarStatus(): Promise<{ connected: boolean; clientI
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) await unwrap(res, "Failed to check calendar connection");
+  if (!res.ok) await unwrap(res);
   return res.json();
 }
 
@@ -302,7 +304,7 @@ export async function connectCalendar(code: string): Promise<void> {
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ code }),
   });
-  if (!res.ok) await unwrap(res, "Failed to connect Google Calendar");
+  if (!res.ok) await unwrap(res);
 }
 
 export async function exportToCalendar(slug: string): Promise<{
@@ -314,7 +316,7 @@ export async function exportToCalendar(slug: string): Promise<{
     method: "POST",
     headers: getAuthHeaders(),
   });
-  if (!res.ok) await unwrap(res, "Failed to export itinerary");
+  if (!res.ok) await unwrap(res);
   return res.json();
 }
 
@@ -336,7 +338,7 @@ export async function listNotes(slug: string): Promise<TripGroupNote[]> {
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) await unwrap(res, "Failed to load notes");
+  if (!res.ok) await unwrap(res);
   return (await res.json()).notes;
 }
 
@@ -354,7 +356,7 @@ export async function createNote(
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(input),
   });
-  if (!res.ok) await unwrap(res, "Failed to add note");
+  if (!res.ok) await unwrap(res);
   return (await res.json()).note;
 }
 
@@ -363,7 +365,7 @@ export async function deleteNote(slug: string, noteId: string): Promise<void> {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
-  if (!res.ok && res.status !== 404) await unwrap(res, "Failed to delete note");
+  if (!res.ok && res.status !== 404) await unwrap(res);
 }
 
 export interface SectionItem {
@@ -388,7 +390,7 @@ export async function listSections(slug: string): Promise<TripGroupSection[]> {
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) await unwrap(res, "Failed to load sections");
+  if (!res.ok) await unwrap(res);
   return (await res.json()).sections;
 }
 
@@ -398,7 +400,7 @@ export async function createSection(slug: string, title: string): Promise<TripGr
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ title, kind: "todo" }),
   });
-  if (!res.ok) await unwrap(res, "Failed to create section");
+  if (!res.ok) await unwrap(res);
   return (await res.json()).section;
 }
 
@@ -420,7 +422,7 @@ export async function updateSection(
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(patch),
   });
-  if (!res.ok) await unwrap(res, "Failed to update section");
+  if (!res.ok) await unwrap(res);
   return (await res.json()).section;
 }
 
@@ -429,7 +431,7 @@ export async function deleteSection(slug: string, sectionId: string): Promise<vo
     method: "DELETE",
     headers: getAuthHeaders(),
   });
-  if (!res.ok && res.status !== 404) await unwrap(res, "Failed to delete section");
+  if (!res.ok && res.status !== 404) await unwrap(res);
 }
 
 /** Owner-only itinerary reset (SHAN-286): next consolidate starts fresh. */
@@ -438,5 +440,5 @@ export async function resetItinerary(slug: string): Promise<void> {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
-  if (!res.ok) await unwrap(res, "Failed to reset itinerary");
+  if (!res.ok) await unwrap(res);
 }

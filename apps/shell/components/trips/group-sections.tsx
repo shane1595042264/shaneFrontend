@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { CollapsibleSection } from "@/components/trips/page-toc";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { useAuth } from "@/lib/auth-context";
 import {
   listSections,
@@ -76,7 +77,7 @@ export function GroupSections({
       // section as if it were the only one.
       if (!loaded) load();
     } catch (err) {
-      setError((err as Error).message);
+      setError(humanizeActionError(err, "Could not create the section. Try again."));
     } finally {
       setCreating(false);
     }
@@ -94,7 +95,7 @@ export function GroupSections({
       const updated = await updateSection(slug, section.id, delta);
       setSections((prev) => prev.map((s) => (s.id === section.id ? updated : s)));
     } catch (err) {
-      setError((err as Error).message);
+      setError(humanizeActionError(err, "Could not save the checklist. Try again."));
       setSections((prev) => prev.map((s) => (s.id === section.id ? section : s)));
     } finally {
       setSavingId(null);
@@ -107,7 +108,7 @@ export function GroupSections({
       await deleteSection(slug, id);
       setSections((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
-      setError((err as Error).message);
+      setError(humanizeActionError(err, "Could not delete the section. Try again."));
     }
   }
 

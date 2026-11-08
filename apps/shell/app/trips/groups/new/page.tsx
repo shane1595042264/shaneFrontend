@@ -5,6 +5,7 @@ import Link from "@/components/transition-link";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { AuthGate } from "@/components/auth-gate";
 import { createGroup } from "@/lib/api/trip-groups";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 export default function NewGroupPage() {
   return (
@@ -30,7 +31,7 @@ function NewGroupForm() {
       const res = await createGroup(trimmed);
       router.push(`/trips/groups/${res.slug}`);
     } catch (err) {
-      setError((err as Error).message);
+      setError(humanizeActionError(err, "Could not create the group. Try again."));
       setCreating(false);
     }
   }

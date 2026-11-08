@@ -6,6 +6,7 @@ import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { AuthGate } from "@/components/auth-gate";
 import { LoadError } from "@/components/load-error";
 import { RelativeTime } from "@/lib/format-time";
+import { humanizeActionError } from "@/lib/humanize-error";
 import {
   listMyGroups,
   joinGroup,
@@ -77,7 +78,7 @@ function GroupsIndex() {
       const result = await joinGroup(slug);
       router.push(`/trips/groups/${result.group.slug}`);
     } catch (err) {
-      setJoinError((err as Error).message);
+      setJoinError(humanizeActionError(err, "Could not join the group. Try again."));
       setJoining(false);
     }
   }
