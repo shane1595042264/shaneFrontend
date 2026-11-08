@@ -2,6 +2,7 @@
 
 import { GoogleLogin, GoogleOAuthProvider, useGoogleOAuth } from "@react-oauth/google";
 import { useAuth } from "@/lib/auth-context";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
@@ -18,6 +19,8 @@ const PILL =
 // behind the real button once it lands.
 const PILL_UNDERLAY =
   "inline-flex h-8 items-center justify-center rounded-full bg-black px-4 text-sm font-medium text-white";
+
+const SIGN_IN_FAILED = "Sign-in failed. Please try again.";
 
 // iOS Chrome (CriOS) crashes the tab when the GSI popup tries to window.open the
 // OAuth consent screen (SHAN-318). One Tap is rendered as an in-page iframe
@@ -157,8 +160,8 @@ function GsiLoginButton() {
       try {
         setError(null);
         await login(credential);
-      } catch (err: any) {
-        setError(err.message || "Login failed");
+      } catch (err) {
+        setError(humanizeActionError(err, SIGN_IN_FAILED));
       }
     },
     [login],
@@ -195,7 +198,11 @@ function GsiLoginButton() {
             Sign-in didn&apos;t appear. Open this page in Safari to log in (iOS Chrome popup workaround).
           </span>
         )}
-        {error && <span className="text-xs text-red-400">{error}</span>}
+        {error && (
+          <span role="alert" className="text-xs text-red-400">
+            {error}
+          </span>
+        )}
       </div>
     );
   }
@@ -216,14 +223,18 @@ function GsiLoginButton() {
         </span>
         <GoogleLogin
           onSuccess={(credentialResponse) => handleCredential(credentialResponse.credential)}
-          onError={() => setError("Login failed")}
+          onError={() => setError(SIGN_IN_FAILED)}
           size="medium"
           theme="filled_black"
           shape="pill"
           text="signin"
         />
       </div>
-      {error && <span className="text-red-400 text-xs">{error}</span>}
+      {error && (
+        <span role="alert" className="text-red-400 text-xs">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

@@ -57,7 +57,9 @@ export async function loginWithGoogle(credential: string): Promise<AuthResponse>
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Login failed");
+    // No `{ error }` body (a gateway 502 serves HTML) leaves the message empty,
+    // so the button's humanizeActionError fallback shows instead.
+    throw new Error(typeof err.error === "string" ? err.error : "");
   }
   return res.json();
 }
