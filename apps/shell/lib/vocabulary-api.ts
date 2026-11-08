@@ -71,8 +71,10 @@ export async function createWord(input: {
     body: JSON.stringify(input),
   });
   if (!res.ok) {
+    // No usable body (a gateway 502 serves HTML) leaves the message empty, so
+    // the page's humanizeActionError fallback shows instead.
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Failed to create word");
+    throw new Error(typeof err.error === "string" ? err.error : "");
   }
   const data = await res.json();
   return data.word;
@@ -105,7 +107,10 @@ export async function deleteWord(id: string): Promise<void> {
     method: "DELETE",
     headers: { ...getAuthHeaders() },
   });
-  if (!res.ok) throw new Error("Failed to delete word");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(typeof err.error === "string" ? err.error : "");
+  }
 }
 
 export async function enrichWordApi(id: string): Promise<VocabWord> {

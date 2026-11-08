@@ -16,6 +16,7 @@ import { WordDetail } from "@/components/vocabulary/word-detail";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { LoadError } from "@/components/load-error";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 interface VocabularyBrowserProps {
   /**
@@ -145,8 +146,8 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
       loadMeta();
       showNotification(`Added "${data.word}"`, "success");
       return true;
-    } catch (err: any) {
-      showNotification(err.message || "Failed to add word", "error");
+    } catch (err) {
+      showNotification(humanizeActionError(err, "Could not add the word. Try again."), "error");
       return false;
     } finally {
       setAdding(false);
@@ -160,8 +161,8 @@ export function VocabularyBrowser({ initialWords }: VocabularyBrowserProps) {
       await loadWords();
       loadMeta();
       if (selectedWordId === id) setSelectedWordId(null);
-    } catch (err: any) {
-      showNotification(err.message || "Failed to delete word", "error");
+    } catch (err) {
+      showNotification(humanizeActionError(err, "Could not delete the word. Try again."), "error");
     } finally {
       setDeletingId(null);
       setDeleteConfirmId(null);
