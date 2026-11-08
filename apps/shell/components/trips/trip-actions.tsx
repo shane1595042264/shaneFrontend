@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { deleteTrip } from "@/lib/api/trips";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 interface Props {
   slug: string;
@@ -33,8 +34,8 @@ export function TripActions({ slug, title }: Props) {
       await deleteTrip(slug);
       // Hard nav so the index page (force-dynamic + cache:no-store) refetches without the deleted row.
       window.location.href = "/trips";
-    } catch (err: any) {
-      setError(err?.message ?? "Failed to delete trip");
+    } catch (err) {
+      setError(humanizeActionError(err, "Failed to delete trip"));
       setDeleting(false);
     }
   };

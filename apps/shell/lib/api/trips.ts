@@ -73,7 +73,9 @@ export async function uploadTripFile(
         err.existing,
       );
     }
-    throw new Error(err.error || `Upload failed (${res.status})`);
+    // No `{ error }` body (a gateway 502 serves HTML) leaves the message empty,
+    // so the page's humanizeActionError fallback shows instead of "(502)".
+    throw new Error(typeof err.error === "string" ? err.error : "");
   }
   const body = await res.json();
   return { slug: body.trip.slug, title: body.trip.title };

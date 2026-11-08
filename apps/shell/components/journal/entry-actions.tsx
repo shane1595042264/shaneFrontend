@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { deleteEntry } from "@/lib/api/journal";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 interface Props {
   date: string;
@@ -39,8 +40,8 @@ export function EntryActions({ date, authorId }: Props) {
       await deleteEntry(date);
       // Hard nav so Next 15's client router cache doesn't replay the now-trashed entry.
       window.location.href = "/journal";
-    } catch (err: any) {
-      setError(err?.message ?? "Failed to delete entry");
+    } catch (err) {
+      setError(humanizeActionError(err, "Failed to delete entry"));
       setDeleting(false);
     }
   };

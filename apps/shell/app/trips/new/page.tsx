@@ -6,6 +6,7 @@ import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { useAuth } from "@/lib/auth-context";
 import { DuplicateTripError, uploadTripFile, type ExistingTripRef } from "@/lib/api/trips";
 import { LoginButton } from "@/components/login-button";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 export default function NewTripPage() {
   const router = useRouter();
@@ -42,11 +43,11 @@ export default function NewTripPage() {
     try {
       const res = await uploadTripFile(file, titleOverride.trim() || undefined, { force });
       router.push(`/trips/${res.slug}`);
-    } catch (err: any) {
+    } catch (err) {
       if (err instanceof DuplicateTripError) {
         setDuplicate(err.existing);
       } else {
-        setError(err?.message ?? "Upload failed");
+        setError(humanizeActionError(err, "Could not upload the trip. Please try again."));
       }
       setUploading(false);
     }

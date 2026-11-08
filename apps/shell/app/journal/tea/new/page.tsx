@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { uploadImage } from "@/lib/api/images";
 import { createTeaEntry } from "@/lib/api/tea-entries";
 import { LoginButton } from "@/components/login-button";
+import { humanizeActionError } from "@/lib/humanize-error";
 import { MarkdownEditor } from "@shane/ui";
 
 export default function NewTeaEntryPage() {
@@ -57,8 +58,8 @@ export default function NewTeaEntryPage() {
       });
       router.push(`/journal/tea/${entry.id}`);
       router.refresh();
-    } catch (err: any) {
-      setError(err?.message ?? "Failed to publish");
+    } catch (err: unknown) {
+      setError(humanizeActionError(err, "Failed to publish"));
       setSaving(false);
     }
   };
@@ -120,7 +121,7 @@ export default function NewTeaEntryPage() {
         onUploadingChange={setUploading}
       />
 
-      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+      {error && <p role="alert" className="mt-3 text-sm text-red-400">{error}</p>}
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-2">
         <button
           onClick={submit}

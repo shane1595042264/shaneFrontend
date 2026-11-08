@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { updateMyTimezone } from "@/lib/auth-api";
 import { DEFAULT_TIMEZONE, getTodayInTimezone } from "@/lib/timezone";
+import { humanizeActionError } from "@/lib/humanize-error";
 
 function listIanaTimezones(): string[] {
   // Intl.supportedValuesOf is available in modern browsers and Node 18+.
@@ -92,8 +93,8 @@ export function TimezoneSection() {
       const res = await updateMyTimezone(value);
       patchUser({ timezone: res.timezone });
       setStatus({ kind: "ok", msg: `Saved. Today is ${getTodayInTimezone(res.timezone)} in ${res.timezone}.` });
-    } catch (err: any) {
-      setStatus({ kind: "err", msg: err?.message ?? "Failed to save timezone" });
+    } catch (err) {
+      setStatus({ kind: "err", msg: humanizeActionError(err, "Failed to save timezone") });
     } finally {
       setSaving(false);
     }
@@ -134,7 +135,7 @@ export function TimezoneSection() {
       </div>
       {status && (
         <p
-          role="status"
+          role={status.kind === "ok" ? "status" : "alert"}
           className={`mt-3 text-sm ${status.kind === "ok" ? "text-green-400" : "text-red-400"}`}
         >
           {status.msg}
