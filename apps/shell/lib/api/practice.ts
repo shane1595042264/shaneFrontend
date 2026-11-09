@@ -108,10 +108,11 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const err = await res.json().catch(() => ({}));
     // The backend usually returns { error: "message" }, but some validation
     // paths return a structured object. Coercing that into `new Error(...)`
-    // yields the useless "[object Object]"; fall back to a status-based message.
+    // yields the useless "[object Object]". With no usable string (that, or a
+    // gateway 502 serving HTML) the message stays empty, so the caller's
+    // humanizeActionError fallback shows instead of "Request failed (502)".
     const raw = (err as { error?: unknown }).error;
-    const message = typeof raw === "string" && raw ? raw : `Request failed (${res.status})`;
-    throw new Error(message);
+    throw new Error(typeof raw === "string" ? raw : "");
   }
   return res.json();
 }

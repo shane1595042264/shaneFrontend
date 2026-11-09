@@ -183,7 +183,9 @@ export function describePrescription(block: {
 
 // Same wrapper as lib/api/practice.ts: the backend answers { error: string } on
 // most failures but some validation paths return a structured object, which
-// stringifies to a useless "[object Object]".
+// stringifies to a useless "[object Object]". With no usable string the message
+// stays empty, so the caller's humanizeActionError fallback shows instead of
+// "Request failed (502)" when a gateway answers with HTML.
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -196,8 +198,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const raw = (err as { error?: unknown }).error;
-    const message = typeof raw === "string" && raw ? raw : `Request failed (${res.status})`;
-    throw new Error(message);
+    throw new Error(typeof raw === "string" ? raw : "");
   }
   if (res.status === 204) return undefined as T;
   return res.json();
