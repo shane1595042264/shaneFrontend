@@ -298,8 +298,12 @@ export function LessonPlayer({
       // outside this dialog. Keys typed in a note, and Enter or Escape while
       // an explanation is open, belong to it: Escape closes the card, not the
       // lesson, and Enter does not check an answer behind it.
+      // SHAN-678: only targets beside the dialog are the notes layer's. An
+      // ancestor counts as ours: clicking empty space in a lesson puts focus
+      // on the layout's main landmark, which contains the dialog, and every
+      // key died.
       const t = e.target;
-      if (root && t instanceof Element && t !== document.body && !root.contains(t)) return;
+      if (root && t instanceof Element && !root.contains(t) && !t.contains(root)) return;
       const key = pressedKey(e);
       if (key !== "Tab" && document.querySelector("[data-notes-popover]")) return;
       if (sheet && key !== "Tab") {
