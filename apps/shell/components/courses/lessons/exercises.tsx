@@ -23,6 +23,27 @@ export type ExerciseStatus = "idle" | "correct" | "wrong";
 export const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
 
+const IME_PASSTHROUGH = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Backspace", "Enter", "Escape", "Tab"]);
+
+/**
+ * The key the learner meant. With a Chinese input method switched on, Windows
+ * can report e.key as "Process" for every key on the board, and Shift+/ can
+ * arrive as "/" or a full-width "？", so comparing e.key alone leaves every
+ * shortcut dead. e.key still wins whenever it is a real character, because
+ * on other layouts the physical key behind e.code prints something else.
+ */
+export function pressedKey(e: KeyboardEvent): string {
+  const { key, code, shiftKey } = e;
+  if (key === "？") return "?";
+  const unread = key === "Process" || key === "Unidentified";
+  if (code === "Slash" && shiftKey && (unread || key === "/")) return "?";
+  if (!unread) return key;
+  if (IME_PASSTHROUGH.has(code)) return code;
+  if (/^Digit\d$/.test(code) && !shiftKey) return code.slice(5);
+  if (/^Key[A-Z]$/.test(code)) return shiftKey ? code.slice(3) : code.slice(3).toLowerCase();
+  return key;
+}
+
 /**
  * SHAN-659: every answer has a key, so a lesson runs without a mouse. Keys go
  * 1-9, then 0, then a-z, in reading order. An item keeps its key while
@@ -53,13 +74,14 @@ function useAnswerKeys(enabled: boolean, count: number, onPick: (i: number) => v
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target) || keysBlocked()) return;
-      if (e.key === "Backspace") {
+      const key = pressedKey(e);
+      if (key === "Backspace") {
         if (!ref.current.onBack) return;
         e.preventDefault();
         ref.current.onBack();
         return;
       }
-      const i = keyIndex(e.key);
+      const i = keyIndex(key);
       if (i < 0 || i >= count) return;
       e.preventDefault();
       ref.current.onPick(i);

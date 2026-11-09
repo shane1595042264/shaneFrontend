@@ -19,6 +19,7 @@ import {
   MatchExercise,
   OrderExercise,
   isTyping,
+  pressedKey,
   type ExerciseStatus,
   type MatchValue,
 } from "./exercises";
@@ -299,20 +300,22 @@ export function LessonPlayer({
       // lesson, and Enter does not check an answer behind it.
       const t = e.target;
       if (root && t instanceof Element && t !== document.body && !root.contains(t)) return;
-      if (e.key !== "Tab" && document.querySelector("[data-notes-popover]")) return;
-      if (sheet && e.key !== "Tab") {
-        if (e.key === "Escape" || e.key === "?") {
+      const key = pressedKey(e);
+      if (key !== "Tab" && document.querySelector("[data-notes-popover]")) return;
+      if (sheet && key !== "Tab") {
+        // Not on a repeat: a held ? would flicker the sheet open and shut.
+        if (key === "Escape" || (key === "?" && !e.repeat)) {
           e.preventDefault();
           setSheet(false);
         }
         return;
       }
-      if (e.key === "?" && !isTyping(e.target)) {
+      if (key === "?" && !e.repeat && !isTyping(e.target)) {
         e.preventDefault();
         setSheet(true);
         return;
       }
-      if (e.key === "Tab" && root) {
+      if (key === "Tab" && root) {
         const items = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
           (el) => el.offsetParent !== null,
         );
@@ -332,23 +335,23 @@ export function LessonPlayer({
         }
         return;
       }
-      if (e.key === "Escape") {
+      if (key === "Escape") {
         e.preventDefault();
         onExit();
         return;
       }
       if (
-        (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+        (key === "ArrowLeft" || key === "ArrowRight") &&
         !finished &&
         !isTyping(e.target) &&
         !(e.altKey || e.metaKey || e.ctrlKey || e.shiftKey)
       ) {
         e.preventDefault();
-        if (e.key === "ArrowLeft") back();
+        if (key === "ArrowLeft") back();
         else forward();
         return;
       }
-      if (e.key !== "Enter" || finished) return;
+      if (key !== "Enter" || finished) return;
       if (view !== null) {
         if (e.target instanceof HTMLButtonElement) return;
         e.preventDefault();
@@ -568,7 +571,7 @@ export function LessonPlayer({
                 )}
                 {snap && c.status === "idle" && <ReviewHint />}
                 {!snap && status === "idle" && step && (
-                  <KeyHint step={step} resumedHere={resumedAt.current === pos} />
+                  <KeyHint step={step} resumedHere={resumedAt.current === pos} canBack={canBack} />
                 )}
               </div>
               <div className="flex shrink-0 gap-3">
@@ -643,7 +646,7 @@ function ReviewHint() {
 }
 
 /** What the keys do on this card, for screens with a keyboard and pointer. */
-function KeyHint({ step, resumedHere }: { step: CourseStep; resumedHere: boolean }) {
+function KeyHint({ step, resumedHere, canBack }: { step: CourseStep; resumedHere: boolean; canBack: boolean }) {
   let hint: React.ReactNode;
   switch (step.type) {
     case "teach":
@@ -685,7 +688,13 @@ function KeyHint({ step, resumedHere }: { step: CourseStep; resumedHere: boolean
   return (
     <p className="hidden text-sm leading-7 text-gray-400 [@media(pointer:fine)]:block">
       {resumedHere ? <span className="text-gray-300">Picked up where you left off. </span> : null}
-      {hint}. <Kbd>?</Kbd> for every key
+      {hint}.{" "}
+      {canBack ? (
+        <>
+          <Kbd>&larr;</Kbd> goes back.{" "}
+        </>
+      ) : null}
+      <Kbd>?</Kbd> for every key
     </p>
   );
 }

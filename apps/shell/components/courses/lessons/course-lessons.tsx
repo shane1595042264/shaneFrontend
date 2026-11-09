@@ -21,7 +21,7 @@ import {
   type LessonRun,
   type SavedLessonRun,
 } from "@/lib/course-lessons";
-import { isTyping, keysBlocked } from "./exercises";
+import { isTyping, keysBlocked, pressedKey } from "./exercises";
 import { LessonPlayer, type SaveState } from "./lesson-player";
 import { Kbd, ShortcutSheet } from "./shortcut-sheet";
 
@@ -257,7 +257,7 @@ export function CourseLessons({
         e.preventDefault();
         rows[Math.max(0, Math.min(rows.length - 1, i))]?.focus();
       };
-      switch (e.key) {
+      switch (pressedKey(e)) {
         case "j":
           // From nowhere, j lands on the lesson that is next, not the top.
           return go(at >= 0 ? at + 1 : Math.max(0, rows.findIndex((r) => r.dataset.lessonRow === keys.current.primaryTarget)));
@@ -285,7 +285,8 @@ export function CourseLessons({
   useEffect(() => {
     if (!sheet) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "?") {
+      const key = pressedKey(e);
+      if (key === "Escape" || (key === "?" && !e.repeat)) {
         e.preventDefault();
         setSheet(false);
       }
