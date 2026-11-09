@@ -14,6 +14,8 @@ interface ElementCardProps {
    * undefined = no search running, render exactly as before.
    */
   searchState?: "dimmed" | "match" | "active";
+  /** id of the "how to move a tile" hint, set while rearranging is allowed. */
+  moveHintId?: string;
 }
 
 // Ring styles live on the card itself; the dim lives on the non-motion wrapper
@@ -42,6 +44,7 @@ export function ElementCard({
   element,
   atomicNumber,
   searchState,
+  moveHintId,
 }: ElementCardProps) {
   const styles = CATEGORY_STYLES[element.category] || CATEGORY_STYLES["projects"];
   const isComingSoon = element.status === "coming-soon";
@@ -113,7 +116,10 @@ export function ElementCard({
       variants={itemVariants}
       whileHover={isComingSoon ? {} : { scale: 1.06, y: -3, zIndex: 10 }}
       whileTap={isComingSoon ? {} : { scale: 0.96 }}
-      tabIndex={isComingSoon ? 0 : undefined}
+      // -1, not undefined, for a real tile: framer-motion gives any node with
+      // whileTap a tabIndex of 0 when none is set, which made every linked tile
+      // two tab stops, the link and then an unnamed div inside it (SHAN-676).
+      tabIndex={isComingSoon ? 0 : -1}
       className={[
         "spot relative flex flex-col items-center justify-between p-1 md:p-1.5 rounded-lg border select-none w-full aspect-square bg-white/[0.025] transition-[box-shadow,border-color,background-color] duration-500",
         styles.border,
@@ -194,6 +200,7 @@ export function ElementCard({
       <div
         role="img"
         aria-label={ariaLabel}
+        aria-describedby={moveHintId}
         aria-disabled="true"
         className={wrapperClass}
       >
@@ -205,7 +212,8 @@ export function ElementCard({
   // SHAN-506: aria-describedby surfaces element.description to assistive tech.
   // The visual tooltip is the description, and it used to be aria-hidden with
   // nothing else carrying the text, so a screen reader heard only the name.
-  const describedBy = tooltipText ? tooltipId : undefined;
+  const describedBy =
+    [tooltipText ? tooltipId : null, moveHintId].filter(Boolean).join(" ") || undefined;
 
   if (isExternal && element.url) {
     return (

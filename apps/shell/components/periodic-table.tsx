@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import type { ElementConfig } from "@shane/types";
 import { ElementCard } from "./element-card";
@@ -25,6 +25,52 @@ import { useAuth } from "@/lib/auth-context";
 
 interface PeriodicTableProps {
   elements: ElementConfig[];
+}
+
+const CELL_BY_POSITION = new Map<string, ChemicalElement>(
+  PERIODIC_TABLE_ELEMENTS.map((ce) => [`${ce.row}-${ce.col}`, ce])
+);
+const CELL_BY_ATOMIC = new Map<number, ChemicalElement>(
+  PERIODIC_TABLE_ELEMENTS.map((ce) => [ce.atomicNumber, ce])
+);
+
+const ARROW_STEPS: Record<string, [number, number]> = {
+  ArrowUp: [-1, 0],
+  ArrowDown: [1, 0],
+  ArrowLeft: [0, -1],
+  ArrowRight: [0, 1],
+};
+
+/**
+ * The nearest table cell from `atomic` in the arrow's direction, walking over
+ * the holes in row 1 and the gap row above the lanthanides. null at the edge.
+ */
+function neighborSlot(atomic: number, key: string): number | null {
+  const from = CELL_BY_ATOMIC.get(atomic);
+  const step = ARROW_STEPS[key];
+  if (!from || !step) return null;
+  let row = from.row + step[0];
+  let col = from.col + step[1];
+  while (row >= 1 && row <= GRID_ROWS && col >= 1 && col <= GRID_COLS) {
+    const hit = CELL_BY_POSITION.get(`${row}-${col}`);
+    if (hit) return hit.atomicNumber;
+    row += step[0];
+    col += step[1];
+  }
+  return null;
+}
+
+/** Puts appId in targetAtomic; whatever sat there takes appId's old slot. */
+function moveApp(map: SlotMap, appId: string, sourceAtomic: number, targetAtomic: number): SlotMap {
+  const next = { ...map };
+  const targetAppId = map[targetAtomic];
+  if (targetAppId) {
+    next[sourceAtomic] = targetAppId;
+  } else {
+    delete next[sourceAtomic];
+  }
+  next[targetAtomic] = appId;
+  return next;
 }
 
 export function PeriodicTable({ elements }: PeriodicTableProps) {
@@ -61,6 +107,15 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   const [saveToast, setSaveToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [query, setQuery] = useState("");
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+  // SHAN-676: the keyboard alternative to dragging. Space lifts the focused
+  // tile, arrows move it (a preview, nothing saves yet), Space or Enter drops
+  // it into the save queue and Escape restores liftOriginRef.
+  const [liftedId, setLiftedId] = useState<string | null>(null);
+  const liftedIdRef = useRef<string | null>(null);
+  liftedIdRef.current = liftedId;
+  const liftOriginRef = useRef<SlotMap | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const moveHintId = useId();
 
   const searchResults = useMemo(
     () => searchElements(elements, query),
@@ -197,16 +252,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
         return;
       }
 
-      const targetAppId = slotMap[targetAtomic];
-      const newSlotMap = { ...slotMap };
-
-      if (targetAppId) {
-        newSlotMap[sourceAtomic] = targetAppId;
-      } else {
-        delete newSlotMap[sourceAtomic];
-      }
-
-      newSlotMap[targetAtomic] = draggedAppId;
+      const newSlotMap = moveApp(slotMap, draggedAppId, sourceAtomic, targetAtomic);
 
       setSlotMap(newSlotMap);
       setDraggedAppId(null);
@@ -222,10 +268,109 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
     setDropTarget(null);
   }, []);
 
-  const chemMap = new Map<string, ChemicalElement>();
-  for (const ce of PERIODIC_TABLE_ELEMENTS) {
-    chemMap.set(`${ce.row}-${ce.col}`, ce);
-  }
+  const appName = (appId: string) => appById.get(appId)?.name ?? appId;
+
+  const cancelLift = useCallback(() => {
+    const appId = liftedIdRef.current;
+    if (!appId) return;
+    const origin = liftOriginRef.current;
+    liftOriginRef.current = null;
+    setLiftedId(null);
+    if (origin) setSlotMap(origin);
+    const name = elements.find((el) => el.id === appId)?.name ?? appId;
+    const slot = origin
+      ? Object.entries(origin).find(([, id]) => id === appId)?.[0]
+      : undefined;
+    setAnnouncement(slot ? `Move cancelled. ${name} is back in slot ${slot}.` : "Move cancelled.");
+  }, [elements]);
+
+  const handleTileKeyDown = (e: React.KeyboardEvent, appId: string) => {
+    if (!canRearrange || e.altKey || e.ctrlKey || e.metaKey) return;
+    const name = appName(appId);
+
+    if (liftedId !== appId) {
+      if (e.key === " " && !liftedId) {
+        e.preventDefault();
+        liftOriginRef.current = slotMap;
+        setLiftedId(appId);
+        setAnnouncement(
+          `Picked up ${name} in slot ${appToSlot.get(appId)}. Arrow keys move it, Space or Enter drops it, Escape cancels.`
+        );
+      }
+      return;
+    }
+
+    if (e.key in ARROW_STEPS) {
+      e.preventDefault();
+      const source = appToSlot.get(appId);
+      if (source === undefined) return;
+      const target = neighborSlot(source, e.key);
+      if (target === null) {
+        setAnnouncement(`${name} is at the edge of the table.`);
+        return;
+      }
+      const displaced = slotMap[target];
+      setSlotMap(moveApp(slotMap, appId, source, target));
+      setAnnouncement(
+        displaced
+          ? `${name} moved to slot ${target}, swapped with ${appName(displaced)}.`
+          : `${name} moved to slot ${target}.`
+      );
+    } else if (e.key === " " || e.key === "Enter") {
+      // Enter would otherwise follow the tile's link.
+      e.preventDefault();
+      const origin = liftOriginRef.current;
+      liftOriginRef.current = null;
+      setLiftedId(null);
+      // Compare the whole map: a route of swaps can bring the tile back to its
+      // own slot while leaving its neighbours moved.
+      const changed =
+        !origin ||
+        Object.keys(origin).length !== Object.keys(slotMap).length ||
+        Object.entries(origin).some(([slot, id]) => slotMap[Number(slot)] !== id);
+      if (changed) {
+        setAnnouncement(`${name} dropped in slot ${appToSlot.get(appId)}.`);
+        pendingMapRef.current = slotMap;
+        flushSaves();
+      } else {
+        setAnnouncement(`${name} dropped where it started.`);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelLift();
+    }
+  };
+
+  // Tabbing or clicking away from a lifted tile puts it back. The check waits a
+  // tick because a move can make React reinsert the tile's DOM node, which
+  // blurs it until the layout effect below focuses it again.
+  const handleTileBlur = () => {
+    if (!liftedIdRef.current) return;
+    setTimeout(() => {
+      const appId = liftedIdRef.current;
+      if (!appId) return;
+      const tile = scrollRef.current?.querySelector(`[data-element-id="${appId}"]`);
+      if (!tile?.contains(document.activeElement)) cancelLift();
+    }, 0);
+  };
+
+  useLayoutEffect(() => {
+    if (!liftedId) return;
+    const tile = scrollRef.current?.querySelector<HTMLElement>(
+      `[data-element-id="${liftedId}"]`
+    );
+    if (!tile) return;
+    if (!tile.contains(document.activeElement)) {
+      tile.querySelector<HTMLElement>('a, [tabindex="0"]')?.focus({ preventScroll: true });
+    }
+    // Same reason as the search pan below: smooth scrolling is dropped here.
+    tile.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "auto" });
+  }, [liftedId, slotMap]);
+
+  // Signing out, or a layout reload, takes rearranging away mid-move.
+  useEffect(() => {
+    if (!canRearrange) cancelLift();
+  }, [canRearrange, cancelLift]);
 
   const cells: React.ReactNode[] = [];
 
@@ -242,7 +387,7 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
 
     for (let col = 1; col <= GRID_COLS; col++) {
       const cellKey = `${row}-${col}`;
-      const chemEl = chemMap.get(cellKey);
+      const chemEl = CELL_BY_POSITION.get(cellKey);
       if (!chemEl) continue;
 
       const assignedAppId = slotMap[chemEl.atomicNumber];
@@ -270,18 +415,27 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
             layoutId={slotsResolved ? assignedApp.id : undefined}
             data-element-id={assignedApp.id}
             style={{ gridRow: row, gridColumn: col }}
-            className={`relative ${isDropping ? "ring-2 ring-white/50 rounded-md" : ""}`}
+            className={`relative ${
+              liftedId === assignedApp.id
+                ? "z-20 ring-2 ring-blue-400 rounded-md"
+                : isDropping
+                  ? "ring-2 ring-white/50 rounded-md"
+                  : ""
+            }`}
             draggable={canRearrange}
             onDragStart={() => handleDragStart(assignedApp.id)}
             onDragOver={(e) => handleDragOver(e as unknown as React.DragEvent, chemEl.atomicNumber)}
             onDragLeave={handleDragLeave}
             onDrop={() => handleDrop(chemEl.atomicNumber)}
             onDragEnd={handleDragEnd}
+            onKeyDown={(e) => handleTileKeyDown(e, assignedApp.id)}
+            onBlur={handleTileBlur}
           >
             <ElementCard
               element={assignedApp}
               atomicNumber={chemEl.atomicNumber}
               searchState={searchState}
+              moveHintId={canRearrange ? moveHintId : undefined}
             />
           </motion.div>
         );
@@ -425,6 +579,17 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
           </motion.div>
         </div>
       </div>
+      {/* Below the grid, so it appearing once the saved layout lands never
+          shifts the table. It doubles as every tile's accessible description. */}
+      {canRearrange && (
+        <p id={moveHintId} className="mt-3 text-center text-xs text-gray-400">
+          Drag tiles to rearrange them, or focus one, press Space, move it with
+          the arrow keys and press Space again.
+        </p>
+      )}
+      <p role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
     </div>
   );
 }
