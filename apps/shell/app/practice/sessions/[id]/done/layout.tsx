@@ -7,7 +7,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  return privatePageMetadata("Session complete — Practice — Shane", `/practice/sessions/${encodeURIComponent(id)}/done`);
+  return privatePageMetadata("Session complete — Practice — Shane", `/practice/sessions/${id}/done`);
 }
 
 export default function PracticeSessionDoneLayout({ children }: { children: React.ReactNode }) {

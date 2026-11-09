@@ -7,7 +7,7 @@ export async function generateMetadata({
   params: Promise<{ planId: string }>;
 }): Promise<Metadata> {
   const { planId } = await params;
-  return privatePageMetadata("Today's plan — Practice — Shane", `/practice/plans/${encodeURIComponent(planId)}/today`);
+  return privatePageMetadata("Today's plan — Practice — Shane", `/practice/plans/${planId}/today`);
 }
 
 export default function PracticePlanTodayLayout({ children }: { children: React.ReactNode }) {

@@ -11,7 +11,9 @@ const SITE_URL = "https://shanejli.com";
  * "Settings — Shane", and every page declared the parent as its canonical
  * (SHAN-464), which for /settings is a 307 rather than a page.
  *
- * `path` is the route as served, segments already URI-encoded by the caller.
+ * `path` is the route as served. Dynamic params reach generateMetadata still
+ * percent-encoded, so callers interpolate them as-is: encodeURIComponent on top
+ * turned /practice/items/i%201 into a canonical of i%25201.
  * The noindex mirrors app/blog/new/layout.tsx: these routes are in
  * CRAWLER_DISALLOW, but robots.txt is a request, not a guarantee.
  */
