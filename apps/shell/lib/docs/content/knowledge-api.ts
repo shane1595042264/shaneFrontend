@@ -37,7 +37,7 @@ To mark or unmark a place, send \`addMemorizationLocations\` or \`removeMemoriza
 
 ## Cards from notes
 
-Inline notes and Explain answers on journal entries, blog posts and knowledge cards also arrive here: each new note is classified into a card with the same pipeline as \`POST /notes\`, from the selected words and the note only, with \`source.app\` set to \`journal\`, \`blog\` or \`knowledge\`. See [AI and Reader Notes API](/docs/ai-api).
+Inline notes and Explain answers on journal entries, blog posts, knowledge cards and public courses also arrive here: each new note is classified into a card with the same pipeline as \`POST /notes\`, from the selected words and the note only, with \`source.app\` set to \`journal\`, \`blog\`, \`knowledge\` or \`course\` (since SHAN-653; a note on a private course never becomes a card). See [AI and Reader Notes API](/docs/ai-api).
 
 ## Recite
 
