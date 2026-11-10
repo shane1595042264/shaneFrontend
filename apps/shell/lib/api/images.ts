@@ -1,5 +1,6 @@
 import { getAuthHeaders } from "@/lib/auth-api";
 import { API_URL, BACKEND_ORIGIN } from "@/lib/api-url";
+import { humanizeError } from "@/lib/humanize-error";
 
 export interface UploadedImage {
   /** Absolute URL — safe to embed directly in markdown rendered from any host. */
@@ -43,11 +44,18 @@ export async function uploadImage(file: Blob, filename = "image"): Promise<Uploa
   // Preserve a filename — backend doesn't use it, but browsers reject FormData
   // entries that look like raw Blobs in some Content-Disposition paths.
   form.append("file", file, filename);
-  const res = await fetch(`${API_URL}/api/journal/images`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: form,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/journal/images`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: form,
+    });
+  } catch (e) {
+    // The editor renders this message verbatim, so a dropped connection would
+    // otherwise read "Failed to fetch" / "Load failed" (SHAN-679).
+    throw new Error(humanizeError(e, ""));
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     if (res.status === 429) {
@@ -67,7 +75,9 @@ export async function uploadImage(file: Blob, filename = "image"): Promise<Uploa
       e.retryAfterSec = retryAfterSec;
       throw e;
     }
-    throw new Error(err.error || `Image upload failed (${res.status})`);
+    // No string error (a gateway 502 serving HTML) leaves the message empty, so
+    // the editor's own fallback shows instead of "Image upload failed (502)".
+    throw new Error(typeof err.error === "string" ? err.error : "");
   }
   const data = (await res.json()) as { id: string; url: string };
   // Absolute on purpose: this URL is embedded in journal markdown and read by

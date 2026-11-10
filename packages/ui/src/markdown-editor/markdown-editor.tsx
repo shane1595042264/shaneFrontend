@@ -327,7 +327,8 @@ export function MarkdownEditor({
           onChange(current.replace(placeholderMd, replacement));
         })
         .catch((err: unknown) => {
-          setUploadError(err instanceof Error ? err.message : "Image upload failed");
+          const message = err instanceof Error ? err.message.trim() : "";
+          setUploadError(message || "Image upload failed. Try again.");
           const current = valueRef.current;
           if (current.includes(token)) onChange(current.replace(placeholderMd, ""));
         })
