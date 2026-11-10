@@ -18,7 +18,8 @@ import {
 } from "@/lib/api/courses";
 import { courseLaunchUrl } from "@/lib/course-launch-url";
 import { revalidateCourse } from "@/lib/courses-revalidate";
-import { humanizeActionError } from "@/lib/humanize-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
+import { LoadError } from "@/components/load-error";
 import { categoryStyle, DIFFICULTY_STYLES } from "./category-styles";
 import { GeneratedCover } from "./generated-cover";
 import { StarRating } from "./star-rating";
@@ -62,7 +63,9 @@ export function CourseInteractive({
   const [showDelete, setShowDelete] = useState(false);
   const [adminBusy, setAdminBusy] = useState<string | null>(null);
   const [content, setContent] = useState<CourseContent | null | undefined>(initialContent);
-  const [contentError, setContentError] = useState(false);
+  const [contentError, setContentError] = useState<string | null>(null);
+  // SHAN-680: Retry bumps this so the load runs again without a page reload.
+  const [contentAttempt, setContentAttempt] = useState(0);
   const [showEditor, setShowEditor] = useState(false);
   useScrollLock(showDelete);
   useEscapeKey(() => setShowDelete(false), showDelete && adminBusy !== "delete");
@@ -78,13 +81,13 @@ export function CourseInteractive({
       .then((c) => {
         if (!cancelled) setContent(c?.content ?? null);
       })
-      .catch(() => {
-        if (!cancelled) setContentError(true);
+      .catch((e: unknown) => {
+        if (!cancelled) setContentError(humanizeError(e, "The lessons did not load."));
       });
     return () => {
       cancelled = true;
     };
-  }, [hasLessons, content, course.id]);
+  }, [hasLessons, content, course.id, contentAttempt]);
 
   // A new lessons course lands here with ?edit=lessons, straight in the editor.
   useEffect(() => {
@@ -315,9 +318,20 @@ export function CourseInteractive({
                 deckHref={course.url ? courseLaunchUrl(course.url) : null}
                 aside={rating}
               />
-            ) : contentError || content === null ? (
-              <p role="alert" className="mt-8 text-sm text-rose-300">
-                The lessons did not load. Refresh to try again.
+            ) : contentError ? (
+              <div className="mt-8">
+                <LoadError
+                  message={contentError}
+                  onRetry={() => {
+                    setContentError(null);
+                    setContentAttempt((n) => n + 1);
+                  }}
+                />
+              </div>
+            ) : content === null ? (
+              // A 404: the lessons are gone, so a Retry could not bring them back.
+              <p role="alert" className="mt-8 text-sm text-red-400">
+                These lessons are no longer available.
               </p>
             ) : (
               <div className="mt-8 space-y-3" aria-busy={true} aria-label="Loading lessons">
