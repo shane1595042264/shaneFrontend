@@ -20,8 +20,10 @@ import {
   fetchSlotAssignments,
   resolveSlots,
   saveSlotAssignments,
+  SlotSaveError,
 } from "@/lib/slot-assignments";
 import { useAuth } from "@/lib/auth-context";
+import { isNetworkError } from "@/lib/humanize-error";
 
 interface PeriodicTableProps {
   elements: ElementConfig[];
@@ -58,6 +60,21 @@ function neighborSlot(atomic: number, key: string): number | null {
     col += step[1];
   }
   return null;
+}
+
+/**
+ * The toast for a failed save. A failure rolls the grid back, so every variant
+ * says the tile moved back, and the cause decides what to do next (SHAN-682):
+ * a retry fixes a dropped connection, but never an expired sign-in.
+ */
+function saveErrorMessage(e: unknown): string {
+  if (isNetworkError(e)) {
+    return "Couldn't save the arrangement. Check your connection; the tile is back where it was.";
+  }
+  if (e instanceof SlotSaveError && e.status === 401) {
+    return "Your sign-in has expired. Sign in again to rearrange; the tile is back where it was.";
+  }
+  return "Couldn't save the arrangement, so the tile is back where it was. Try the move again.";
 }
 
 /** Puts appId in targetAtomic; whatever sat there takes appId's old slot. */
@@ -219,23 +236,23 @@ export function PeriodicTable({ elements }: PeriodicTableProps) {
   const flushSaves = useCallback(async () => {
     if (savingRef.current) return;
     savingRef.current = true;
-    let failed = false;
+    let failure: { error: unknown } | null = null;
     while (pendingMapRef.current) {
       const next = pendingMapRef.current;
       pendingMapRef.current = null;
       try {
         await saveSlotAssignments(next);
         confirmedMapRef.current = next;
-        failed = false;
-      } catch {
-        failed = true;
+        failure = null;
+      } catch (e) {
+        failure = { error: e };
       }
     }
     savingRef.current = false;
-    if (failed) {
+    if (failure) {
       const confirmed = confirmedMapRef.current;
       if (confirmed) setSlotMap(confirmed);
-      showToast("error", "Failed to save arrangement", 4000);
+      showToast("error", saveErrorMessage(failure.error), 6000);
     } else {
       showToast("success", "Arrangement saved", 2000);
     }

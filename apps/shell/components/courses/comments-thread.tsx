@@ -19,7 +19,7 @@ import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { LoadError } from "@/components/load-error";
-import { humanizeActionError } from "@/lib/humanize-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 
 interface Props {
   courseId: string;
@@ -60,8 +60,8 @@ export function CourseCommentsThread({ courseId, courseOwnerId }: Props) {
       const list = await listCourseComments(courseId);
       setComments(list);
       setLoadError(null);
-    } catch {
-      setLoadError("Could not load comments.");
+    } catch (e) {
+      setLoadError(humanizeError(e, "Could not load comments."));
     } finally {
       setLoading(false);
     }

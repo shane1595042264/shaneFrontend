@@ -37,6 +37,14 @@ export async function fetchSlotAssignments(): Promise<SlotMap | null> {
   }
 }
 
+/** A non-OK save, carrying the status so the caller can word the toast (SHAN-682). */
+export class SlotSaveError extends Error {
+  constructor(public readonly status: number) {
+    super(`Failed to save slot assignments (${status})`);
+    this.name = "SlotSaveError";
+  }
+}
+
 export async function saveSlotAssignments(assignments: SlotMap): Promise<void> {
   // Convert numeric keys and values to strings for JSON
   const stringKeyed: Record<string, string> = {};
@@ -50,7 +58,7 @@ export async function saveSlotAssignments(assignments: SlotMap): Promise<void> {
     body: JSON.stringify({ assignments: stringKeyed }),
   });
   if (!res.ok) {
-    throw new Error(`Failed to save slot assignments (${res.status})`);
+    throw new SlotSaveError(res.status);
   }
 }
 

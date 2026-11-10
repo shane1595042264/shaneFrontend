@@ -20,7 +20,7 @@ import {
 } from "@/lib/api/blog-social";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { LoadError } from "@/components/load-error";
-import { humanizeActionError } from "@/lib/humanize-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 
 interface Props {
   slug: string;
@@ -71,8 +71,8 @@ export function BlogComments({ slug, postAuthorId }: Props) {
     try {
       setComments(await listBlogComments(slug));
       setLoadError(null);
-    } catch {
-      setLoadError("Could not load comments.");
+    } catch (e) {
+      setLoadError(humanizeError(e, "Could not load comments."));
     } finally {
       setLoading(false);
     }

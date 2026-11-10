@@ -18,7 +18,7 @@ import { RelativeTime } from "@/lib/format-time";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { LoadError } from "@/components/load-error";
-import { humanizeActionError } from "@/lib/humanize-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 
 interface Props {
   entryId: string;
@@ -52,8 +52,8 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
       const list = await listKnowledgeComments(entryId);
       setComments(list);
       setLoadError(null);
-    } catch {
-      setLoadError("Could not load comments.");
+    } catch (e) {
+      setLoadError(humanizeError(e, "Could not load comments."));
     } finally {
       setLoading(false);
     }

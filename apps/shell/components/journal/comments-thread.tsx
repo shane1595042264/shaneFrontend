@@ -21,7 +21,7 @@ import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { resolveViewerTimezone, timezoneTagFor } from "@/lib/timezone";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { LoadError } from "@/components/load-error";
-import { humanizeActionError } from "@/lib/humanize-error";
+import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 
 interface Props {
   date: string;
@@ -60,8 +60,8 @@ export function CommentsThread({ date, entryAuthorId }: Props) {
       const noteRoots = new Set(list.filter((c) => c.anchor && c.parentCommentId === null).map((c) => c.id));
       setComments(list.filter((c) => !noteRoots.has(c.id) && !(c.parentCommentId && noteRoots.has(c.parentCommentId))));
       setLoadError(null);
-    } catch {
-      setLoadError("Could not load comments.");
+    } catch (e) {
+      setLoadError(humanizeError(e, "Could not load comments."));
     } finally {
       setLoading(false);
     }
