@@ -13,6 +13,18 @@ function jsonLdSafe(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
+// SHAN-685: a search snippet shows ~155 characters and link previews fewer, so
+// a 396-character course description got cut wherever the crawler chose,
+// usually mid-word. Clip to 160 (ellipsis included) on a word boundary, the
+// same budget blog/[slug] and trips/[slug] use. The JSON-LD keeps the full text.
+function metaDescription(text: string, maxLen = 160): string {
+  const chars = Array.from(text.replace(/\s+/g, " ").trim());
+  if (chars.length <= maxLen) return chars.join("");
+  const cut = chars.slice(0, maxLen - 1).join("");
+  const atWord = /\s/.test(chars[maxLen - 1]) ? cut : cut.replace(/\s+\S*$/, "");
+  return `${(atWord || cut).replace(/[\s,;:.–—-]+$/, "")}…`;
+}
+
 // SHAN-504: ISR, not cache:"no-store". 300s matches blog/[slug], and every
 // mutation calls revalidateCourse() so an author's edit shows up immediately
 // rather than after the window. This is the pattern CLAUDE.md mandates over
@@ -80,8 +92,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const course = await fetchCourse(slug).catch(() => null);
   if (!course) return { title: "Course not found" };
   const title = `${course.title} — Courses — Shane`;
-  const description =
-    course.description ?? `An interactive ${course.category} course.`;
+  const description = course.description?.trim()
+    ? metaDescription(course.description)
+    : `An interactive ${course.category} course.`;
   const url = `${SITE_URL}/courses/${slug}`;
   return {
     title,
