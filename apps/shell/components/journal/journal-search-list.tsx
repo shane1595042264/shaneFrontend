@@ -256,7 +256,7 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
   const searchCorpus = useMemo(() => {
     const map = new Map<string, string>();
     for (const e of entries) {
-      map.set(e.id, toPlainExcerpt(e.contentExcerpt ?? "", 10_000).toLowerCase());
+      map.set(e.id, toPlainExcerpt(e.contentExcerpt ?? "", 10_000, "...", { keepTables: true }).toLowerCase());
     }
     return map;
   }, [entries]);

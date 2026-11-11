@@ -116,17 +116,44 @@ const QUOTE_RE = /^\s{0,3}>/;
 // way the line ends whatever block is open and carries no text of its own.
 const BLOCK_RULE_RE = /^\s{0,3}(?:=+|-+|([-*_])(?:\s*\1){2,})\s*$/;
 const ENDS_IN_PUNCTUATION_RE = /[.!?…:;,]["'’”)\]*_]*$/u;
+// The "|---|:---:|" row under a GFM table header. The pipe check lives at the
+// call site, so a bare "---" stays a thematic break.
+const TABLE_DELIMITER_RE = /^\s{0,3}\|?\s*:?-+:?\s*(?:\|\s*:?-*:?\s*)*\|?\s*$/;
+
+function isTableDelimiter(line: string | undefined): boolean {
+  return line !== undefined && line.includes("|") && TABLE_DELIMITER_RE.test(line);
+}
+
+/** One table row as its non-empty cells, inline markdown stripped. */
+function tableRowText(line: string): string {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/(?<!\\)\|$/, "")
+    .split(/(?<!\\)\|/)
+    .map((cell) => stripMarkdown(cell.replace(/\\\|/g, "|")).replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join(", ");
+}
 
 /**
  * The text of each markdown block (paragraph, heading, list item, quote), with
  * inline markdown stripped and whitespace collapsed. Lines of a soft-wrapped
  * paragraph stay in one block; anything markdown would render on its own line
  * starts a new one.
+ *
+ * GFM tables are left out unless `keepTables` is set (SHAN-684): an excerpt is
+ * a summary, and a table flattened into one reads as noise, while unhandled it
+ * shipped "| | What it is | AI in it |---|---|" in blog cards and feeds. A body
+ * that is nothing but tables still gets its cell text, so the excerpt is never
+ * empty just because of the shape of the post.
  */
-function plainBlocks(content: string): string[] {
+function plainBlocks(content: string, keepTables = false): string[] {
   const blocks: string[] = [];
+  const tableBlocks: string[] = [];
   let open: string[] = [];
   let openIsQuote = false;
+  let inTable = false;
   const flush = () => {
     const text = stripMarkdown(open.join("\n")).replace(/\s+/g, " ").trim();
     if (text) blocks.push(text);
@@ -135,7 +162,29 @@ function plainBlocks(content: string): string[] {
   };
 
   const source = stripDataMarkers(content ?? "").replace(/```[\s\S]*?```/g, "\n\n");
-  for (const line of source.split(/\r?\n/)) {
+  const lines = source.split(/\r?\n/);
+  lines.forEach((line, i) => {
+    if (inTable && line.trim()) {
+      if (isTableDelimiter(line)) return;
+      const row = tableRowText(line);
+      if (row) (keepTables ? blocks : tableBlocks).push(row);
+      return;
+    }
+    inTable = false;
+    // A header row is a line with a pipe over a delimiter row. A pipe-led last
+    // line counts too: stored excerpts are cut at a fixed length, which can
+    // land between a table's header and its delimiter.
+    const isLast = i === lines.length - 1;
+    if (
+      line.includes("|") &&
+      (isTableDelimiter(lines[i + 1]) || (isLast && /^\s{0,3}\|/.test(line)))
+    ) {
+      flush();
+      inTable = true;
+      const row = tableRowText(line);
+      if (row) (keepTables ? blocks : tableBlocks).push(row);
+      return;
+    }
     if (!line.trim() || BLOCK_RULE_RE.test(line)) {
       flush();
     } else if (ATX_HEADING_RE.test(line)) {
@@ -153,9 +202,9 @@ function plainBlocks(content: string): string[] {
     } else {
       open.push(line);
     }
-  }
+  });
   flush();
-  return blocks;
+  return blocks.length > 0 ? blocks : tableBlocks;
 }
 
 /**
@@ -168,9 +217,17 @@ function plainBlocks(content: string): string[] {
  * STAR" shipped as "How to use this Every answer is STAR" in the blog's meta
  * description and link previews (SHAN-552). Blocks that do not already end in
  * punctuation get a period before the next one.
+ *
+ * Pass `keepTables` when the result is a search corpus rather than something a
+ * reader sees, so a word that only appears in a table cell still matches.
  */
-export function toPlainExcerpt(content: string, maxLen: number, ellipsis = "..."): string {
-  const plain = plainBlocks(content).reduce(
+export function toPlainExcerpt(
+  content: string,
+  maxLen: number,
+  ellipsis = "...",
+  { keepTables = false }: { keepTables?: boolean } = {}
+): string {
+  const plain = plainBlocks(content, keepTables).reduce(
     (out, block) => (!out ? block : `${out}${ENDS_IN_PUNCTUATION_RE.test(out) ? "" : "."} ${block}`),
     ""
   );
@@ -186,10 +243,11 @@ export function toPlainExcerpt(content: string, maxLen: number, ellipsis = "..."
 export function countWords(text: string): number {
   // Strip markdown the same way toPlainExcerpt does so control tokens (list
   // markers, heading hashes, blockquote markers, code fences, image/link URLs)
-  // don't get counted as words and inflate reading time.
+  // don't get counted as words and inflate reading time. Table pipes and
+  // delimiter rows ("|", "|---|:--:|") are not words either (SHAN-684).
   const plain = stripMarkdown(stripDataMarkers(text ?? "")).trim();
   if (!plain) return 0;
-  return plain.split(/\s+/).length;
+  return plain.split(/\s+/).filter((token) => !/^[|:-]+$/.test(token)).length;
 }
 
 /**
