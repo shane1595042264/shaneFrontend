@@ -139,7 +139,21 @@ const JOURNAL_DATE_SUBPATH_RE =
 // which captures the real slug as the segment. With the entry gone, the bare
 // path just asks the backend "is there a trip slugged opengraph-image?", gets
 // a 404, and returns the edge 404 like any other unknown slug.
+//
+// SHAN-686 added app/trips/opengraph-image.tsx (the /trips index share card),
+// so the bare path is a real route again. It is let through by
+// isSectionOgImage() in the branch below rather than by an entry here, so
+// /trips/opengraph-image/opengraph-image still gets the probe and its 404.
 const TRIPS_NON_SLUG_SEGMENTS = new Set(["new", "groups"]);
+
+// SHAN-686: /blog, /trips and /courses each have an index share card at
+// app/<section>/opengraph-image.tsx. The single-segment slug regexes below match
+// /<section>/opengraph-image with "opengraph-image" as the slug, so without this
+// the probe asks the API for a post, trip or course of that name, gets a 404,
+// and hard-404s the card at the edge. Only the bare path is the route.
+function isSectionOgImage(segment: string, subPath: string | undefined): boolean {
+  return segment === "opengraph-image" && subPath === undefined;
+}
 
 const COURSES_NOT_FOUND_HTML = renderEdgeNotFound({
   title: "Not Found — Courses — Shane",
@@ -289,10 +303,11 @@ export async function middleware(req: NextRequest) {
   // sub-path, the per-slug OG image route soft-404s (renders a 200 PNG for slugs
   // that have no trip) while the page correctly 404s. Deeper paths fall through
   // to Next's normal routing (the optional group only matches opengraph-image).
-  const tripMatch = pathname.match(/^\/trips\/([^\/]+)(?:\/opengraph-image)?\/?$/);
+  const tripMatch = pathname.match(/^\/trips\/([^\/]+)(\/opengraph-image)?\/?$/);
   if (tripMatch) {
     const segment = tripMatch[1];
     if (TRIPS_NON_SLUG_SEGMENTS.has(segment)) return NextResponse.next();
+    if (isSectionOgImage(segment, tripMatch[2])) return NextResponse.next();
     // SHAN-231: no URL-pattern check is possible — every slug is alphanumeric-
     // with-dashes, real or fake. Ask the backend.
     const exists = await backendExists(
@@ -305,9 +320,10 @@ export async function middleware(req: NextRequest) {
   // Intercept /courses/:slug and its /courses/:slug/opengraph-image sub-path
   // so both share one existence check - mirrors the trips branch (SHAN-375/376
   // class of soft-404s, closed here from day one). SHAN-437.
-  const courseMatch = pathname.match(/^\/courses\/([^\/]+)(?:\/opengraph-image)?\/?$/);
+  const courseMatch = pathname.match(/^\/courses\/([^\/]+)(\/opengraph-image)?\/?$/);
   if (courseMatch) {
     const segment = courseMatch[1];
+    if (isSectionOgImage(segment, courseMatch[2])) return NextResponse.next();
     // SHAN-460: reserved segment, so it can be neither a route nor a course.
     // 404 straight away instead of passing through to /courses/[slug], which
     // renders its not-found body at HTTP 200.
@@ -346,6 +362,7 @@ export async function middleware(req: NextRequest) {
     if (blogMatch[2] === undefined && BLOG_NON_SLUG_SEGMENTS.has(segment)) {
       return NextResponse.next();
     }
+    if (isSectionOgImage(segment, blogMatch[2])) return NextResponse.next();
     if (BLOG_RESERVED_SEGMENTS.has(segment)) {
       return notFoundResponse(BLOG_NOT_FOUND_HTML);
     }
