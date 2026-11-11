@@ -36,9 +36,11 @@ export interface BlogComment {
   updatedAt: string;
 }
 
-async function failure(res: Response, fallback: string): Promise<Error> {
+// No `{ error }` body (a gateway 502 serves HTML) leaves the message empty, so
+// the caller's humanizeActionError fallback shows instead of a bare "(502)".
+async function failure(res: Response): Promise<Error> {
   const body = (await res.json().catch(() => ({}))) as { error?: string };
-  return new Error(body.error || `${fallback} (${res.status})`);
+  return new Error(typeof body.error === "string" ? body.error : "");
 }
 
 /**
@@ -51,7 +53,7 @@ export async function listBlogComments(slug: string): Promise<BlogComment[]> {
     `${API_URL}/api/blog/posts/${encodeURIComponent(slug)}/comments`,
     { headers: { ...getAuthHeaders() }, cache: "no-store" },
   );
-  if (!res.ok) throw await failure(res, "Failed to load comments");
+  if (!res.ok) throw await failure(res);
   return (await res.json()).comments;
 }
 
@@ -67,7 +69,7 @@ export async function postBlogComment(
       body: JSON.stringify({ content }),
     },
   );
-  if (!res.ok) throw await failure(res, "Failed to post comment");
+  if (!res.ok) throw await failure(res);
   const comment = (await res.json()).comment as BlogComment;
   // Fire-and-forget: the write already committed, and a revalidation failure
   // must not surface as a failed comment. Worst case the tile's count is stale
@@ -86,7 +88,7 @@ export async function editBlogComment(
     headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ content }),
   });
-  if (!res.ok) throw await failure(res, "Failed to edit comment");
+  if (!res.ok) throw await failure(res);
   const comment = (await res.json()).comment as BlogComment;
   await revalidateBlogPost(slug).catch(() => {});
   return comment;
@@ -98,20 +100,20 @@ export async function deleteBlogComment(id: string, slug: string): Promise<void>
     method: "DELETE",
     headers: getAuthHeaders(),
   });
-  if (!res.ok && res.status !== 404) throw await failure(res, "Failed to delete comment");
+  if (!res.ok && res.status !== 404) throw await failure(res);
   await revalidateBlogPost(slug).catch(() => {});
 }
 
 /**
- * Counts for everyone, `mine` only for a signed-in reader. Never throws: a
- * failed reaction fetch should render as an empty bar, not take the page down.
+ * Counts for everyone, `mine` only for a signed-in reader. Throws on failure;
+ * ReactionDisplay catches it and shows its own retry instead of the bar.
  */
 export async function getBlogPostReactions(slug: string): Promise<ReactionState> {
   const res = await fetch(
     `${API_URL}/api/blog/posts/${encodeURIComponent(slug)}/reactions`,
     { headers: getAuthHeaders(), cache: "no-store" },
   );
-  if (!res.ok) throw await failure(res, "Failed to load reactions");
+  if (!res.ok) throw await failure(res);
   return res.json();
 }
 
@@ -127,6 +129,6 @@ export async function toggleBlogPostReaction(
       body: JSON.stringify({ emoji }),
     },
   );
-  if (!res.ok) throw await failure(res, "Failed to toggle reaction");
+  if (!res.ok) throw await failure(res);
   return (await res.json()).result;
 }
