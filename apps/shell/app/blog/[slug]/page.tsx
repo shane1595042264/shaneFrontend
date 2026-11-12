@@ -95,9 +95,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = `${data.title} — Blog — Shane`;
   // SHAN-540: the body usually opens with its own `# <title>`, and a
   // description that starts by repeating the headline above it burns ~15% of
-  // the ~155 characters a SERP snippet actually shows.
+  // the ~155 characters a SERP snippet actually shows. 159 plus the ellipsis
+  // keeps it inside the same 160 budget courses/[slug] uses (SHAN-687).
   const description =
-    toPlainExcerpt(stripLeadingTitleHeading(data.content, data.title), 160, "…") ||
+    toPlainExcerpt(stripLeadingTitleHeading(data.content, data.title), 159, "…") ||
     "A post on Shane's blog.";
   const url = `${SITE_URL}/blog/${slug}`;
   return {

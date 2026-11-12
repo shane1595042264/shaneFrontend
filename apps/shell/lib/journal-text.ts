@@ -235,9 +235,15 @@ export function toPlainExcerpt(
   // landing inside a surrogate pair (emoji, non-BMP CJK) keeps the whole character
   // instead of leaving a lone surrogate that renders as U+FFFD.
   const codepoints = Array.from(plain);
-  return codepoints.length > maxLen
-    ? codepoints.slice(0, maxLen).join("").trimEnd() + ellipsis
-    : plain;
+  if (codepoints.length <= maxLen) return plain;
+  // Clip on a word boundary: a hard cut ended every blog meta description,
+  // card and feed summary mid-word ("Every answe…", SHAN-687). A long unspaced
+  // run (CJK text, a URL) would lose most of the excerpt that way, so below
+  // 60% of the cut fall back to the hard cut.
+  const cut = codepoints.slice(0, maxLen).join("");
+  const atWord = /\s/.test(codepoints[maxLen]) ? cut : cut.replace(/\s+\S*$/, "");
+  const clipped = atWord.length >= cut.length * 0.6 ? atWord : cut;
+  return (clipped.replace(/[\s,;:.–—-]+$/u, "") || cut.trimEnd()) + ellipsis;
 }
 
 export function countWords(text: string): number {
