@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "@/components/transition-link";
 
 const TITLE = "Knowledge — Shane";
-const DESCRIPTION = "AI-powered knowledge manager with automatic classification.";
+const DESCRIPTION =
+  "A public notebook of words, ideas and facts: paste in a note and AI files it by language and category, links related entries, and quizzes you on them.";
 const URL = "https://shanejli.com/knowledge";
 
 export const metadata: Metadata = {

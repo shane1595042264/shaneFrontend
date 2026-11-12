@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "@/components/transition-link";
 
 const TITLE = "Vocabulary — Shane";
-const DESCRIPTION = "Graph-based multilingual vocabulary system";
+const DESCRIPTION =
+  "A multilingual word list: each word gets an AI-written definition, pronunciation and example sentence, plus links to its synonyms, antonyms and translations.";
 const URL = "https://shanejli.com/vocabulary";
 
 export const metadata: Metadata = {
