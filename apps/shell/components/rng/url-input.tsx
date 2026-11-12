@@ -13,18 +13,30 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
   const [manualMode, setManualMode] = useState(false);
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
+  // SHAN-690: the page clears showManualFallback as soon as a manual evaluation
+  // starts, so rendering the form off that flag snapped it back to the URL box
+  // mid-request and hid what was typed if the evaluation then failed. Latch
+  // manual mode when the fallback appears instead; that also leaves "Switch to
+  // URL input" free to work while the note is up.
+  const [prevFallback, setPrevFallback] = useState(showManualFallback);
+  if (showManualFallback !== prevFallback) {
+    setPrevFallback(showManualFallback);
+    if (showManualFallback) setManualMode(true);
+  }
 
-  if (manualMode || showManualFallback) {
+  if (manualMode) {
     return (
       <div className="space-y-2">
-        {showManualFallback && !manualMode && (
+        {showManualFallback && (
           <p className="text-yellow-400 text-sm">Could not extract product info from URL. Enter manually:</p>
         )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             const p = parseFloat(price);
-            if (productName.trim() && !isNaN(p) && !loading) {
+            // The server rejects a price of 0 or below with a message about a
+            // missing name; min on the input lets the browser say it first.
+            if (productName.trim() && p > 0 && !loading) {
               onSubmitManual(productName.trim(), p);
             }
           }}
@@ -44,6 +56,7 @@ export function UrlInput({ onSubmitUrl, onSubmitManual, loading, showManualFallb
               <input
                 type="number"
                 step="0.01"
+                min="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 aria-label="Price"
