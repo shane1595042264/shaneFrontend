@@ -158,8 +158,9 @@ export function EntryDetail({
     try {
       const updated = await updateEntry(entryId, {
         word: trimmedWord,
-        definition: editDefinition,
-        exampleSentence: editExample,
+        // An emptied field goes out as null: the API ignores "" (SHAN-693).
+        definition: editDefinition.trim() || null,
+        exampleSentence: editExample.trim() || null,
       });
       setEntry(updated);
       setEditing(false);

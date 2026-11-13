@@ -176,10 +176,11 @@ export async function updateEntry(
     word?: string;
     language?: string;
     category?: string;
-    definition?: string;
-    pronunciation?: string;
-    partOfSpeech?: string;
-    exampleSentence?: string;
+    /** SHAN-693: null clears these four; "" is ignored by the API. */
+    definition?: string | null;
+    pronunciation?: string | null;
+    partOfSpeech?: string | null;
+    exampleSentence?: string | null;
     labels?: string[];
     memorizationLocations?: string[];
     /** SHAN-556: applied to the stored list under a row lock; prefer these to a full list. */
