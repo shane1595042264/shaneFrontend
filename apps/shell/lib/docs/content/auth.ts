@@ -58,6 +58,8 @@ The loans ledger (\`/api/loans\`, Who Owes Me) is browser-session only, reads in
 
 Tea entries (\`/api/tea-entries\`) take \`entries:write\` for reads as well as writes. Without it the list answers 403 \`Token missing required scope: entries:write\`, and \`GET /api/tea-entries/:id\` treats the PAT like anyone else: 401 \`PIN required\` until it sends the right \`X-Tea-Pin\`, and the entry's PIN is never in the response.
 
+Skincare (\`/api/skincare\`) is the same: \`GET /api/skincare\` and \`GET /api/skincare/search\` need \`entries:write\`, like every skincare write, and answer 403 \`Token missing required scope: entries:write\` without it.
+
 Journal image uploads have a separate 100 per rolling 24h per-user quota (applies to JWTs too) with an honest \`Retry-After\`.
 
 ## Blitz sync sessions (browser only)
