@@ -45,6 +45,6 @@ A note needs \`anchor\` (\`{target, quote, prefix?, suffix?}\`, the same shape a
 
 ## Notes become knowledge cards
 
-A new note, typed or explained, on any of these surfaces is also handed to the knowledge classifier, which turns it into a card the same way \`POST /api/knowledge/notes\` does. Only the selected words and the note text go in, never the text around them: cards are public and a journal is not. A note on a private course is not filed at all, since its quote would be public on the card. Replies are not filed. Turn it off with \`PATCH /api/ai/settings {notesToKnowledge: false}\`.
+A new note, typed or explained, on any of these surfaces is also handed to the knowledge classifier, which turns it into a card the same way \`POST /api/knowledge/notes\` does. Only the selected words and the note text go in, never the text around them: cards are public and a journal is not. A note on a private course or a blog draft is not filed at all, since its quote would be public on the card. A post flipped back to draft stops filing new notes from that moment. Replies are not filed. Turn it off with \`PATCH /api/ai/settings {notesToKnowledge: false}\`.
 `;
 export default body;
