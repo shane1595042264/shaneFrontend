@@ -144,8 +144,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Public trip HTML upload, update, and delete, plus the trip-groups planning surface.",
     body: tripsApi,
-    lastModified: "2026-10-17T03:04:48-05:00",
-    bodyFingerprint: "e5a2a2fd",
+    lastModified: "2026-11-16T15:05:18-06:00",
+    bodyFingerprint: "495d753b",
   },
   {
     slug: "knowledge-api",
