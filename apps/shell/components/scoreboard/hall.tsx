@@ -127,7 +127,9 @@ export function Hall({
               whileTap={{ scale: 0.96 }}
               onClick={() => onSelectGame(game.id)}
               className={`flex flex-col items-center gap-3 rounded-lg border ${styles.border} ${styles.bg} p-5 pt-6 text-center hover:shadow-lg hover:shadow-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none`}
-              aria-label={`Open ${game.name} cabinet`}
+              // No aria-label (SHAN-697): it would replace the visible text,
+              // and the tally line is what the hall is for. The icon is
+              // aria-hidden, so the name reads "Pool Calina 2 - Shane 1".
             >
               <span className={styles.text}>
                 <GameIcon icon={game.icon} className="h-16 w-16" />
