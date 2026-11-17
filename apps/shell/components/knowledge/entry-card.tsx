@@ -1,7 +1,8 @@
 "use client";
 
-import type { MouseEvent, ReactNode } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { LONG_TERM_THRESHOLD, type KnowledgeEntry } from "@/lib/knowledge-api";
+import { stripMarkdown } from "@/lib/journal-text";
 
 /** Location chips shown on a card preview before collapsing the rest into "+N more". */
 const MAX_PREVIEW_LOCATIONS = 4;
@@ -90,6 +91,22 @@ export function EntryCard({
     onClick(entry);
   }
 
+  // SHAN-701: the edit-mode checkbox row has to be reachable without a mouse.
+  function handleCardKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (!editMode || e.target !== e.currentTarget) return;
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      onToggleSelect(index, e.shiftKey);
+    }
+  }
+
+  // SHAN-701: definitions are markdown (the detail dialog renders them), so the
+  // preview reads the plain text instead of printing image and link syntax. A
+  // definition that is only a pasted image strips to nothing; say so instead of
+  // leaving the card blank.
+  const preview = stripMarkdown(entry.definition ?? "").replace(/\s+/g, " ").trim();
+  const imageOnly = !preview && /!\[[^\]]*\]\([^)]*\)/.test(entry.definition ?? "");
+
   // SHAN-576: .spot is the site's pointer-lit card (components/aura.tsx writes
   // its light coordinates), so these cards match the homepage's instead of
   // being the one flat grid left on the site.
@@ -103,8 +120,10 @@ export function EntryCard({
   return (
     <div
       onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
       className={cardClasses}
       role={editMode ? "checkbox" : undefined}
+      tabIndex={editMode ? 0 : undefined}
       aria-checked={editMode ? selected : undefined}
       aria-label={editMode ? `Select ${entry.word}` : undefined}
     >
@@ -136,9 +155,22 @@ export function EntryCard({
       ) : null}
 
       <div className="flex items-baseline gap-2 pr-6">
-        <span className="text-[17px] font-semibold leading-snug tracking-[-0.01em] text-white">
-          {entry.word}
-        </span>
+        {/* SHAN-701: a real button so Tab reaches the card and Enter opens it.
+            It has no handler of its own: its click bubbles to the card's
+            onClick, which is what a pointer click anywhere on the card runs.
+            Edit mode keeps a span, since the card itself is the checkbox. */}
+        {editMode ? (
+          <span className="text-[17px] font-semibold leading-snug tracking-[-0.01em] text-white">
+            {entry.word}
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="rounded-sm text-left text-[17px] font-semibold leading-snug tracking-[-0.01em] text-white"
+          >
+            {entry.word}
+          </button>
+        )}
         {entry.pronunciation && (
           <span className="font-mono text-xs text-gray-400">{entry.pronunciation}</span>
         )}
@@ -150,11 +182,13 @@ export function EntryCard({
         {entry.partOfSpeech && <span className="italic">{entry.partOfSpeech}</span>}
       </div>
 
-      {entry.definition && (
-        <p className="mt-2.5 line-clamp-3 text-sm leading-relaxed text-gray-300">
-          {entry.definition}
+      {preview ? (
+        <p className="mt-2.5 line-clamp-3 break-words text-sm leading-relaxed text-gray-300">
+          {preview}
         </p>
-      )}
+      ) : imageOnly ? (
+        <p className="mt-2.5 text-sm italic text-gray-400">Image</p>
+      ) : null}
 
       {labels.length > 0 && (
         <p className="mt-3 flex flex-wrap gap-x-2.5 gap-y-1 text-xs text-gray-400">
