@@ -16,6 +16,7 @@ import { journalNotesAdapter } from "@/components/notes/adapters";
 import { NotedEntryBody } from "@/components/journal/noted-entry-body";
 import { MarkdownHashScroll } from "@/components/markdown-hash-scroll";
 import { ReadingTracker } from "@/components/journal/reading-tracker";
+import { ReadingProgress } from "@/components/reading/reading-progress";
 import { readingTimeMinutes } from "@/lib/journal-text";
 import { buildJournalToc, ENTRY_BODY_ANCHOR, shouldShowJournalToc } from "@/lib/journal-toc";
 import {
@@ -258,6 +259,7 @@ export function JournalEntryView({ date, sidebar }: Props) {
       {/* SHAN-597: opens at the reader's saved spot (unless the URL names a
           section, which wins) and keeps that spot synced as they scroll. */}
       <ReadingTracker date={data.entry.date} articleRef={articleRef} />
+      <ReadingProgress articleRef={articleRef} />
       {backLink}
 
       {/* SHAN-577: inline notes. The provider spans the whole grid so the

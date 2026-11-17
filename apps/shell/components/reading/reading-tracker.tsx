@@ -423,6 +423,8 @@ export function ReadingTracker({ id, localKey, localMeta, remote, noun, articleR
             key={pill.kind}
             role="status"
             aria-live="polite"
+            // The progress chip stands down while this is up (narrow screens).
+            data-reading-pill=""
             // Transform only on the way in: an overlay that starts at opacity 0
             // is the SHAN-549 trap, and the scale reads as arriving anyway.
             initial={reduce ? false : { y: -14, scale: 0.94 }}

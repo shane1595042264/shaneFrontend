@@ -9,6 +9,7 @@ import {
   type BlogReadingPosition,
 } from "@/lib/api/blog-reading";
 import { readLocal, ReadingTracker, type ReadingRemote } from "@/components/reading/reading-tracker";
+import { ReadingProgress } from "@/components/reading/reading-progress";
 
 // SHAN-705: the journal's resume-where-you-left-off, on the blog. Unlike the
 // journal, most blog readers are not signed in, so a signed-out reader keeps
@@ -59,6 +60,7 @@ export function BlogReadingArticle({
         noun="post"
         articleRef={articleRef}
       />
+      <ReadingProgress articleRef={articleRef} />
     </>
   );
 }

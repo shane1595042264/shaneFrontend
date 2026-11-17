@@ -88,6 +88,15 @@ function progressAt(root: Element, y: number): number {
   return clamp((y - r.top) / Math.max(1, r.height), 0, 1);
 }
 
+/**
+ * How far through the article the reader is right now, by the same rule a
+ * saved position uses: 1 once the end is on screen. Cheap (one rect), so the
+ * progress bar can call it on every scroll frame.
+ */
+export function readingProgress(root: Element): number {
+  return root.isConnected ? progressAt(root, readingLineY()) : 0;
+}
+
 function anchorFor(blocks: Element[], index: number, y: number): ReadingAnchor {
   const el = blocks[index];
   if (!el) return { block: 0, offset: 0, text: "" };
