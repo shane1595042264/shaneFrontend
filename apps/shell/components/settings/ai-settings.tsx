@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { RelativeTime } from "@/lib/format-time";
+import { RelativeTime, formatRelativeTime } from "@/lib/format-time";
 import {
   PROVIDER_LABEL,
   addAiKey,
@@ -475,7 +475,7 @@ function UsageSection() {
   const tiles = t
     ? [
         { label: "Tokens", value: (t.inputTokens + t.outputTokens).toLocaleString(), sub: `${t.inputTokens.toLocaleString()} in, ${t.outputTokens.toLocaleString()} out` },
-        { label: "Estimated cost", value: formatUsd(t.costMicroUsd), sub: "at list prices" },
+        { label: "Estimated cost", value: formatUsd(t.costMicroUsd), sub: priceNote(summary?.prices) },
         { label: "Calls", value: t.calls.toLocaleString(), sub: "explanations and key checks" },
       ]
     : [];
@@ -577,4 +577,15 @@ function UsageSection() {
       )}
     </section>
   );
+}
+
+/**
+ * Where the cost tile's prices come from (SHAN-703). Each call was priced when
+ * it was made; this names the list new calls are priced from right now.
+ */
+function priceNote(prices: UsageSummary["prices"]): string {
+  if (prices?.source === "live" && prices.updatedAt) {
+    return `list prices, updated ${formatRelativeTime(prices.updatedAt)}`;
+  }
+  return "at built-in list prices";
 }

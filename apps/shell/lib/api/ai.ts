@@ -49,6 +49,12 @@ export interface UsageSummary {
     costMicroUsd: number | null;
     createdAt: string;
   }[];
+  /**
+   * SHAN-703: the price list new calls are priced from. "live" is a public
+   * price file the server refreshes daily; "builtin" is its own fallback
+   * table. Optional only so a page served before the backend knew it renders.
+   */
+  prices?: { source: "live" | "builtin"; updatedAt: string | null; models: number };
 }
 
 /** An error carrying the server's `code` (no_key, auth, quota...) for the UI to branch on. */

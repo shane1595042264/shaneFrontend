@@ -184,7 +184,10 @@ export function UsageChart({ summary }: { summary: UsageSummary }) {
               ))}
           </tbody>
         </table>
-        <p className="mt-2">Costs are estimates from list prices: {formatUsd(summary.totals.costMicroUsd)} in this period.</p>
+        <p className="mt-2">
+          Costs are estimates, each call priced at the list price of the day it was made:{" "}
+          {formatUsd(summary.totals.costMicroUsd)} in this period.
+        </p>
       </details>
     </figure>
   );

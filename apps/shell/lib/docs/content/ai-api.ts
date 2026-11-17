@@ -29,7 +29,7 @@ The answer is not stored by this route. The site saves it as a note on the selec
 
 ## Usage
 
-\`GET /api/ai/usage?days=1..365\` (default 30): \`{days, totals, byModel, daily, recent}\` over your own calls. Token counts are what the provider reported (Gemini's thinking tokens count as output). \`costMicroUsd\` is an estimate in millionths of a dollar from list prices, rounded per call.
+\`GET /api/ai/usage?days=1..365\` (default 30): \`{days, totals, byModel, daily, recent, prices}\` over your own calls. Token counts are what the provider reported (Gemini's thinking tokens count as output). Providers report tokens, never cost, so \`costMicroUsd\` is an estimate in millionths of a dollar, rounded per call and priced when the call was made: a later price change moves future calls, not past ones. Prices come from LiteLLM's public model price file, which the server refreshes daily; \`prices\` is \`{source: "live" | "builtin", updatedAt, models}\`, where \`builtin\` means that file could not be fetched and the server's own table (or, for a model it does not know, a guess from the tier in its name) is in use.
 
 ## Reader notes
 
