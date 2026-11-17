@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "@/components/transition-link";
 import { mintToken } from "@/lib/api/tokens";
 import { humanizeActionError } from "@/lib/humanize-error";
 import { useEscapeKey } from "@/lib/use-escape-key";
@@ -29,6 +30,7 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<"copied" | "error" | null>(null);
+  const [commandCopied, setCommandCopied] = useState<"copied" | "error" | null>(null);
   const copyButtonRef = useRef<HTMLButtonElement>(null);
 
   const dismissable = raw === null && !saving;
@@ -73,12 +75,29 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
     setTimeout(() => setCopyFeedback(null), 2000);
   };
 
+  // SHAN-704: the one moment the raw token exists on screen is the moment to
+  // hand over the whole Claude Code command, so nobody has to splice it in.
+  const mcpCommand = raw ? claudeMcpCommand(raw) : "";
+  const handleCopyCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(mcpCommand);
+      setCommandCopied("copied");
+    } catch {
+      setCommandCopied("error");
+    }
+    setTimeout(() => setCommandCopied(null), 2000);
+  };
+
   const srMessage =
     copyFeedback === "copied"
       ? "Token copied to clipboard"
       : copyFeedback === "error"
         ? "Failed to copy token"
-        : "";
+        : commandCopied === "copied"
+          ? "Claude Code command copied to clipboard"
+          : commandCopied === "error"
+            ? "Failed to copy the command"
+            : "";
 
   return (
     <div
@@ -112,6 +131,32 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
                 Could not copy automatically. Select the token above and copy it by hand.
               </p>
             )}
+            <div className="mt-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-white">Use it in Claude Code</p>
+                <button
+                  type="button"
+                  onClick={handleCopyCommand}
+                  className="inline-flex h-8 items-center rounded-full px-3 text-xs text-gray-300 ring-1 ring-inset ring-white/15 transition-colors hover:bg-white/[0.06] hover:text-white"
+                >
+                  {commandCopied === "copied" ? "Copied" : "Copy command"}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">
+                Run it once in a terminal. Claude then gets this site as tools, limited to the scopes above.{" "}
+                <Link href="/docs/mcp" className="text-gray-300 underline underline-offset-2 hover:text-white">
+                  How it works
+                </Link>
+              </p>
+              <pre className="mt-2 overflow-x-auto rounded-md border border-white/15 bg-black/40 p-3 font-mono text-xs leading-relaxed text-gray-200 select-all">
+                {mcpCommand}
+              </pre>
+              {commandCopied === "error" && (
+                <p role="alert" className="mt-2 text-sm text-red-400">
+                  Could not copy automatically. Select the command above and copy it by hand.
+                </p>
+              )}
+            </div>
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" onClick={onClose} className={SECONDARY_BUTTON}>
                 Done
@@ -205,4 +250,9 @@ export function MintTokenDialog({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   );
+}
+
+/** The one-line Claude Code setup for the site's MCP server (SHAN-704). */
+export function claudeMcpCommand(token: string): string {
+  return `claude mcp add --transport http --scope user shanejli https://shanejli.com/api/mcp --header "Authorization: Bearer ${token}"`;
 }

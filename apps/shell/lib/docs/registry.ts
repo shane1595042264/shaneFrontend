@@ -6,6 +6,7 @@
 import overview from "./content/overview";
 import auth from "./content/auth";
 import conventions from "./content/conventions";
+import mcp from "./content/mcp";
 import journalApi from "./content/journal-api";
 import blogApi from "./content/blog-api";
 import imagesApi from "./content/images-api";
@@ -72,8 +73,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "What shanejli.com is, the architecture, base URLs, and how to discover the rest of these docs.",
     body: overview,
-    lastModified: "2026-09-08T03:09:10-05:00",
-    bodyFingerprint: "03077e68",
+    lastModified: "2026-11-17T12:00:00-06:00",
+    bodyFingerprint: "b2474232",
   },
   {
     slug: "auth",
@@ -92,6 +93,15 @@ export const DOC_PAGES: DocPage[] = [
     body: conventions,
     lastModified: "2026-10-20T03:06:27-05:00",
     bodyFingerprint: "c3a2c4de",
+  },
+  {
+    slug: "mcp",
+    title: "MCP Server",
+    description:
+      "Use the whole API from Claude Code or any MCP client: one endpoint, your personal access token, typed tools for knowledge, journal and blog, and generic read and write tools for the rest.",
+    body: mcp,
+    lastModified: "2026-11-17T12:00:00-06:00",
+    bodyFingerprint: "6f3e7f7f",
   },
   {
     slug: "journal-api",

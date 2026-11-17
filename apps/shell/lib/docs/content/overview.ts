@@ -19,6 +19,10 @@ Both of these reach the same backend:
 
 Almost every GET is unauthenticated. Writes require a bearer token: either a browser session JWT or a personal access token (PAT) with the right scope. See [Auth and Tokens](/docs/auth).
 
+## Use it from Claude
+
+\`https://shanejli.com/api/mcp\` is an MCP server over the same API, authenticated with the same personal access token, so Claude Code and other MCP clients can use the site as tools. See [MCP Server](/docs/mcp).
+
 ## These docs
 
 | Endpoint | What you get |
