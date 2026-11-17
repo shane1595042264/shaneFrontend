@@ -2,23 +2,10 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "@/components/transition-link";
-import type { ReadingPosition } from "@/lib/api/journal-reading";
 import { formatRelativeTime } from "@/lib/format-time";
 import { READ_THROUGH, STARTED, readingSnippet } from "@/lib/reading-position";
 
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
-
-function longDate(date: string): string {
-  return new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-function shortDate(date: string): string {
-  return new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 /** Thin progress line; only its transform moves, and only on the way in. */
 function Bar({ progress, reduce, className }: { progress: number; reduce: boolean; className: string }) {
@@ -34,24 +21,38 @@ function Bar({ progress, reduce, className }: { progress: number; reduce: boolea
   );
 }
 
+/** One unfinished piece, as the card shows it. */
+export interface ContinueItem {
+  key: string;
+  href: string;
+  /** The card's heading for the piece read last. */
+  title: string;
+  /** The chip label for the others. */
+  short: string;
+  progress: number;
+  /** The opening words of the block the reader was on. */
+  text: string;
+  updatedAt: string;
+}
+
 interface Props {
   /** The reader's positions, most recently read first. */
-  positions: ReadingPosition[];
+  items: ContinueItem[];
 }
 
 /**
  * SHAN-597: the top of /journal, for a signed-in member who is partway through
- * something. The card is the entry they read last that they have not finished;
+ * something. Shared with the top of /blog since SHAN-705. The card is the entry they read last that they have not finished;
  * opening it lands on their spot, because the entry page restores it. Up to two
  * other unfinished entries ride along underneath.
  *
  * Renders nothing until the positions arrive and nothing when there is nothing
  * to resume, so it never holds space open on the page.
  */
-export function ContinueReading({ positions }: Props) {
+export function ContinueReading({ items }: Props) {
   const reduce = useReducedMotion() ?? false;
   // Scrolled back to the top counts as not started: that is where they left off.
-  const unfinished = positions.filter((p) => p.progress >= STARTED && p.progress < READ_THROUGH);
+  const unfinished = items.filter((p) => p.progress >= STARTED && p.progress < READ_THROUGH);
   const [primary, ...rest] = unfinished;
   if (!primary) return null;
   const others = rest.slice(0, 2);
@@ -67,7 +68,7 @@ export function ContinueReading({ positions }: Props) {
       className="mb-8"
     >
       <Link
-        href={`/journal/${primary.date}`}
+        href={primary.href}
         className="spot group block rounded-xl border border-white/10 bg-white/[0.025] p-5 transition-[border-color,scale] hover:border-white/20 active:scale-[0.995]"
       >
         <span className="flex items-baseline justify-between gap-4">
@@ -79,11 +80,11 @@ export function ContinueReading({ positions }: Props) {
           </span>
         </span>
         <span className="mt-2 block text-lg font-semibold tracking-tight text-white">
-          {longDate(primary.date)}
+          {primary.title}
         </span>
-        {primary.anchor.text && (
+        {primary.text && (
           <span className="mt-1.5 block line-clamp-2 text-sm leading-relaxed text-gray-300">
-            &ldquo;{readingSnippet(primary.anchor.text)}&rdquo;
+            &ldquo;{readingSnippet(primary.text)}&rdquo;
           </span>
         )}
         <span className="mt-4 flex items-center gap-3">
@@ -108,11 +109,11 @@ export function ContinueReading({ positions }: Props) {
           <span>Also partway through</span>
           {others.map((p) => (
             <Link
-              key={p.date}
-              href={`/journal/${p.date}`}
+              key={p.key}
+              href={p.href}
               className="inline-flex min-h-8 items-center gap-2 rounded-full border border-white/10 px-3 text-gray-300 transition-colors hover:border-white/20 hover:text-white"
             >
-              {shortDate(p.date)}
+              <span className="max-w-[12rem] truncate">{p.short}</span>
               <Bar progress={p.progress} reduce={reduce} className="h-[3px] w-8" />
               <span className="font-mono tabular-nums">
                 {Math.round(p.progress * 100)}%<span className="sr-only"> read</span>

@@ -41,6 +41,12 @@ function sameTags(a: string[], b: string[]): boolean {
 interface Props {
   /** Edit passes the post being edited; compose passes null. */
   existing: BlogPostDetail | null;
+  /**
+   * Compose only: starting values, and a note shown above the form saying
+   * where they came from (SHAN-705: a journal entry published to the blog).
+   * The form starts dirty, so leaving it asks first, like any unsaved draft.
+   */
+  prefill?: { title: string; content: string; status: "published" | "draft"; note: string };
 }
 
 /**
@@ -54,16 +60,16 @@ interface Props {
  * carries the version number we loaded, and a 409 means someone moved the post
  * under us.
  */
-export function PostEditor({ existing }: Props) {
+export function PostEditor({ existing, prefill }: Props) {
   const router = useRouter();
   const isEdit = existing !== null;
   const slug = existing?.post.slug ?? "";
 
-  const [title, setTitle] = useState(existing?.title ?? "");
-  const [content, setContent] = useState(existing?.content ?? "");
+  const [title, setTitle] = useState(existing?.title ?? prefill?.title ?? "");
+  const [content, setContent] = useState(existing?.content ?? prefill?.content ?? "");
   const [tagInput, setTagInput] = useState(existing?.post.tags.join(", ") ?? "");
   const [status, setStatus] = useState<"published" | "draft">(
-    existing?.post.status === "draft" ? "draft" : "published",
+    existing ? (existing.post.status === "draft" ? "draft" : "published") : (prefill?.status ?? "published"),
   );
   const [cover, setCover] = useState<string | null>(existing?.post.coverImageUrl ?? null);
 
@@ -209,6 +215,14 @@ export function PostEditor({ existing }: Props) {
       <h1 className="mt-3 mb-6 text-2xl font-semibold tracking-tight text-white">
         {isEdit ? "Edit post" : "New post"}
       </h1>
+      {prefill && !isEdit && (
+        <p
+          role="note"
+          className="-mt-3 mb-6 max-w-[70ch] rounded-lg border border-blue-400/20 bg-blue-400/[0.06] px-4 py-3 text-sm leading-relaxed text-blue-100"
+        >
+          {prefill.note}
+        </p>
+      )}
 
       <label
         htmlFor="post-title"

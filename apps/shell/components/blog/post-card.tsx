@@ -1,5 +1,6 @@
 import Link from "@/components/transition-link";
 import { coverSrc, type BlogPost } from "@/lib/api/blog";
+import { READ_THROUGH } from "@/lib/reading-position";
 import {
   readingTimeFromWords,
   stripLeadingTitleHeading,
@@ -42,7 +43,7 @@ function formatPublished(iso: string): string {
  * at the edge by an anonymous probe that cannot see a draft, so it would
  * hard-404 them (SHAN-487).
  */
-export function PostCard({ post }: { post: BlogPost }) {
+export function PostCard({ post, progress }: { post: BlogPost; progress?: number }) {
   const cover = coverSrc(post.coverImageUrl);
   const isDraft = post.status === "draft";
   // The h2 below already prints the title, and a body that opens with its own
@@ -63,7 +64,7 @@ export function PostCard({ post }: { post: BlogPost }) {
     <article className="mb-5 break-inside-avoid">
       <Link
         href={isDraft ? `/blog/preview/${post.slug}` : `/blog/${post.slug}`}
-        className="spot block overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] transition-colors duration-500 hover:border-white/20 hover:bg-white/[0.04] focus-visible:border-white/40 focus-visible:outline-none"
+        className="spot relative block overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] transition-colors duration-500 hover:border-white/20 hover:bg-white/[0.04] focus-visible:border-white/40 focus-visible:outline-none"
       >
         {cover && (
           // Plain <img>, not next/image: covers are served by the backend host,
@@ -119,6 +120,21 @@ export function PostCard({ post }: { post: BlogPost }) {
             </ul>
           )}
         </div>
+        {progress !== undefined && (
+          // SHAN-705: how far in you are, along the tile's bottom edge, as on
+          // the journal's rows. Dimmer once read through.
+          <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-white/[0.06]">
+            <span
+              className={`block h-full origin-left ${progress >= READ_THROUGH ? "bg-blue-400/40" : "bg-blue-400/80"}`}
+              style={{ transform: `scaleX(${Math.max(progress, 0.02)})` }}
+            />
+          </span>
+        )}
+        {progress !== undefined && (
+          <span className="sr-only">
+            {progress >= READ_THROUGH ? "Read" : `${Math.round(progress * 100)}% read`}
+          </span>
+        )}
       </Link>
     </article>
   );

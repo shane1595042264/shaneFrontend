@@ -1,3 +1,5 @@
+import { BlogReadingArticle } from "@/components/blog/blog-reading";
+import { PrevNextKeys } from "@/components/reading/prev-next-keys";
 import Link from "@/components/transition-link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -256,7 +258,10 @@ export default async function BlogPostPage({ params }: PageProps) {
 
       {shouldShowToc(headings) && <PostToc headings={headings} />}
 
-      <article className="mt-8">
+      {/* SHAN-705: resume where you left off, as on the journal. The wrapper
+          renders this same <article> around the same server-rendered body and
+          adds the reading tracker beside it, so the cached HTML is unchanged. */}
+      <BlogReadingArticle slug={slug} title={title} className="mt-8">
         {/* SHAN-596: the reader's private notes and Explain. Rendered on the
             server exactly as PostBody alone was (no notes until the client
             knows who is reading), so the cached HTML is unchanged. */}
@@ -264,7 +269,12 @@ export default async function BlogPostPage({ params }: PageProps) {
           <NotedPostBody content={body} headings={headings} />
           <OrphanNotes />
         </ReaderNotesScope>
-      </article>
+      </BlogReadingArticle>
+      {/* ←/j older, →/k newer, matching the Older/Newer links below. */}
+      <PrevNextKeys
+        prevHref={data.prev ? `/blog/${data.prev.slug}` : null}
+        nextHref={data.next ? `/blog/${data.next.slug}` : null}
+      />
 
       {/* Both are client islands for the same reason PostActions is: the page
           stays a single cached document for every visitor, and who is reading

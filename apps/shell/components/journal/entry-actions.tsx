@@ -63,6 +63,16 @@ export function EntryActions({ date, authorId }: Props) {
             Append
           </Link>
         )}
+        {isAuthor && (
+          // SHAN-705: the blog is the public journal. This opens a blog draft
+          // copied from the entry; nothing is public until it is published.
+          <Link
+            href={`/blog/new?from=${date}`}
+            className="text-gray-400 hover:text-gray-300 transition-colors"
+          >
+            Publish to blog
+          </Link>
+        )}
         {!loading && user && user.id !== authorId && (
           <Link
             href={`/journal/${date}/suggest`}

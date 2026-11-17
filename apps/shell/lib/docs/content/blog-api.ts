@@ -109,6 +109,20 @@ Use it rather than counting \`contentExcerpt\` yourself. That field is capped at
 
 The count is not a whitespace split. A fenced code block contributes nothing, heading, list and blockquote markers are not words, and a link or image contributes its text and never its URL — which is also why it is served rather than computable from the body in SQL.
 
+## Reading positions (SHAN-705)
+
+Where a signed-in reader left off in each post, synced across their devices: the blog's twin of the journal's [reading positions](/docs/journal-api#reading-positions), with the same body and rules. Mounted at \`/api/blog/reading\`. **Browser session only**: any PAT gets 403, because an agent has no place in a post to save. There is no membership gate, since published posts are public.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | /reading | \`?limit=1..100\` (default 20). \`{positions}\`, most recently read first, each \`{slug, title, progress, anchor, updatedAt}\`; posts no longer published are left out |
+| GET | /reading/:slug | \`{position}\`, or \`{position: null}\` when you have not read that post |
+| PUT | /reading/:slug | \`{progress: 0..1, anchor: {block, offset, text}}\`, strict. 200 \`{position}\`; 404 when the slug is not a published post (drafts included) |
+
+- One position per reader per post, replaced by every PUT, so it is the last place read, not the furthest. Last write wins, by server time.
+- \`anchor\` and \`progress\` mean exactly what they mean on the journal: \`block\` indexes the post body's text blocks in document order, \`offset\` is how far down that block the reading line sits, \`text\` is the block's opening words. \`progress\` is 1 once the end is on screen; the site counts 0.98 and up as read.
+- Signed-out readers on shanejli.com keep their place on their own device (localStorage) and never call these routes.
+
 ## Feeds (SHAN-491)
 
 The blog is subscribable. Both feeds live on the frontend, not the API, because they are reader-facing documents rather than JSON endpoints:

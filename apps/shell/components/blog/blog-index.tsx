@@ -7,6 +7,9 @@ import { useHydrated } from "@/lib/use-hydrated";
 import { listPosts, type BlogPost } from "@/lib/api/blog";
 import { InlineErrorState } from "@/components/inline-error-state";
 import { PostCard } from "./post-card";
+import { useBlogReadingPositions } from "./blog-reading";
+import { ContinueReading, type ContinueItem } from "@/components/reading/continue-reading";
+import { STARTED } from "@/lib/reading-position";
 import { humanizeActionError } from "@/lib/humanize-error";
 
 const PAGE_SIZE = 24;
@@ -95,6 +98,27 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
   // the link and the auth context can resolve before this subtree hydrates.
   const { user } = useAuth();
   const hydrated = useHydrated();
+  // SHAN-705: where this reader is in each post (synced when signed in, this
+  // device's when not), for the Continue card and each tile's progress line.
+  // Empty until it arrives, so the prerendered index hydrates unchanged.
+  const readingPositions = useBlogReadingPositions();
+  const continueItems = useMemo<ContinueItem[]>(
+    () =>
+      readingPositions.map((p) => ({
+        key: p.slug,
+        href: `/blog/${p.slug}`,
+        title: p.title,
+        short: p.title,
+        progress: p.progress,
+        text: p.anchor.text,
+        updatedAt: p.updatedAt,
+      })),
+    [readingPositions]
+  );
+  const progressBySlug = useMemo(
+    () => new Map(readingPositions.filter((p) => p.progress >= STARTED).map((p) => [p.slug, p.progress])),
+    [readingPositions]
+  );
   const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [knownTags, setKnownTags] = useState<string[]>(() => collectTags(initialPosts));
@@ -293,6 +317,8 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
           </p>
         )}
 
+        {!isFiltered && <ContinueReading items={continueItems} />}
+
         {loading ? (
           <div className="columns-1 gap-5 sm:columns-2 xl:columns-3">
             {SKELETON_HEIGHTS.map((h, i) => (
@@ -313,7 +339,7 @@ export function BlogIndex({ initialPosts, initialNextCursor }: Props) {
           <>
             <div className="columns-1 gap-5 sm:columns-2 xl:columns-3">
               {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard key={post.id} post={post} progress={progressBySlug.get(post.slug)} />
               ))}
             </div>
             {nextCursor && (

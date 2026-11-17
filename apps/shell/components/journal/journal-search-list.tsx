@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { listEntries as apiListEntries, type JournalEntry as ApiJournalEntry } from "@/lib/api/journal";
 import { listReadingPositions, type ReadingPosition } from "@/lib/api/journal-reading";
 import { READ_THROUGH, STARTED } from "@/lib/reading-position";
-import { ContinueReading } from "@/components/journal/continue-reading";
+import { ContinueReading, type ContinueItem } from "@/components/reading/continue-reading";
 import { LoadError } from "@/components/load-error";
 import {
   getTodayInTimezone,
@@ -162,6 +162,23 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
       cancelled = true;
     };
   }, [user]);
+  const continueItems = useMemo<ContinueItem[]>(
+    () =>
+      positions.map((p) => ({
+        key: p.date,
+        href: `/journal/${p.date}`,
+        title: new Date(p.date + "T00:00:00").toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        }),
+        short: new Date(p.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        progress: p.progress,
+        text: p.anchor.text,
+        updatedAt: p.updatedAt,
+      })),
+    [positions]
+  );
   const progressByDate = useMemo(
     () => new Map(positions.filter((p) => p.progress >= STARTED).map((p) => [p.date, p.progress])),
     [positions]
@@ -313,7 +330,7 @@ export function JournalSearchList({ entries: seedEntries, today: ssrToday, initi
 
   return (
     <div>
-      {!isFiltering && <ContinueReading positions={positions} />}
+      {!isFiltering && <ContinueReading items={continueItems} />}
       <div className="mb-6">
         <label htmlFor="journal-search" className="sr-only">
           Search journal entries
