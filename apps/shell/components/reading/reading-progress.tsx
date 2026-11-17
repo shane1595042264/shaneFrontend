@@ -41,7 +41,9 @@ export function ReadingProgress({ articleRef }: { articleRef: RefObject<HTMLElem
 
   useEffect(() => {
     const root = articleRef.current;
-    if (!root) return;
+    // Wait for hydration: the bar only mounts then, and the first measurement
+    // has to land on it (aria-valuenow, and a page opened mid-article).
+    if (!root || !hydrated) return;
     const mountedAt = Date.now();
     let idleTimer = 0;
     let isShown = false;
@@ -85,7 +87,7 @@ export function ReadingProgress({ articleRef }: { articleRef: RefObject<HTMLElem
       resize.disconnect();
       window.clearTimeout(idleTimer);
     };
-  }, [articleRef, scrollY, progress]);
+  }, [articleRef, scrollY, progress, hydrated]);
 
   if (!hydrated || typeof document === "undefined") return null;
 
