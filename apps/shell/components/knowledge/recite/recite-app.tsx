@@ -8,6 +8,7 @@ import { formatRelativeTime } from "@/lib/format-time";
 import { humanizeActionError } from "@/lib/humanize-error";
 import { listLocations } from "@/lib/api/practice";
 import {
+  fetchEntry,
   fetchMemorizationLocations,
   fetchReciteDeck,
   type KnowledgeEntry,
@@ -19,6 +20,16 @@ type Phase =
   | { kind: "what"; deck: ReciteDeck }
   | { kind: "session"; deck: ReciteDeck; cards: KnowledgeEntry[] }
   | { kind: "done"; deck: ReciteDeck; outcomes: ReciteOutcome[] };
+
+/**
+ * One card, from its detail panel's Practice button (/knowledge/recite?entry=id).
+ * "loading" until the card arrives, "error" when it cannot be practiced.
+ */
+type Focus =
+  | { kind: "none" }
+  | { kind: "loading"; id: string }
+  | { kind: "ready"; card: KnowledgeEntry }
+  | { kind: "error"; id: string; message: string };
 
 interface Place {
   name: string;
@@ -49,13 +60,37 @@ export function ReciteApp() {
   const [phase, setPhase] = useState<Phase>({ kind: "where" });
   const [loadingPlace, setLoadingPlace] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [focus, setFocus] = useState<Focus>({ kind: "none" });
+
+  // Read from location in an effect, not useSearchParams, the way the lesson
+  // player reads ?lesson=: no Suspense boundary and no hydration branch.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("entry");
+    if (!id) return;
+    setFocus({ kind: "loading", id });
+    fetchEntry(id)
+      .then(({ entry }) =>
+        setFocus(
+          entry.definition?.trim()
+            ? { kind: "ready", card: entry }
+            : { kind: "error", id, message: "This card has no definition to recite yet." }
+        )
+      )
+      .catch(() => setFocus({ kind: "error", id, message: "Couldn't load that card." }));
+  }, []);
+
+  const focusCard = focus.kind === "ready" ? focus.card : null;
+  const focusId = focus.kind === "none" ? null : focus.kind === "ready" ? focus.card.id : focus.id;
 
   const openPlace = async (name: string) => {
     setLoadingPlace(name);
     setError(null);
     try {
+      // The deck call is also what saves a new place, so it runs for a single
+      // card too. The card itself comes up whether or not it is memorized here.
       const deck = await fetchReciteDeck(name);
-      setPhase({ kind: "what", deck });
+      if (focusCard) setPhase({ kind: "session", deck, cards: [focusCard] });
+      else setPhase({ kind: "what", deck });
     } catch (e) {
       setError(humanizeActionError(e, "Couldn't load your cards"));
     } finally {
@@ -68,10 +103,10 @@ export function ReciteApp() {
     <div className="mx-auto max-w-3xl">
       {step !== "session" && (
         <Link
-          href="/knowledge"
+          href={focusId ? `/knowledge?entry=${encodeURIComponent(focusId)}` : "/knowledge"}
           className="inline-flex text-sm text-gray-400 transition-colors hover:text-white"
         >
-          &larr; Knowledge
+          &larr; {focusCard ? focusCard.word : "Knowledge"}
         </Link>
       )}
       <AnimatePresence mode="wait" initial={false}>
@@ -82,9 +117,23 @@ export function ReciteApp() {
           exit={reduce ? { opacity: 0 } : { y: -10, opacity: 0 }}
           transition={{ duration: 0.32, ease: EASE_OUT_EXPO }}
         >
-          {phase.kind === "where" && (
-            <WherePicker onPick={openPlace} loadingPlace={loadingPlace} error={error} />
-          )}
+          {phase.kind === "where" &&
+            (focus.kind === "error" ? (
+              <FocusError message={focus.message} />
+            ) : focus.kind === "loading" ? (
+              <div className="pt-8 md:pt-12" aria-busy="true">
+                <span className="sr-only">Loading the card</span>
+                <div className="h-11 w-2/3 animate-pulse rounded-xl bg-white/[0.04]" />
+                <div className="mt-4 h-5 w-1/2 animate-pulse rounded-lg bg-white/[0.04]" />
+              </div>
+            ) : (
+              <WherePicker
+                onPick={openPlace}
+                loadingPlace={loadingPlace}
+                error={error}
+                focusCard={focusCard}
+              />
+            ))}
           {phase.kind === "what" && (
             <WhatPicker
               deck={phase.deck}
@@ -99,7 +148,16 @@ export function ReciteApp() {
               onDone={(outcomes) => setPhase({ kind: "done", deck: phase.deck, outcomes })}
             />
           )}
-          {phase.kind === "done" && (
+          {phase.kind === "done" && focusCard && (
+            <FocusSummary
+              card={focusCard}
+              location={phase.deck.location.name}
+              outcome={phase.outcomes[0]}
+              onRetry={() => setPhase({ kind: "session", deck: phase.deck, cards: [focusCard] })}
+              onChangePlace={() => setPhase({ kind: "where" })}
+            />
+          )}
+          {phase.kind === "done" && !focusCard && (
             <Summary
               location={phase.deck.location.name}
               outcomes={phase.outcomes}
@@ -120,11 +178,16 @@ function WherePicker({
   onPick,
   loadingPlace,
   error,
+  focusCard,
 }: {
   onPick: (name: string) => void;
   loadingPlace: string | null;
   error: string | null;
+  focusCard: KnowledgeEntry | null;
 }) {
+  const memorizedAt = new Set(
+    (focusCard?.memorizationLocations ?? []).map((l) => l.trim().toLowerCase())
+  );
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [draft, setDraft] = useState("");
 
@@ -164,7 +227,14 @@ function WherePicker({
         Where are you?
       </h2>
       <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-gray-400">
-        Recite only brings up cards you haven&apos;t memorized at this place yet.
+        {focusCard ? (
+          <>
+            Practicing <span className="text-white">{focusCard.word}</span>. A pass marks it
+            memorized at the place you pick.
+          </>
+        ) : (
+          <>Recite only brings up cards you haven&apos;t memorized at this place yet.</>
+        )}
       </p>
 
       {places === null ? (
@@ -189,8 +259,10 @@ function WherePicker({
                     <span className="block truncate text-[15px] font-medium text-white">{p.name}</span>
                     <span className="mt-0.5 block font-mono text-[11px] text-gray-400">
                       {busy
-                        ? "Loading your cards..."
-                        : p.lastUsedAt
+                        ? "Loading..."
+                        : memorizedAt.has(p.name.trim().toLowerCase())
+                          ? "Already memorized here"
+                          : p.lastUsedAt
                           ? `Last here ${formatRelativeTime(p.lastUsedAt)}`
                           : "Marked on your cards"}
                     </span>
@@ -426,6 +498,77 @@ function Summary({
         <button type="button" onClick={onChangePlace} className={quietClass}>
           Change place
         </button>
+      </div>
+    </section>
+  );
+}
+
+function FocusError({ message }: { message: string }) {
+  return (
+    <section className="pt-8 md:pt-12">
+      <h2 className="text-3xl font-semibold tracking-[-0.03em] text-white md:text-[44px] md:leading-[1.05]">
+        Can&apos;t practice this card.
+      </h2>
+      <p role="alert" className="mt-3 max-w-[52ch] text-[15px] leading-relaxed text-gray-400">
+        {message}
+      </p>
+      <div className="mt-8">
+        <Link href="/knowledge/recite" className={quietClass}>
+          Recite a whole deck instead
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+/** How a single-card practice went, with the way back to that card. */
+function FocusSummary({
+  card,
+  location,
+  outcome,
+  onRetry,
+  onChangePlace,
+}: {
+  card: KnowledgeEntry;
+  location: string;
+  outcome: ReciteOutcome | undefined;
+  onRetry: () => void;
+  onChangePlace: () => void;
+}) {
+  const status = outcome?.status;
+  const back = `/knowledge?entry=${encodeURIComponent(card.id)}`;
+  return (
+    <section className="pt-8 md:pt-12">
+      <p className="font-mono text-xs text-gray-400">At {location}</p>
+      <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-white md:text-[44px] md:leading-[1.05]">
+        {status === "memorized" ? (
+          <>{card.word} is memorized here.</>
+        ) : status === "deleted" ? (
+          <>{card.word} was deleted.</>
+        ) : (
+          <>{card.word} isn&apos;t memorized here yet.</>
+        )}
+      </h2>
+      <div className="mt-10 flex flex-wrap items-center gap-2">
+        {status === "deleted" ? (
+          <Link href="/knowledge" className={primaryClass}>
+            Back to Knowledge
+          </Link>
+        ) : (
+          <>
+            {status !== "memorized" && (
+              <button type="button" onClick={onRetry} className={primaryClass}>
+                Try again
+              </button>
+            )}
+            <Link href={back} className={status === "memorized" ? primaryClass : quietClass}>
+              Back to the card
+            </Link>
+            <button type="button" onClick={onChangePlace} className={quietClass}>
+              Another place
+            </button>
+          </>
+        )}
       </div>
     </section>
   );

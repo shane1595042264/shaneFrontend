@@ -263,11 +263,11 @@ export function KnowledgeCommentsThread({ entryId, entryAuthorId }: Props) {
   const deleteTargetName = deleteTarget?.author?.name?.trim() || "Anonymous";
 
   return (
-    <section className="mt-6 border-t border-white/10 pt-4">
-      <h3 className="mb-3 text-xs text-gray-400 uppercase">
+    <section className="mt-8 border-t border-white/[0.06] pt-6">
+      <h3 className="mb-3 text-sm font-medium text-white">
         Comments
         {comments.length > 0 && (
-          <span className="ml-1 text-gray-400">({comments.length})</span>
+          <span className="ml-2 font-mono text-xs tabular-nums text-gray-400">{comments.length}</span>
         )}
       </h3>
 

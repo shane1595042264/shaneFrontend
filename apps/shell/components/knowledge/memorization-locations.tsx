@@ -84,63 +84,86 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
     (s) => !current.some((l) => l.toLowerCase() === s.name.toLowerCase())
   );
 
+  const count = Math.min(current.length, LONG_TERM_THRESHOLD);
+
   return (
-    <div className="mb-4">
-      <div className="flex items-center gap-2 mb-1">
-        <h3 className="text-xs text-gray-400 uppercase">Memorization Locations</h3>
-        <span className="text-xs text-gray-400">
-          {Math.min(current.length, LONG_TERM_THRESHOLD)}/{LONG_TERM_THRESHOLD}
-        </span>
-        {entry.longTermMemorized && (
-          <span className="text-xs px-1.5 py-0.5 border border-emerald-500/30 rounded text-emerald-400">
-            🧠 Long-term memorized
-          </span>
-        )}
+    <section aria-labelledby="memorized-at-heading">
+      <div className="flex items-baseline justify-between gap-4">
+        <h3 id="memorized-at-heading" className="text-sm font-medium text-white">
+          Memorized at
+        </h3>
+        <p className="font-mono text-xs tabular-nums text-gray-400">
+          {entry.longTermMemorized ? (
+            <span className="text-teal-200">Long-term memorized</span>
+          ) : (
+            <>
+              {count} of {LONG_TERM_THRESHOLD} places
+            </>
+          )}
+        </p>
+      </div>
+
+      {/* SHAN-339: seven distinct places makes a card long-term. One segment
+          per place, the same strip recite draws across a sitting. */}
+      <div aria-hidden="true" className="mt-3 flex gap-1">
+        {Array.from({ length: LONG_TERM_THRESHOLD }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-[3px] flex-1 rounded-full transition-colors duration-500 ${
+              i < count ? "bg-teal-300/90" : "bg-white/[0.08]"
+            }`}
+          />
+        ))}
       </div>
 
       {current.length > 0 ? (
-        <div className="flex flex-wrap gap-1 mb-2">
+        <ul className="mt-4 flex flex-wrap gap-1.5">
           {current.map((name) => (
-            <span
+            <li
               key={name}
-              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-300"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-teal-400/[0.08] pl-3 pr-1.5 text-sm text-teal-100 ring-1 ring-inset ring-teal-300/20"
             >
               {name}
-              {canEdit && (
+              {canEdit ? (
                 <button
                   type="button"
                   onClick={() => remove(name)}
                   disabled={saving}
                   aria-label={`Remove ${name}`}
-                  className="text-emerald-400/70 hover:text-red-400 disabled:opacity-50"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-teal-200/70 transition-colors hover:bg-red-500/15 hover:text-red-300 disabled:opacity-50"
                 >
                   &times;
                 </button>
+              ) : (
+                <span className="w-1.5" aria-hidden="true" />
               )}
-            </span>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
-        <p className="text-xs text-gray-400 mb-2">
+        <p className="mt-4 text-sm text-gray-400">
           {canEdit
-            ? "Practice this card somewhere, then mark the location here."
-            : "No locations marked yet."}
+            ? "Practice it somewhere, or mark a place you already know it by heart."
+            : "No places marked yet."}
         </p>
       )}
 
       {canEdit && (
-        <>
+        <div className="mt-4 rounded-xl bg-white/[0.025] p-3 ring-1 ring-inset ring-white/[0.06]">
           {unusedSuggestions.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="mb-3 flex flex-wrap gap-1.5">
               {unusedSuggestions.map((s) => (
                 <button
                   key={s.id}
                   type="button"
                   disabled={saving}
                   onClick={() => add(s.name, false)}
-                  className="text-xs px-2 py-0.5 border border-white/15 rounded text-gray-400 hover:bg-white/10 disabled:opacity-50"
+                  className="inline-flex h-8 items-center rounded-full px-3 text-sm text-gray-300 ring-1 ring-inset ring-white/10 transition-[background-color,color,transform] hover:bg-white/[0.06] hover:text-white active:scale-[0.98] disabled:opacity-50"
                 >
-                  + {s.name}
+                  <span aria-hidden="true" className="mr-1 text-gray-400">
+                    +
+                  </span>
+                  {s.name}
                 </button>
               ))}
             </div>
@@ -160,23 +183,27 @@ export function MemorizationLocations({ entry, canEdit, onUpdated }: Props) {
               // The server caps a location at 120 characters (knowledge PUT
               // and POST /api/practice/locations alike).
               maxLength={120}
-              placeholder="Add a location…"
+              placeholder="Somewhere new"
               disabled={saving}
-              className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-white/20 disabled:opacity-50"
+              className="h-9 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.03] px-4 text-sm text-white placeholder:text-gray-400 transition-colors focus:border-white/25 focus:outline-none disabled:opacity-50"
             />
             <button
               type="button"
               onClick={() => add(input, true)}
               disabled={saving || !input.trim()}
-              className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white rounded transition-colors"
+              className="inline-flex h-9 shrink-0 items-center rounded-full px-4 text-sm text-gray-300 ring-1 ring-inset ring-white/10 transition-[background-color,color,transform] hover:bg-white/[0.06] hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Add
+              Mark
             </button>
           </div>
-        </>
+        </div>
       )}
 
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
-    </div>
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-red-300">
+          {error}
+        </p>
+      )}
+    </section>
   );
 }
