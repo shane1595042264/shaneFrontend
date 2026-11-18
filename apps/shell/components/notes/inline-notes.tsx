@@ -23,7 +23,10 @@ import { RelativeTime } from "@/lib/format-time";
 import { humanizeActionError, humanizeError } from "@/lib/humanize-error";
 import { captureAnchor, captureContext, collapse, type NoteAnchor } from "@/lib/journal-notes";
 import type { MarkableNote } from "@/lib/rehype-note-marks";
+import { useTermIndex } from "@/lib/knowledge-terms";
+import { docBox, lineBoxOf, place, type Box } from "@/lib/popover-place";
 import { markReadingAt } from "@/lib/reading-position";
+import { TermPopover, TermProviders, type TermMarks, type TermUi } from "@/components/notes/knowledge-terms";
 import { useHydrated } from "@/lib/use-hydrated";
 
 /**
@@ -92,48 +95,6 @@ export function useNotesFor(target: string): MarkableNote[] {
   return useContext(NotesDataContext)?.byTarget.get(target) ?? EMPTY;
 }
 
-interface Box {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
-
-function docBox(r: DOMRect): Box {
-  return {
-    top: r.top + window.scrollY,
-    bottom: r.bottom + window.scrollY,
-    left: r.left + window.scrollX,
-    right: r.right + window.scrollX,
-  };
-}
-
-/** The line of a (possibly wrapped) mark nearest the pointer, so the popover opens where you are looking. */
-function lineBoxOf(el: Element, clientY?: number): Box {
-  const rects = [...el.getClientRects()];
-  if (rects.length === 0) return docBox(el.getBoundingClientRect());
-  if (clientY === undefined) return docBox(rects[0]);
-  let best = rects[0];
-  for (const r of rects) {
-    if (Math.abs((r.top + r.bottom) / 2 - clientY) < Math.abs((best.top + best.bottom) / 2 - clientY)) best = r;
-  }
-  return docBox(best);
-}
-
-/** Places a panel of a known size against an anchor box: below if it fits, above if not. */
-function place(anchor: Box, width: number, height: number) {
-  const vw = document.documentElement.clientWidth;
-  const left = Math.min(Math.max(anchor.left - 14, window.scrollX + 16), window.scrollX + vw - width - 16);
-  const roomBelow = window.scrollY + window.innerHeight - anchor.bottom;
-  const above = roomBelow < height + 24 && anchor.top - window.scrollY > height + 24;
-  return {
-    left,
-    top: above ? anchor.top - height - 10 : anchor.bottom + 10,
-    above,
-    originX: Math.min(Math.max(anchor.left - left + 12, 12), width - 12),
-  };
-}
-
 function setPendingHighlight(range: Range | null) {
   // The Custom Highlight API paints the words being noted while focus is in
   // the composer (which clears the real selection) without touching the DOM
@@ -166,11 +127,14 @@ type ExplainState =
 export function NotesProvider({
   adapter,
   documentTitle,
+  selfTermId,
   children,
 }: {
   adapter: NotesAdapter;
   /** The page's title, sent with Explain so the model knows what the text is about. */
   documentTitle?: string;
+  /** On a knowledge card's own page, that card, so its text does not underline itself (SHAN-712). */
+  selfTermId?: string;
   children: ReactNode;
 }) {
   const { user } = useAuth();
@@ -383,8 +347,10 @@ export function NotesProvider({
     dismissDraft();
   };
 
-  const explain = async () => {
-    const d = draftRef.current;
+  // `given` is a draft built from a knowledge term (Explain here) rather than
+  // from the reader's selection; from there on it is the same Explain.
+  const explain = async (given?: Draft) => {
+    const d = given ?? draftRef.current;
     if (!d) return;
     // The cache. An explanation already saved on these exact words, by anyone
     // who can see it, is opened rather than paid for again.
@@ -434,6 +400,50 @@ export function NotesProvider({
     }
   };
 
+  // ---- knowledge terms (SHAN-712) --------------------------------------------
+  // The index loads for everyone, signed in or not: the cards are public. It
+  // is null on the first render, so a server-rendered body hydrates unchanged
+  // and the underlines arrive with the render after.
+  const termIndex = useTermIndex();
+  const termMarks = useMemo<TermMarks>(() => ({ index: termIndex, exclude: selfTermId ?? null }), [termIndex, selfTermId]);
+  const [term, setTerm] = useState<{ id: string; box: Box; el: HTMLElement; viaKeyboard: boolean } | null>(null);
+  const termUi = useMemo<TermUi>(
+    () => ({
+      openId: term?.id ?? null,
+      open: (id, el, { clientY, viaKeyboard = false }) => {
+        // One popover at a time: a term opens over any note thread.
+        setOpen(null);
+        setTerm((cur) => (cur?.el === el ? null : { id, box: lineBoxOf(el, clientY), el, viaKeyboard }));
+      },
+    }),
+    [term?.id]
+  );
+  const closeTerm = useCallback(() => setTerm(null), []);
+  const termOpen = useMemo(() => {
+    const t = term && termIndex?.byId.get(term.id);
+    return t && term ? { term: t, box: term.box, el: term.el, viaKeyboard: term.viaKeyboard } : null;
+  }, [term, termIndex]);
+
+  // Explain here: the same request and the same saved note as selecting the
+  // word by hand, built from the term's own text instead of a selection.
+  const explainTerm = (el: HTMLElement) => {
+    const part = el.closest("[data-note-target]");
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const first = walker.nextNode() as Text | null;
+    if (!part || !first) return;
+    let last = first;
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) last = n as Text;
+    const range = document.createRange();
+    range.setStart(first, 0);
+    range.setEnd(last, last.data.length);
+    const anchor = captureAnchor(part.getAttribute("data-note-target") ?? "", part, range);
+    if (!anchor) return;
+    const context = captureContext(part, range);
+    context.heading ??= part.closest("[data-note-heading]")?.getAttribute("data-note-heading") || undefined;
+    setTerm(null);
+    void explain({ anchor, box: docBox(range.getBoundingClientRect()), range, context, stage: "pill" });
+  };
+
   // ---- orphans: notes whose words are no longer in the text ----------------
   const [orphanIds, setOrphanIds] = useState<string[]>([]);
   useLayoutEffect(() => {
@@ -462,37 +472,45 @@ export function NotesProvider({
   return (
     <NotesDataContext.Provider value={data}>
       <NotesUiContext.Provider value={ui}>
-        <OrphansContext.Provider value={{ orphans, actions, loadError, retry: () => void refresh() }}>
-          {children}
-          {/* Portals only after hydration: on a server-rendered page (a blog
-              post) the first client render has to match the HTML, which has
-              no portal in it. */}
-          {hydrated &&
-            createPortal(
-              <>
-                {userId && (
-                  <DraftLayer
-                    draft={draft}
-                    explainState={explainState}
-                    visibility={adapter.visibility}
-                    onCompose={() => setDraft((d) => (d ? { ...d, stage: "compose" } : d))}
-                    onExplain={() => void explain()}
-                    onCancel={dismissDraft}
-                    onSave={saveNote}
+        <TermProviders marks={termMarks} ui={termUi}>
+          <OrphansContext.Provider value={{ orphans, actions, loadError, retry: () => void refresh() }}>
+            {children}
+            {/* Portals only after hydration: on a server-rendered page (a blog
+                post) the first client render has to match the HTML, which has
+                no portal in it. */}
+            {hydrated &&
+              createPortal(
+                <>
+                  {userId && (
+                    <DraftLayer
+                      draft={draft}
+                      explainState={explainState}
+                      visibility={adapter.visibility}
+                      onCompose={() => setDraft((d) => (d ? { ...d, stage: "compose" } : d))}
+                      onExplain={() => void explain()}
+                      onCancel={dismissDraft}
+                      onSave={saveNote}
+                    />
+                  )}
+                  <ThreadPopover
+                    open={open && openThreads.length > 0 ? { ...open, threads: openThreads } : null}
+                    actions={actions}
+                    onEnter={() => window.clearTimeout(closeTimer.current)}
+                    onLeave={ui.leave}
+                    onPin={() => setOpen((o) => (o ? { ...o, pinned: true } : o))}
+                    onClose={() => setOpen(null)}
                   />
-                )}
-                <ThreadPopover
-                  open={open && openThreads.length > 0 ? { ...open, threads: openThreads } : null}
-                  actions={actions}
-                  onEnter={() => window.clearTimeout(closeTimer.current)}
-                  onLeave={ui.leave}
-                  onPin={() => setOpen((o) => (o ? { ...o, pinned: true } : o))}
-                  onClose={() => setOpen(null)}
-                />
-              </>,
-              document.body
-            )}
-        </OrphansContext.Provider>
+                  <TermPopover
+                    open={termOpen}
+                    canExplain={!!userId && !!termOpen?.el.closest("[data-note-target]")}
+                    onExplain={() => termOpen && explainTerm(termOpen.el)}
+                    onClose={closeTerm}
+                  />
+                </>,
+                document.body
+              )}
+          </OrphansContext.Provider>
+        </TermProviders>
       </NotesUiContext.Provider>
     </NotesDataContext.Provider>
   );

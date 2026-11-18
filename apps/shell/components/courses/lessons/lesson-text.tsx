@@ -3,8 +3,11 @@
 import { memo, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { NoteMark, useNotesFor } from "@/components/notes/inline-notes";
-import { rehypeNoteMarks, type MarkableNote } from "@/lib/rehype-note-marks";
+import { useNotesFor } from "@/components/notes/inline-notes";
+import { useTermMarks } from "@/components/notes/knowledge-terms";
+import { markComponents, markPlugins } from "@/components/notes/marks";
+import type { MarkableNote } from "@/lib/rehype-note-marks";
+import type { TermMarks } from "@/lib/rehype-term-marks";
 
 /**
  * SHAN-652. Author-written prose in a lesson: bold, italics, inline code,
@@ -40,27 +43,28 @@ const components: Components = {
   ),
 };
 
-const withMarks: Components = { ...components, mark: NoteMark };
 // A heading's text: one line of inline markdown, no paragraph around it.
 const inlineComponents: Components = { ...components, p: ({ children }) => <>{children}</> };
-const inlineWithMarks: Components = { ...inlineComponents, mark: NoteMark };
 
 // Memoized: the notes provider re-renders on every hover, and a re-render here
-// re-parses the markdown. Its notes array is stable until a note changes.
+// re-parses the markdown. Its notes array is stable until a note changes, and
+// its terms until the knowledge index loads.
 const Markdown = memo(function Markdown({
   text,
   notes,
+  terms,
   inline,
 }: {
   text: string;
   notes: MarkableNote[];
+  terms?: TermMarks;
   inline: boolean;
 }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={notes.length ? [[rehypeNoteMarks, { notes }]] : []}
-      components={inline ? (notes.length ? inlineWithMarks : inlineComponents) : notes.length ? withMarks : components}
+      rehypePlugins={markPlugins(notes, terms)}
+      components={markComponents(inline ? inlineComponents : components, notes, terms)}
       disallowedElements={["img"]}
       unwrapDisallowed
     >
@@ -88,10 +92,13 @@ export function LessonText({
   inline?: boolean;
 }) {
   const notes = useNotesFor(noteTarget ?? "");
+  const terms = useTermMarks();
   const Tag = inline ? "span" : "div";
   return (
     <Tag className={className} data-note-target={noteTarget}>
-      <Markdown text={children} notes={noteTarget ? notes : NO_NOTES} inline={inline} />
+      {/* Knowledge terms (SHAN-712) in prose only: a card's heading is the
+          question being asked, and a term there would read as a hint. */}
+      <Markdown text={children} notes={noteTarget ? notes : NO_NOTES} terms={noteTarget && !inline ? terms : undefined} inline={inline} />
     </Tag>
   );
 }

@@ -1,10 +1,11 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { NoteMark } from "@/components/notes/inline-notes";
 import { anchoredHeadings } from "@/components/markdown-anchored-headings";
+import { markComponents, markPlugins } from "@/components/notes/marks";
 import { markdownComponents } from "@/lib/markdown-mermaid";
 import type { MarkdownHeading } from "@/lib/markdown-headings";
-import { rehypeNoteMarks, type MarkableNote } from "@/lib/rehype-note-marks";
+import type { MarkableNote } from "@/lib/rehype-note-marks";
+import type { TermMarks } from "@/lib/rehype-term-marks";
 
 interface Props {
   content: string;
@@ -21,6 +22,8 @@ interface Props {
    * renders nothing here and is listed by OrphanNotes instead.
    */
   notes?: MarkableNote[];
+  /** Words with a knowledge card, underlined after the notes (SHAN-712). */
+  terms?: TermMarks;
 }
 
 /**
@@ -29,11 +32,10 @@ interface Props {
  * blocks upgrade to rendered diagrams client-side via markdownComponents
  * (SHAN-439); the SSR output keeps the plain code block as the fallback.
  */
-export function EntryBody({ content, headings, notes }: Props) {
+export function EntryBody({ content, headings, notes, terms }: Props) {
   const base = headings?.length
     ? { ...markdownComponents, ...anchoredHeadings(headings, { scrollMarginClass: "scroll-mt-under-header" }) }
     : markdownComponents;
-  const components = notes?.length ? { ...base, mark: NoteMark } : base;
   return (
     // break-words: a bare URL is one unbreakable word, and four of them in the
     // 2026-10-13 appends widened that page to 733px on a 390px phone, which
@@ -41,8 +43,8 @@ export function EntryBody({ content, headings, notes }: Props) {
     <div className="prose prose-invert max-w-none break-words prose-p:my-4 prose-headings:tracking-tight">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={notes?.length ? [[rehypeNoteMarks, { notes }]] : []}
-        components={components}
+        rehypePlugins={markPlugins(notes, terms)}
+        components={markComponents(base, notes, terms)}
       >
         {content || "*(empty)*"}
       </ReactMarkdown>

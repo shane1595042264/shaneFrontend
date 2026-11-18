@@ -39,6 +39,14 @@ To mark or unmark a place, send \`addMemorizationLocations\` or \`removeMemoriza
 
 Inline notes and Explain answers on journal entries, blog posts, knowledge cards and public courses also arrive here: each new note is classified into a card with the same pipeline as \`POST /notes\`, from the selected words and the note only, with \`source.app\` set to \`journal\`, \`blog\`, \`knowledge\` or \`course\` (since SHAN-653; a note on a private course never becomes a card). See [AI and Reader Notes API](/docs/ai-api).
 
+## Terms
+
+\`GET /api/knowledge/terms\` (public, SHAN-712) is the knowledge base as a glossary: every card that has a definition, newest first (max 5000), as \`{terms: [{id, word, match, definition, category, language, partOfSpeech, pronunciation}]}\`. The site uses it to underline, in journal entries, blog posts, course pages and lesson cards, the first mention of each word that has a card; clicking one shows the definition, a link to \`/knowledge?entry=<id>\`, and Explain here (Explain on that word in that sentence, saved as a note the same way, see [AI and Reader Notes API](/docs/ai-api)). A word the reader already has a note on keeps the note instead.
+
+- \`match\`: the strings in a text that point at the card, longest first. A leading \`[tag]\` on the word is dropped, a short label before \`": "\` is used on its own, a one-token short form in parentheses is added (\`Data Subject Access Request (DSAR)\` matches both), and anything over 48 characters or five words is left out. A string two cards share goes to the newer card, compared without case. A card with no match left is not a term.
+- \`definition\`: whitespace collapsed and cut on a word near 360 characters, with a trailing ellipsis when cut. Fetch \`GET /entries/:id\` for the whole card.
+- How the site matches (in the browser, so you can match the same way): a string with a capital after its first letter (\`TLS\`, \`NgRx\`) keeps its case, anything else ignores it; it must stand alone, with no letter, digit or underscore on either side, though an English \`'s\`, \`s\` or \`es\` may follow; Chinese, Japanese and Korean strings match anywhere; at one place the longest string wins. Code, links and headings are never matched.
+
 ## Recite
 
 Recite your own cards from memory, one place at a time. Both routes need scope \`knowledge:write\` and work on the caller's cards: ones they created, plus legacy rows with no recorded creator (the same set \`PUT /entries/:id\` lets them write).

@@ -2,9 +2,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { markdownComponents } from "@/lib/markdown-mermaid";
 import { anchoredHeadings } from "@/components/markdown-anchored-headings";
-import { NoteMark } from "@/components/notes/inline-notes";
+import { markComponents, markPlugins } from "@/components/notes/marks";
 import type { MarkdownHeading } from "@/lib/markdown-headings";
-import { rehypeNoteMarks, type MarkableNote } from "@/lib/rehype-note-marks";
+import type { MarkableNote } from "@/lib/rehype-note-marks";
+import type { TermMarks } from "@/lib/rehype-term-marks";
 
 /**
  * Renders a post's markdown body with GFM. Server Component (no "use client"),
@@ -26,22 +27,24 @@ export function PostBody({
   content,
   headings,
   notes,
+  terms,
 }: {
   content: string;
   headings?: MarkdownHeading[];
   /** SHAN-596: the reader's private notes on this post, rendered as marks. */
   notes?: MarkableNote[];
+  /** SHAN-712: words with a knowledge card, underlined. Client side only. */
+  terms?: TermMarks;
 }) {
   const base = headings?.length
     ? { ...markdownComponents, ...anchoredHeadings(headings) }
     : markdownComponents;
-  const components = notes?.length ? { ...base, mark: NoteMark } : base;
   return (
     <div className="prose prose-invert prose-lg max-w-none prose-p:my-5 prose-headings:tracking-tight prose-a:text-blue-400">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={notes?.length ? [[rehypeNoteMarks, { notes }]] : []}
-        components={components}
+        rehypePlugins={markPlugins(notes, terms)}
+        components={markComponents(base, notes, terms)}
       >
         {content || "*(empty)*"}
       </ReactMarkdown>

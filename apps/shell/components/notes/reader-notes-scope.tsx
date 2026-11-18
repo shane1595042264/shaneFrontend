@@ -4,11 +4,14 @@ import { memo, useMemo, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { readerNotesAdapter } from "@/components/notes/adapters";
-import { NoteMark, NotesProvider, useNotesFor } from "@/components/notes/inline-notes";
+import { NotesProvider, useNotesFor } from "@/components/notes/inline-notes";
+import { useTermMarks } from "@/components/notes/knowledge-terms";
+import { markComponents, markPlugins } from "@/components/notes/marks";
 import { PostBody } from "@/components/blog/post-body";
 import type { ReaderSurface } from "@/lib/api/reader-notes";
 import type { MarkdownHeading } from "@/lib/markdown-headings";
-import { rehypeNoteMarks, type MarkableNote } from "@/lib/rehype-note-marks";
+import type { MarkableNote } from "@/lib/rehype-note-marks";
+import type { TermMarks } from "@/lib/rehype-term-marks";
 
 /**
  * SHAN-596: private inline notes and Explain on a public page (a blog post, a
@@ -30,7 +33,11 @@ export function ReaderNotesScope({
 }) {
   const adapter = useMemo(() => readerNotesAdapter(surface, resourceId), [surface, resourceId]);
   return (
-    <NotesProvider adapter={adapter} documentTitle={title}>
+    <NotesProvider
+      adapter={adapter}
+      documentTitle={title}
+      selfTermId={surface === "knowledge" ? resourceId : undefined}
+    >
       {children}
     </NotesProvider>
   );
@@ -45,9 +52,10 @@ const MemoPostBody = memo(PostBody);
 /** A blog post body that can carry notes. Same markup as PostBody, inside the note target. */
 export function NotedPostBody({ content, headings }: { content: string; headings?: MarkdownHeading[] }) {
   const notes = useNotesFor("body");
+  const terms = useTermMarks();
   return (
     <div data-note-target="body">
-      <MemoPostBody content={content} headings={headings} notes={notes} />
+      <MemoPostBody content={content} headings={headings} notes={notes} terms={terms} />
     </div>
   );
 }
@@ -55,17 +63,19 @@ export function NotedPostBody({ content, headings }: { content: string; headings
 const MemoMarkdown = memo(function NotedMarkdownInner({
   content,
   notes,
+  terms,
   components,
 }: {
   content: string;
   notes: MarkableNote[];
+  terms: TermMarks;
   components?: Components;
 }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={notes.length ? [[rehypeNoteMarks, { notes }]] : []}
-      components={notes.length ? { ...components, mark: NoteMark } : components}
+      rehypePlugins={markPlugins(notes, terms)}
+      components={markComponents(components, notes, terms)}
     >
       {content}
     </ReactMarkdown>
@@ -85,9 +95,10 @@ export function NotedMarkdown({
   className?: string;
 }) {
   const notes = useNotesFor(target);
+  const terms = useTermMarks();
   return (
     <div data-note-target={target} className={className}>
-      <MemoMarkdown content={content} notes={notes} components={components} />
+      <MemoMarkdown content={content} notes={notes} terms={terms} components={components} />
     </div>
   );
 }

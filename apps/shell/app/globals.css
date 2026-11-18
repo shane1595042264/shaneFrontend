@@ -427,3 +427,39 @@ mark.note-mark[data-kind="ai"][data-active] {
   .note-explain-rule.is-loading, .note-shimmer { animation: none; }
   .note-explain-btn:hover .note-spark { transform: none; }
 }
+
+/*
+ * SHAN-712: a word that has a knowledge card. A quieter mark than a note: a
+ * gray dotted underline that warms to teal on hover, so it reads as "there is
+ * a definition here" without competing with the reader's own amber notes, and
+ * a note on the same word replaces it (lib/rehype-term-marks skips noted text).
+ */
+.term-mark {
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgb(154 162 171 / 0.75);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  border-radius: 2px;
+  transition:
+    color 200ms var(--ease-out-expo),
+    text-decoration-color 200ms var(--ease-out-expo),
+    background-color 200ms var(--ease-out-expo);
+}
+.term-mark:hover,
+.term-mark[data-active] {
+  text-decoration-color: rgb(94 234 212 / 0.9);
+  background-color: rgb(94 234 212 / 0.07);
+}
+.term-mark:focus-visible {
+  outline: 2px solid rgb(94 234 212 / 0.6);
+  outline-offset: 2px;
+}
+.term-rule {
+  height: 1px;
+  background: linear-gradient(90deg, rgb(94 234 212 / 0.7), rgb(147 197 253 / 0.25) 55%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .term-mark { transition: none; }
+}

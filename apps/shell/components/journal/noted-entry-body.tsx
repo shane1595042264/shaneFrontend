@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { EntryBody } from "@/components/journal/entry-body";
 import { useNotesFor } from "@/components/notes/inline-notes";
+import { useTermMarks } from "@/components/notes/knowledge-terms";
 import type { MarkdownHeading } from "@/lib/markdown-headings";
 
 /**
@@ -28,9 +29,10 @@ export function NotedEntryBody({
   headings?: MarkdownHeading[];
 }) {
   const notes = useNotesFor(target);
+  const terms = useTermMarks();
   return (
     <div data-note-target={target}>
-      <MemoBody content={content} headings={headings} notes={notes} />
+      <MemoBody content={content} headings={headings} notes={notes} terms={terms} />
     </div>
   );
 }
