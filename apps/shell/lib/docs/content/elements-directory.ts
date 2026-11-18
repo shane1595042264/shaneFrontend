@@ -175,7 +175,7 @@ const untiledRows = UNTILED.map((u) =>
 const TEA_PIN_GOTCHA =
   "- Tea PIN flow: GET /api/tea-entries/:id returns 401 `PIN required` without a valid 4-digit `X-Tea-Pin` header, 403 on a wrong PIN, 429 after 10 failures per entry per minute. When the author has a universal PIN, a miss also counts against a per-author bucket (10 per minute across all their entries) and a 429 from it refuses the universal PIN, though the right entry PIN still opens its entry. Distinguish the three.";
 const SKINCARE_GOTCHA =
-  "- Skincare reorder is `POST /api/skincare/reorder` (declared before /:id) and requires the COMPLETE ordered id list for that routine. It is all or nothing: a partial list, or a stale or foreign id, is a 400 and changes no positions.";
+  "- Skincare reorder is `POST /api/skincare/reorder` (declared before /:id) and requires the COMPLETE ordered id list for that routine. It is all or nothing: a partial list, or a stale or foreign id, is a 400 and changes no positions. A product's `imageUrl` must be http or https; any other scheme (`javascript:`, `data:`, `file:`) is a 400.";
 const SCOREBOARD_GOTCHA =
   "- Scoreboard `GET /icons/search` requires auth because it spends GitHub API quota; deleting a player with match history is a 409.";
 

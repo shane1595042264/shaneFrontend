@@ -39,9 +39,22 @@ function routineStreakDay(products: SkincareProduct[]): number | null {
   return Math.floor((Date.now() - earliest) / DAY_MS) + 1;
 }
 
-function cardBgStyle(url: string) {
+// SHAN-711: an unquoted url() cannot hold ( ) whitespace or quotes, and one of
+// those in a real image link (".../Bottle_(1).jpg") voided the whole
+// declaration, gradient included. Normalize through URL (strips newlines,
+// percent-encodes spaces and quotes), keep http(s) only, then quote it.
+function cardBgStyle(url: string | null) {
+  if (!url) return undefined;
+  let href: string;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return undefined;
+    href = parsed.href;
+  } catch {
+    return undefined;
+  }
   return {
-    backgroundImage: `linear-gradient(rgba(8,8,12,0.55), rgba(8,8,12,0.85)), url(${url})`,
+    backgroundImage: `linear-gradient(rgba(8,8,12,0.55), rgba(8,8,12,0.85)), url("${href.replace(/["\\]/g, "\\$&")}")`,
     backgroundSize: "cover",
     backgroundPosition: "center",
   } as const;
@@ -255,7 +268,7 @@ function RoutineColumn({
               ) : (
                 <div
                   className="flex items-center gap-3 rounded-md border border-white/10 p-3"
-                  style={p.imageUrl ? cardBgStyle(p.imageUrl) : undefined}
+                  style={cardBgStyle(p.imageUrl)}
                 >
                   <span className="flex flex-col gap-1">
                     <button

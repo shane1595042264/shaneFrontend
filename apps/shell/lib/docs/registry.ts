@@ -199,8 +199,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Every element on the periodic table with its route, backend mount, and auth model.",
     body: elementsDirectory,
-    lastModified: "2026-11-03T17:36:09-06:00",
-    bodyFingerprint: "d9a8cef2",
+    lastModified: "2026-11-18T09:05:00-06:00",
+    bodyFingerprint: "5fd52d2b",
   },
 ];
 
