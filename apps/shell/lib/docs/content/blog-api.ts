@@ -136,6 +136,8 @@ They carry the 50 newest **published** posts, newest first, with the full body r
 
 The feeds are built from the same anonymous \`GET /posts\` and \`GET /posts/:slug\` documented above, with no \`Authorization\` header — which is precisely why drafts cannot leak into them. That is also why there is no journal equivalent: the journal is invite-only, a feed pull carries no viewer to check membership against, and \`/journal/feed.xml\` and \`/journal/feed.json\` return 404 on purpose (see [Journal API](/docs/journal-api)).
 
+Every link and image URL in the feed body is absolute. A feed reader resolves a relative URL against its own page, so the feeds resolve each one against the post's URL first: a contents link written as \`[Nibbler](#nibbler)\` arrives as \`https://shanejli.com/blog/<slug>#nibbler\`, and \`/courses/x\` as \`https://shanejli.com/courses/x\`. Write in-post links relative as usual; the site and the feeds both get them right.
+
 Mermaid blocks in a post body arrive in the feed as fenced code, not diagrams — the mermaid upgrade is client-side and there is no client in a feed reader. Upload a rendered image instead when the diagram has to survive the trip; see [Images API](/docs/images-api).
 
 Both URLs are advertised from \`<head>\` on \`/blog\` and on every post page as \`<link rel="alternate">\`, so a reader that accepts a page URL will find them on its own.

@@ -118,8 +118,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The public blog: slug-keyed posts, versioned titles and bodies, drafts, tags, and revert.",
     body: blogApi,
-    lastModified: "2026-11-17T14:00:00-06:00",
-    bodyFingerprint: "ad200544",
+    lastModified: "2026-11-18T03:30:00-06:00",
+    bodyFingerprint: "19b8a9e4",
   },
   {
     slug: "images-api",

@@ -1,4 +1,4 @@
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { stripLeadingTitleHeading, toPlainExcerpt } from "@/lib/journal-text";
 import { API_URL, BACKEND_ORIGIN } from "@/lib/api-url";
@@ -21,6 +21,8 @@ export const FEED_AUTHOR = "Shane Li";
 export const MAX_POSTS = 50;
 export const EXCERPT_LEN = 400;
 
+const postUrl = (slug: string) => `${SITE_URL}/blog/${slug}`;
+
 type PostRow = {
   slug: string;
   title: string;
@@ -42,14 +44,38 @@ type PostRow = {
 // a *static* react-dom/server import in a route module (SHAN-374), but a route
 // handler emitting a feed is a legitimate server-string-render use case, and
 // the dynamic import is module-cached so repeated calls are cheap.
-async function renderMarkdownToHtml(source: string): Promise<string> {
+async function renderMarkdownToHtml(
+  source: string,
+  postUrl: string,
+): Promise<string> {
   const [{ renderToStaticMarkup }, { createElement }] = await Promise.all([
     import("react-dom/server"),
     import("react"),
   ]);
   return renderToStaticMarkup(
-    createElement(ReactMarkdown, { remarkPlugins: [remarkGfm] }, source),
+    createElement(
+      ReactMarkdown,
+      { remarkPlugins: [remarkGfm], urlTransform: feedUrlTransform(postUrl) },
+      source,
+    ),
   );
+}
+
+// SHAN-710. A feed reader resolves a relative URL against its own page, not
+// the post: a contents link like `#nibbler` went nowhere (the feed HTML has no
+// heading ids either) and `/courses/x` pointed at the reader's host. Resolve
+// every link and image against the post's own URL, after react-markdown's
+// default sanitising so `javascript:` and friends are still dropped.
+function feedUrlTransform(postUrl: string) {
+  return (url: string): string => {
+    const safe = defaultUrlTransform(url);
+    if (!safe) return safe;
+    try {
+      return new URL(safe, postUrl).href;
+    } catch {
+      return safe;
+    }
+  };
 }
 
 // No auth header, by design and not by omission: an anonymous caller gets
@@ -104,7 +130,7 @@ async function fetchPostContentHtml(
     // body opening with `# <title>` repeats it in every reader (SHAN-540).
     const source = stripLeadingTitleHeading(data.content ?? "", title);
     if (!source.trim()) return null;
-    return await renderMarkdownToHtml(source);
+    return await renderMarkdownToHtml(source, postUrl(slug));
   } catch {
     return null;
   }
@@ -146,7 +172,7 @@ export async function loadFeedItems(): Promise<BlogFeedItem[]> {
   return posts.map((post, i) => ({
     slug: post.slug,
     title: post.title,
-    url: `${SITE_URL}/blog/${post.slug}`,
+    url: postUrl(post.slug),
     excerpt: toPlainExcerpt(
       stripLeadingTitleHeading(post.contentExcerpt ?? "", post.title),
       EXCERPT_LEN,
