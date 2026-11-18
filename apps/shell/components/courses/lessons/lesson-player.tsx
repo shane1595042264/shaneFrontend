@@ -291,8 +291,8 @@ export function LessonPlayer({
   }, [finished, status, pos, queue, firstTry, requeued, resolved, streak, history, choice, blank, blankResults, order, match]);
 
   // Each new card starts at the top. Focus moves in StepCard's own mount
-  // effect: with AnimatePresence the new card mounts only after the old one
-  // has animated out, so focusing from here would hit the leaving card.
+  // effect, which runs on the new card while the old one is still fading out
+  // beside it, so focusing from here could hit the leaving card.
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0 });
   }, [pos, view]);
@@ -494,15 +494,27 @@ export function LessonPlayer({
       ) : (
         <>
           <div ref={mainRef} className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-6 md:pt-12">
-              <AnimatePresence mode="wait" initial={false} custom={dir}>
+            <div className="relative mx-auto w-full max-w-2xl px-4 pb-10 pt-6 md:pt-12">
+              {/* SHAN-714: "popLayout", not "wait". With "wait" the next card
+                  mounts only once the leaving card's exit animation reports
+                  done, and when that report never came (Shane, 2026-11-18,
+                  on Continue after a put-in-order card) the lesson moved on
+                  while the screen stayed blank until a reload. Now the leaving
+                  card is lifted out of the layout and fades while the next one
+                  mounts at once, so no stalled exit can hold a card back. */}
+              <AnimatePresence mode="popLayout" initial={false} custom={dir}>
                 <motion.div
                   key={`${shown}-${cIdx}`}
                   custom={dir}
                   variants={{
                     enter: (d: number) => (reduce ? { opacity: 0 } : { opacity: 0, x: 28 * d }),
                     center: { opacity: 1, x: 0 },
-                    exit: (d: number) => (reduce ? { opacity: 0 } : { opacity: 0, x: -28 * d }),
+                    // The leaving card stays in the DOM for its fade; it must
+                    // not take a click meant for the card replacing it.
+                    exit: (d: number) =>
+                      reduce
+                        ? { opacity: 0, pointerEvents: "none" as const }
+                        : { opacity: 0, x: -28 * d, pointerEvents: "none" as const },
                   }}
                   initial="enter"
                   animate="center"
