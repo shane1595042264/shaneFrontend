@@ -9,9 +9,10 @@ import { API_URL } from "@/lib/api-url";
  * that card's definition.
  *
  * Matching rules, all in one place:
- * - A term with a capital after its first letter (TLS, NgRx, MagicMock) is
- *   matched with its case; anything else ignores case, so "Telemetry" on a
- *   card still finds "telemetry" in a sentence.
+ * - Case is decided per word. A word with a capital after its first letter
+ *   (TLS, NgRx, MagicMock) is matched with its case; any other word ignores
+ *   case, so "Telemetry" on a card still finds "telemetry" in a sentence and
+ *   "OOM Killer" finds "OOM killer" (but not "oom killer").
  * - A word must stand alone: no letter, digit or underscore on either side,
  *   in any script, so "inode" never fires inside "inodes_dir". An English
  *   plural or possessive ('s, s, es) is allowed after it, so "RFQs" finds the
@@ -52,21 +53,42 @@ const norm = (s: string) => s.replace(/\s+/g, " ").trim();
 // Escaped literally, with any run of spaces allowed to wrap onto a new line.
 // Only the syntax characters: with the u flag, escaping anything else (a
 // hyphen, as in "df -h") is itself a syntax error.
-const pattern = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+");
-const alternation = (keys: string[]) =>
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const pattern = (s: string) => escape(s).replace(/ /g, "\\s+");
+const alternation = (keys: string[], toPattern: (key: string) => string = pattern) =>
   [...keys]
     .sort((a, b) => b.length - a.length)
-    .map(pattern)
+    .map(toPattern)
     .join("|");
 
-/** A term whose own capitals carry meaning: TLS, NgRx, MagicMock (not "Telemetry"). */
-export function isCaseSensitive(term: string): boolean {
-  return /\p{Lu}/u.test(term.slice(1));
+/** A word whose own capitals carry meaning: TLS, NgRx, MagicMock (not "Telemetry"). */
+export function isCaseSensitive(word: string): boolean {
+  return /\p{Lu}/u.test(word.slice(1));
 }
+
+// A word that ignores case, spelled for a case-sensitive regex: "Killer"
+// becomes [kK][iI][lL][lL][eE][rR]. This is how "OOM Killer" keeps OOM's case
+// and drops Killer's inside one pattern.
+const caseless = (word: string) =>
+  [...word]
+    .map((ch) => {
+      const lo = ch.toLowerCase();
+      const up = ch.toUpperCase();
+      if (lo === up) return escape(ch);
+      return [...lo].length === 1 && [...up].length === 1 ? `[${lo}${up}]` : `(?:${escape(lo)}|${escape(up)})`;
+    })
+    .join("");
+const mixedPattern = (term: string) =>
+  term
+    .split(" ")
+    .map((w) => (isCaseSensitive(w) ? escape(w) : caseless(w)))
+    .join("\\s+");
 
 export function buildTermIndex(terms: KnowledgeTerm[]): TermIndex {
   const byId = new Map<string, KnowledgeTerm>();
-  const exact = new Map<string, string>();
+  // Keyed by the lowercased string; the API never gives two cards strings
+  // that differ only in case. `exact` keeps each term as written.
+  const exact = new Map<string, { term: string; id: string }>();
   const folded = new Map<string, string>();
   const dense = new Map<string, string>();
   for (const t of terms) {
@@ -74,16 +96,22 @@ export function buildTermIndex(terms: KnowledgeTerm[]): TermIndex {
     for (const raw of t.match) {
       const m = norm(raw);
       if (!m) continue;
-      const [map, key] = DENSE.test(m) ? [dense, m] : isCaseSensitive(m) ? [exact, m] : [folded, m.toLowerCase()];
-      if (!map.has(key)) map.set(key, t.id);
+      const key = m.toLowerCase();
+      if (DENSE.test(m)) {
+        if (!dense.has(m)) dense.set(m, t.id);
+      } else if (!exact.has(key) && !folded.has(key)) {
+        if (m.split(" ").some(isCaseSensitive)) exact.set(key, { term: m, id: t.id });
+        else folded.set(key, t.id);
+      }
     }
   }
 
-  const spaced = (map: Map<string, string>, flags: string) =>
-    map.size ? new RegExp(`(?<!${WORD_CHAR})(${alternation([...map.keys()])})(?:'s|es|s)?(?!${WORD_CHAR})`, flags) : null;
+  const spaced = (alts: string, flags: string) =>
+    new RegExp(`(?<!${WORD_CHAR})(${alts})(?:'s|es|s)?(?!${WORD_CHAR})`, flags);
+  const exactAlts = alternation([...exact.keys()], (key) => mixedPattern(exact.get(key)!.term));
   const passes: { re: RegExp | null; idOf: (m: string) => string | undefined }[] = [
-    { re: spaced(exact, "gu"), idOf: (m) => exact.get(norm(m)) },
-    { re: spaced(folded, "giu"), idOf: (m) => folded.get(norm(m).toLowerCase()) },
+    { re: exact.size ? spaced(exactAlts, "gu") : null, idOf: (m) => exact.get(norm(m).toLowerCase())?.id },
+    { re: folded.size ? spaced(alternation([...folded.keys()]), "giu") : null, idOf: (m) => folded.get(norm(m).toLowerCase()) },
     { re: dense.size ? new RegExp(`(${alternation([...dense.keys()])})`, "gu") : null, idOf: (m) => dense.get(norm(m)) },
   ];
 

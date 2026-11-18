@@ -163,8 +163,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Free-text note ingest with AI classification, plus knowledge entries, vocabulary, and comments.",
     body: knowledgeApi,
-    lastModified: "2026-11-18T10:48:04-06:00",
-    bodyFingerprint: "bc0082bf",
+    lastModified: "2026-11-18T15:03:51-06:00",
+    bodyFingerprint: "0bed9545",
   },
   {
     slug: "ai-api",

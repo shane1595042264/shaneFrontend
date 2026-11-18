@@ -45,7 +45,7 @@ Inline notes and Explain answers on journal entries, blog posts, knowledge cards
 
 - \`match\`: the strings in a text that point at the card, longest first. A leading \`[tag]\` on the word is dropped, a short label before \`": "\` is used on its own, a one-token short form in parentheses is added (\`Data Subject Access Request (DSAR)\` matches both), and anything over 48 characters or five words is left out. A string two cards share goes to the newer card, compared without case. A card with no match left is not a term.
 - \`definition\`: whitespace collapsed and cut on a word near 360 characters, with a trailing ellipsis when cut. Fetch \`GET /entries/:id\` for the whole card.
-- How the site matches (in the browser, so you can match the same way): a string with a capital after its first letter (\`TLS\`, \`NgRx\`) keeps its case, anything else ignores it; it must stand alone, with no letter, digit or underscore on either side, though an English \`'s\`, \`s\` or \`es\` may follow; Chinese, Japanese and Korean strings match anywhere; at one place the longest string wins. Code, links and headings are never matched.
+- How the site matches (in the browser, so you can match the same way): case is decided per word: a word with a capital after its first letter (\`TLS\`, \`NgRx\`) keeps its case, any other word ignores it, so \`OOM Killer\` matches "OOM killer" but not "oom killer"; it must stand alone, with no letter, digit or underscore on either side, though an English \`'s\`, \`s\` or \`es\` may follow; Chinese, Japanese and Korean strings match anywhere; at one place the longest string wins. Code, links and headings are never matched.
 
 ## Recite
 
