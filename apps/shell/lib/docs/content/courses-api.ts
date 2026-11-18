@@ -64,7 +64,9 @@ The document is plain JSON. Units hold lessons, lessons hold steps:
           "id": "ten-stops",
           "title": "Ten stops to the report",
           "steps": [
-            { "type": "teach", "title": "Optional", "body": "Markdown. **Bold**, \`code\`, links, lists." },
+            { "type": "teach", "title": "Optional", "body": "Markdown. **Bold**, \`code\`, links, lists.",
+              "visual": { "kind": "diagram", "mermaid": "flowchart LR\\n  Website --> Collector --> BigQuery",
+                          "caption": "Optional" } },
             { "type": "choice", "prompt": "Where does the pixel send a hit?",
               "choices": [
                 { "text": "The collector", "correct": true, "why": "Shown when this one is picked." },
@@ -86,13 +88,25 @@ The document is plain JSON. Units hold lessons, lessons hold steps:
 
 | Step | Fields | The learner |
 |---|---|---|
-| \`teach\` | \`body\` (markdown, 4000), \`title?\`, \`code?\`, \`language?\` | reads, then continues. Not graded |
+| \`teach\` | \`body\` (markdown, 4000), \`visual\` (required, see below), \`title?\`, \`code?\`, \`language?\` | reads, then continues. Not graded |
 | \`choice\` | \`prompt\`, \`choices\` 2..8 of \`{text, correct?, why?}\` | picks one. Two or more \`correct\` makes it select-all-that-apply |
 | \`blank\` | \`text\` with 1..10 \`[[answer\\|alternative]]\` blanks, \`prompt?\`, \`bank?\` (up to 12 distractors) | types each answer, or with \`bank\` taps tiles (each blank's first answer plus the distractors). Typed answers ignore case, extra spaces, curly quotes and trailing punctuation |
 | \`order\` | \`prompt\`, \`items\` 2..10 in the right order | arranges the shuffled items |
 | \`match\` | \`pairs\` 2..8 of \`[left, right]\`, \`prompt?\` | pairs the two columns; a wrong pair counts as a miss |
 
 Every graded step also takes \`code\` (a snippet shown above the answers, the "what does this print?" shape), \`language\` and \`explanation\`.
+
+### Every teach card needs a visual (SHAN-713)
+
+A teach card is where a course explains something, and a page of words alone is not an explanation this site accepts. Whoever writes the course, a person in the editor or an agent through the API, gives every teach card a \`visual\`. Prefer a diagram or an image whenever there is anything to draw; an emoji is the floor for a card that truly has nothing to picture.
+
+| \`kind\` | Fields | Shown |
+|---|---|---|
+| \`diagram\` | \`mermaid\` (Mermaid source, 4000), \`caption?\` | rendered as a diagram under the text. The source must start with its diagram type (\`flowchart LR\`, \`sequenceDiagram\`, \`stateDiagram-v2\`, \`timeline\`, ...) |
+| \`image\` | \`src\`, \`alt\` (required, 300), \`caption?\` | under the text. \`src\` must be an image uploaded to the site: \`POST /api/journal/images\` (multipart \`file\`, see [Images API](/docs/images-api)) and use the \`/api/journal/images/<id>\` path it returns. Images from anywhere else are refused, so a course cannot put a third-party tracking pixel in front of its learners |
+| \`emoji\` | \`emoji\` (emoji only, no letters or digits, 32), \`caption?\` | large, above the text |
+
+A teach card without one is a 400 at \`units[i].lessons[j].steps[k].visual\` whose message lists the three shapes. Courses saved before this rule still play as they were stored; the rule applies the next time their content is saved. Slide-deck courses (\`url\`) live outside this validator, and the same rule applies to them by convention: every slide that explains something carries a diagram, an image or at least an emoji.
 
 Rules the validator enforces, each reported with a path such as \`units[0].lessons[2].steps[1].choices\`:
 

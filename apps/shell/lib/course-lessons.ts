@@ -9,10 +9,21 @@
  * answer. No model is involved anywhere.
  */
 
+/** SHAN-713: what a teach card shows besides its words. */
+export type TeachVisual =
+  | { kind: "diagram"; mermaid: string; caption?: string }
+  | { kind: "image"; src: string; alt: string; caption?: string }
+  | { kind: "emoji"; emoji: string; caption?: string };
+
 export interface TeachStep {
   type: "teach";
   title?: string;
   body: string;
+  /**
+   * Required on every save since SHAN-713. Optional here only because courses
+   * saved before the rule are still served as they were stored.
+   */
+  visual?: TeachVisual;
   code?: string;
   language?: string;
 }

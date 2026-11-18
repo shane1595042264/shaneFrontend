@@ -18,7 +18,12 @@ export const STARTER_CONTENT = {
             {
               type: "teach",
               title: "A lesson is a run of short cards",
-              body: "A **teach** card explains one idea. Keep it to a few sentences.\n\nEvery other card is an exercise with one right answer that you write. Nothing is graded by AI.",
+              body: "A **teach** card explains one idea. Keep it to a few sentences.\n\nEvery teach card shows something too: a diagram, an image, or at least an emoji. Every other card is an exercise with one right answer that you write. Nothing is graded by AI.",
+              visual: {
+                kind: "diagram",
+                mermaid: "flowchart LR\n  Course --> Unit --> Lesson --> Step\n  Step --> T[teach: words + a visual]\n  Step --> E[exercise: one right answer]",
+                caption: "How a course is put together",
+              },
             },
             {
               type: "choice",
@@ -80,7 +85,24 @@ export const STARTER_CONTENT = {
 
 /** One ready-to-edit example of each step type, for the editor's Add step menu. */
 export const STEP_SNIPPETS: Record<string, unknown> = {
-  teach: { type: "teach", title: "A new idea", body: "Explain one idea in a few sentences." },
+  // SHAN-713: every teach card carries a visual. The emoji is the floor;
+  // a diagram or an image is better wherever there is something to show.
+  teach: {
+    type: "teach",
+    title: "A new idea",
+    body: "Explain one idea in a few sentences.",
+    visual: { kind: "emoji", emoji: "💡" },
+  },
+  "teach-diagram": {
+    type: "teach",
+    title: "How it flows",
+    body: "Explain the picture in a few sentences.",
+    visual: {
+      kind: "diagram",
+      mermaid: "flowchart LR\n  A[Start] --> B[Middle] --> C[End]",
+      caption: "Replace with your own diagram",
+    },
+  },
   choice: {
     type: "choice",
     prompt: "Your question?",

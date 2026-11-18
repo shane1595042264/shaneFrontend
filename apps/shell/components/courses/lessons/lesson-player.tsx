@@ -1,5 +1,6 @@
 "use client";
 
+import { TeachVisualView } from "./teach-visual";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, animate, motion, useReducedMotion } from "framer-motion";
 import { useScrollLock } from "@/lib/use-scroll-lock";
@@ -780,9 +781,12 @@ function StepCard({
       </h2>
       {step.type === "teach" ? (
         <div className="mt-6 space-y-6">
+          {/* An emoji leads the card; a diagram or image follows the words it illustrates. */}
+          {step.visual?.kind === "emoji" && <TeachVisualView visual={step.visual} />}
           <LessonText noteTarget={`${noteKey}.b`} className="max-w-[62ch] text-[17px] leading-relaxed text-gray-300">
             {step.body}
           </LessonText>
+          {step.visual && step.visual.kind !== "emoji" && <TeachVisualView visual={step.visual} />}
           {step.code && <CodeBlock code={step.code} language={step.language} />}
         </div>
       ) : (

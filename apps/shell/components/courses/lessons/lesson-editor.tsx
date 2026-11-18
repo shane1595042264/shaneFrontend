@@ -18,6 +18,7 @@ import {
   type CourseLesson,
 } from "@/lib/course-lessons";
 import { LessonPlayer } from "./lesson-player";
+import { uploadImage } from "@/lib/api/images";
 import { STARTER_CONTENT, STEP_SNIPPETS } from "./starter-template";
 
 /**
@@ -319,6 +320,33 @@ export function LessonEditor({
     }
   }, [text, syntax]);
 
+  // SHAN-713: an image visual has to come from the site's own store, so the
+  // editor uploads it and writes the returned path into a new teach card.
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const addImageStep = async (file: File) => {
+    setImageError(null);
+    setImageUploading(true);
+    try {
+      const { url } = await uploadImage(file, file.name);
+      const src = url.replace(/^https?:\/\/[^/]+/, "");
+      mutate((doc) => {
+        const target = lessonsForAdd[addTo] ?? lessonsForAdd[0];
+        if (!target) return;
+        doc.units[target.ui].lessons[target.li].steps.push({
+          type: "teach",
+          title: "What this shows",
+          body: "Explain the picture in a few sentences.",
+          visual: { kind: "image", src, alt: "Describe the picture for someone who cannot see it" },
+        });
+      });
+    } catch (err) {
+      setImageError(humanizeActionError(err, "Couldn't upload that image"));
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   const addStep = (kind: string) =>
     mutate((doc) => {
       const target = lessonsForAdd[addTo] ?? lessonsForAdd[0];
@@ -606,6 +634,7 @@ export function LessonEditor({
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         {[
                           ["teach", "Teach card"],
+                          ["teach-diagram", "Teach + diagram"],
                           ["choice", "Multiple choice"],
                           ["blank", "Typed blank"],
                           ["bank", "Word bank"],
@@ -622,7 +651,33 @@ export function LessonEditor({
                             {label}
                           </button>
                         ))}
+                        <label
+                          className={`flex min-h-10 cursor-pointer items-center rounded-lg border border-white/10 px-3 text-left text-sm text-gray-200 transition-colors hover:border-white/25 hover:bg-white/[0.04] ${
+                            lessonsForAdd.length === 0 || imageUploading ? "pointer-events-none opacity-40" : ""
+                          }`}
+                        >
+                          {imageUploading ? "Uploading..." : "Teach + image"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="sr-only"
+                            disabled={lessonsForAdd.length === 0 || imageUploading}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = "";
+                              if (file) void addImageStep(file);
+                            }}
+                          />
+                        </label>
                       </div>
+                      {imageError && (
+                        <p role="alert" className="mt-2 text-xs text-red-300">
+                          {imageError}
+                        </p>
+                      )}
+                      <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                        Every teach card needs a <code className="font-mono">visual</code>: a diagram, an image, or at least an emoji.
+                      </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button
