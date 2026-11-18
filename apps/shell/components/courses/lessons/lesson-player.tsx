@@ -28,9 +28,11 @@ import { Kbd, ShortcutSheet } from "./shortcut-sheet";
 
 /**
  * SHAN-652. One lesson, one card at a time, Duolingo-shaped: answer, Check,
- * read the feedback, Continue. A step missed the first time comes back once
- * at the end of the lesson, and the score is the share of exercises answered
- * right on the first try, so the retry teaches without inflating the number.
+ * read the feedback, Continue. A missed step goes back to the end of the
+ * lesson every time it is missed, so the lesson only finishes once every step
+ * has been answered right (SHAN-709; it used to come back once and then let a
+ * second miss go). The score is the share of exercises answered right on the
+ * first try, so the retries teach without inflating the number.
  *
  * SHAN-659: the whole run works from the keyboard (answer keys live in
  * exercises.tsx; Enter, Escape and ? here), and the place is handed to
@@ -98,6 +100,12 @@ function heading(step: CourseStep): string | null {
 
 function filledSentence(text: string): string {
   return text.replace(/\[\[([^\[\]]+)\]\]/g, (_, a: string) => a.split("|")[0].trim());
+}
+
+const ORDINAL_TRIES = ["First", "Second", "Third", "Fourth", "Fifth"];
+
+function tryLabel(attempt: number): string {
+  return attempt <= ORDINAL_TRIES.length ? `${ORDINAL_TRIES[attempt - 1]} try` : `Try ${attempt}`;
 }
 
 function clock(ms: number): string {
@@ -204,11 +212,13 @@ export function LessonPlayer({
     setStatus(correct ? "correct" : "wrong");
     setStreak((s) => (correct ? s + 1 : 0));
     if (correct) setResolved((r) => r + 1);
-    else if (!requeued.has(idx)) {
-      setRequeued((q) => new Set(q).add(idx));
+    else {
+      // Every miss, not just the first: the step is only resolved by a right
+      // answer, so the bar does not move and the lesson cannot finish without it.
+      setRequeued((q) => (q.has(idx) ? q : new Set(q).add(idx)));
       setQueue((q) => [...q, idx]);
-    } else setResolved((r) => r + 1); // second miss: show the answer and move on
-  }, [step, status, ready, choice, blank, order, match, idx, requeued]);
+    }
+  }, [step, status, ready, choice, blank, order, match, idx]);
 
   const advance = useCallback(() => {
     if (!step) return;
@@ -392,8 +402,12 @@ export function LessonPlayer({
   const snap = view !== null ? (history[view] ?? null) : null;
   const cIdx = queue[shown];
   const cStep = steps[cIdx];
-  const cRetry = shown >= steps.length;
-  const cSeed = `${lesson.id}:${cIdx}:${cRetry ? "r" : "a"}`;
+  // Which try this card is: 1 plus the times the step already came up earlier
+  // in the queue. Each try gets its own shuffle, so a retry cannot be answered
+  // from where the tiles sat last time. Tries 1 and 2 keep the seeds they had
+  // before SHAN-709, so a saved run looks back on the same layouts.
+  const cTry = queue.slice(0, shown).filter((i) => i === cIdx).length + 1;
+  const cSeed = `${lesson.id}:${cIdx}:${cTry === 1 ? "a" : cTry === 2 ? "r" : `r${cTry}`}`;
   const c: LessonCardSnapshot = snap ?? { status, choice, blank, blankResults, order, match, streak };
   const picked = cStep?.type === "choice" && c.choice.length === 1 ? cStep.choices[c.choice[0]] : null;
   const noop = () => {};
@@ -499,7 +513,7 @@ export function LessonPlayer({
                       step={cStep}
                       noteKey={`${lesson.id}.${cIdx}`}
                       promptRef={promptRef}
-                      isRetry={cRetry}
+                      attempt={cTry}
                       review={snap !== null}
                       lessonTitle={lesson.title}
                     >
@@ -714,7 +728,7 @@ function StepCard({
   step,
   noteKey,
   promptRef,
-  isRetry,
+  attempt,
   review = false,
   lessonTitle,
   children,
@@ -722,13 +736,15 @@ function StepCard({
   step: CourseStep;
   noteKey: string;
   promptRef: React.RefObject<HTMLHeadingElement | null>;
-  isRetry: boolean;
+  /** 1 on a step's first showing, then 2, 3, ... each time a miss brings it back. */
+  attempt: number;
   /** An earlier card shown again by Back: locked, labelled as such. */
   review?: boolean;
   lessonTitle: string;
   children: React.ReactNode;
 }) {
   const h = heading(step);
+  const isRetry = attempt > 1;
   // A screen reader announces each card as it arrives. A typed blank keeps
   // focus in its first input instead, so the learner can just type.
   useEffect(() => {
@@ -743,7 +759,7 @@ function StepCard({
       {(h || isRetry || review) && (
         <p className="text-sm text-gray-400">
           {review ? <span className="text-gray-200">Looking back. </span> : null}
-          {isRetry ? <span className="text-amber-200/90">Second try. </span> : null}
+          {isRetry ? <span className="text-amber-200/90">{tryLabel(attempt)}. </span> : null}
           {h ? kicker(step) : null}
         </p>
       )}
@@ -834,7 +850,9 @@ function Feedback({
           ))}
         </div>
       )}
-      {comesBack && <p className="mt-1.5 text-xs text-rose-200/70">This one comes back at the end.</p>}
+      {comesBack && (
+        <p className="mt-1.5 text-xs text-rose-200/70">This one comes back at the end until you get it right.</p>
+      )}
     </div>
   );
 }
