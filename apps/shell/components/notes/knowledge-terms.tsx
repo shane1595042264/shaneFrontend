@@ -142,6 +142,9 @@ export function TermPopover({
   // navigation to the page it is already on, so from there go the long way.
   const onKnowledgePage = typeof window !== "undefined" && window.location.pathname === "/knowledge";
   const meta = term ? [term.partOfSpeech, term.pronunciation].filter(Boolean).join(" · ") : "";
+  // A card whose word is a whole sentence ("SSRF: SSRF stands for ...") was
+  // matched by its short label; title it by that, not by the sentence.
+  const title = term ? (term.word.length > 48 ? term.match[0] : term.word) : "";
 
   return (
     <AnimatePresence>
@@ -150,7 +153,7 @@ export function TermPopover({
           key={term.id}
           ref={ref}
           role="dialog"
-          aria-label={`${term.word}, from the knowledge base`}
+          aria-label={`${title}, from the knowledge base`}
           initial={reduce ? { opacity: 0 } : { opacity: 0, y: pos.above ? 8 : -8, scale: 0.96, filter: "blur(4px)" }}
           animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: pos.above ? 4 : -4, scale: 0.98, transition: { duration: 0.14 } }}
@@ -171,7 +174,7 @@ export function TermPopover({
               Knowledge <span aria-hidden="true">·</span> {term.category}
             </p>
             <p className="mt-1.5 text-[15px] font-semibold leading-snug text-white">
-              {term.word}
+              {title}
               {meta ? <span className="ml-2 text-sm font-normal text-gray-400">{meta}</span> : null}
             </p>
             <div className="mt-2 text-sm leading-6 text-gray-300">
