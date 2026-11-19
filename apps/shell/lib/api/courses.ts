@@ -24,6 +24,8 @@ export interface Course {
   durationMinutes: number | null;
   tags: string[];
   visibility: CourseVisibility;
+  /** SHAN-720: finishing every lesson earns a certificate. */
+  certified: boolean;
   ownerId: string;
   coverUrl: string | null;
   rating: CourseRatingSummary;
@@ -311,3 +313,45 @@ export const recordLessonProgress = (courseId: string, lessonId: string, score: 
 
 export const resetCourseProgress = (courseId: string) =>
   api<void>(`/api/courses/${courseId}/progress`, { method: "DELETE" });
+
+// ---- SHAN-720: certificates ------------------------------------------------
+
+export interface CourseCertificate {
+  /** 12 characters, shown grouped in fours. The public verification id. */
+  code: string;
+  url: string;
+  recipientName: string;
+  courseId: string;
+  courseSlug: string;
+  /** The course title when the certificate was issued. */
+  courseTitle: string;
+  /** Mean best first-try score across the lessons, 0-100. */
+  score: number;
+  lessonCount: number;
+  issuedAt: string;
+}
+
+/** "7K3M9QX2ABCD" -> "7K3M-9QX2-ABCD", the way it is printed. */
+export function formatCertificateCode(code: string): string {
+  return code.match(/.{1,4}/g)?.join("-") ?? code;
+}
+
+export function certificatePath(code: string): string {
+  return `/courses/certificates/${formatCertificateCode(code)}`;
+}
+
+/** Null until this learner has claimed one. */
+export async function getMyCertificate(courseId: string): Promise<CourseCertificate | null> {
+  const res = await fetch(`${API_URL}/api/courses/${courseId}/certificate`, {
+    headers: getAuthHeaders(),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to load your certificate (${res.status})`);
+  return ((await res.json()) as { certificate: CourseCertificate }).certificate;
+}
+
+export const claimCertificate = (courseId: string, name?: string) =>
+  api<{ certificate: CourseCertificate }>(`/api/courses/${courseId}/certificate`, {
+    method: "POST",
+    body: JSON.stringify(name ? { name } : {}),
+  }).then((r) => r.certificate);

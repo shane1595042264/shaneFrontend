@@ -177,7 +177,8 @@ const COURSES_NOT_FOUND_HTML = renderEdgeNotFound({
 // private courses are read. Only the two-segment form is a page, and that shape
 // never reaches the slug branch, so bare /courses/private gets the same
 // treatment as /blog/preview. The backend refuses to mint either slug.
-const COURSES_RESERVED_SEGMENTS = new Set(["covers", "private"]);
+// SHAN-720: "certificates" likewise, for /courses/certificates/<code>.
+const COURSES_RESERVED_SEGMENTS = new Set(["covers", "private", "certificates"]);
 
 const BLOG_NOT_FOUND_HTML = renderEdgeNotFound({
   title: "Not Found — Blog — Shane",
@@ -314,6 +315,18 @@ export async function middleware(req: NextRequest) {
       `/api/trips/${encodeURIComponent(segment)}`
     );
     if (exists === false) return notFoundResponse(TRIP_NOT_FOUND_HTML);
+    return NextResponse.next();
+  }
+
+  // SHAN-720: /courses/certificates/:code. The page streams behind the
+  // /courses loading boundary, so its notFound() would land at HTTP 200; the
+  // backend reads the code the way it is printed, so let it decide.
+  const certificateMatch = pathname.match(/^\/courses\/certificates\/([^\/]+)\/?$/);
+  if (certificateMatch) {
+    const exists = await backendExists(
+      `/api/courses/certificates/${encodeURIComponent(certificateMatch[1])}`
+    );
+    if (exists === false) return notFoundResponse(COURSES_NOT_FOUND_HTML);
     return NextResponse.next();
   }
 

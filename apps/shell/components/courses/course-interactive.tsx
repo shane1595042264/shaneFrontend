@@ -25,7 +25,7 @@ import { GeneratedCover } from "./generated-cover";
 import { StarRating } from "./star-rating";
 import { EditCourseDialog } from "./edit-course-dialog";
 import { CourseCommentsThread } from "./comments-thread";
-import { PrivateBadge } from "./course-card";
+import { CertificateBadge, PrivateBadge } from "./course-card";
 import { FocusTrappedDiv } from "@/components/focus-trapped-div";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -277,6 +277,7 @@ export function CourseInteractive({
             </h1>
             <div className="flex flex-wrap items-center gap-1.5 text-xs">
               {course.visibility === "private" && <PrivateBadge />}
+              {course.certified && <CertificateBadge />}
               <span className={`rounded border px-1.5 py-0.5 ${style.border} ${style.bg} ${style.text}`}>
                 {course.category}
               </span>

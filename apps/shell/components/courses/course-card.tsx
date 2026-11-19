@@ -26,6 +26,15 @@ export function PrivateBadge() {
   );
 }
 
+/** SHAN-720. Finishing the course earns a certificate. */
+export function CertificateBadge() {
+  return (
+    <span className="rounded border border-amber-300/40 bg-amber-300/10 px-1.5 py-0.5 text-amber-100">
+      certificate
+    </span>
+  );
+}
+
 export function CourseCard({ course }: { course: Course }) {
   const style = categoryStyle(course.category);
   return (
@@ -66,6 +75,7 @@ export function CourseCard({ course }: { course: Course }) {
         <div className="space-y-3 p-4">
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             {course.visibility === "private" && <PrivateBadge />}
+            {course.certified && <CertificateBadge />}
             <span className={`rounded border px-1.5 py-0.5 ${style.border} ${style.bg} ${style.text}`}>
               {course.category}
             </span>

@@ -1,6 +1,6 @@
 const body = `# Courses API
 
-The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linked slide deck (an external URL with AI-extracted metadata), a set of [interactive lessons](#lessons) played on shanejli.com, or both, plus ratings and comments. Shipped 2026-08-31 (SHAN-437); lessons 2026-11-03 (SHAN-652).
+The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linked slide deck (an external URL with AI-extracted metadata), a set of [interactive lessons](#lessons) played on shanejli.com, or both, plus ratings and comments. Shipped 2026-08-31 (SHAN-437); lessons 2026-11-03 (SHAN-652); [certificates](#certificates) 2026-11-19 (SHAN-720).
 
 ## Model
 
@@ -10,6 +10,7 @@ The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linke
 - \`coverUrl\` is null until a cover is uploaded; the site renders a generated cover in that case.
 - \`url\` is the deck; it is null for a course that is only lessons.
 - \`lessonCount\` and \`stepCount\` are 0 for a deck-only course. Anything above 0 means the course has [lessons](#lessons).
+- \`certified\` is true when finishing every lesson earns a [certificate](#certificates).
 
 ## Reads (public, except private courses)
 
@@ -20,6 +21,7 @@ The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linke
 | GET | /covers/:courseId | cover bytes, public, immutable cache |
 | GET | /:id/comments | comments with author objects. 404 for a private course you cannot see |
 | GET | /:id/content | \`{content, stats, updatedAt}\`: the lesson document. 404 for a deck-only course or a private course you cannot see |
+| GET | /certificates/:code | \`{certificate}\`, see [Certificates](#certificates). The code is read as printed: dashes, spaces and case are ignored. 404 for an unknown code or one whose course is now private |
 
 ## Writes
 
@@ -36,6 +38,9 @@ All writes share PAT bucket \`courses-write\` (60/min). Course mutations are own
 | GET | /:id/progress | signed in | none | Your progress: \`{progress: [{lessonId, bestScore, lastScore, attempts, completedAt, updatedAt}]}\`, empty when you have not started |
 | PUT | /:id/progress/:lessonId | reactions:write | \`{score}\` int 0..100 | Records one finished run and returns \`{progress: {lessonId, bestScore, lastScore, attempts, completedAt, updatedAt}}\` for that lesson. The first sets \`completedAt\`; later ones bump \`attempts\`, keep the best score. 404 for a lesson id the course does not have, or a course with no lessons |
 | DELETE | /:id/progress | reactions:write | none | 204. Clears your progress on this course |
+| GET | /:id/certificate | signed in | none | \`{certificate}\` you were issued for this course; 404 before you claim one |
+| POST | /:id/certificate | reactions:write | \`{name?}\` 1..120 | Claims your certificate. 201 \`{certificate}\` when issued, 200 with the same one on any later claim. 409 when the course is not certified (or is private), or while a lesson is unfinished: \`{error, missing: [lessonId]}\`. \`name\` is printed on it and defaults to your account name (400 when you have none). Clearing progress does not revoke it |
+| PUT | /:id/certification | entries:write | \`{certified}\` boolean | Site owner only (403 for anyone else). Certifying needs a public course with lessons (400 otherwise). Returns \`{course}\`. Uncertifying stops new certificates; issued ones stay valid |
 | DELETE | /:id | entries:write | none | 204, cascades ratings and comments |
 | PUT | /:id/cover | entries:write | multipart \`file\` | Same image ladder as journal: sniffed png/jpeg/gif/webp, 5MB 413, 415 otherwise |
 | DELETE | /:id/cover | entries:write | none | back to the generated cover |
@@ -120,6 +125,29 @@ Signed-in learners can select words on a course page or inside a lesson card (a 
 In the player, a missed step goes back to the end of the lesson every time it is missed, so a lesson only finishes once every step has been answered right (SHAN-709). Each retry reshuffles its tiles and says which try it is. The score is the share of graded steps answered right on the first try. Signed-in progress is stored per lesson (the progress endpoints above); signed out, it stays in the browser until the next signed-in visit to that course, which adds each lesson the account has not finished yet as one run at its best score.
 
 A lesson left halfway is not sent to the API. The player keeps the place (cards answered, first-try results, the missed cards queued for the end) in the browser, one lesson per course, and the course page offers Resume. A run whose lesson steps were edited since is dropped. Everything in the player has a key: each answer, tile, item and match cell shows its key (1 to 9, then 0, then a to z; in a match the right column carries on from the left), Backspace takes back the last pick, Enter checks and continues, Escape leaves. On the course page j and k move between lessons, r resumes, and ? lists every key (SHAN-659). Back (or the Left arrow) shows the cards already done in this run, each locked with the answer given and the feedback seen, so it reviews without changing the score; Next (Right arrow or Enter) returns to the current card as it was (SHAN-660). In a put-in-order card, placed items can be dragged into a new order, or moved with Alt and the up or down arrow (SHAN-665).
+
+## Certificates
+
+Shipped 2026-11-19 (SHAN-720, phase 1 of SHAN-719). A certified course issues a certificate, signed by Shane, to every learner who has finished all of its lessons. The certificate is claimed once and never changes: the name and the course title are copied in when it is issued, so renaming the account or the course later does not rewrite one already shared.
+
+\`\`\`json
+{
+  "code": "7K3M9QX2ABCD",
+  "url": "https://shanejli.com/courses/certificates/7K3M9QX2ABCD",
+  "recipientName": "Ada Lovelace",
+  "courseId": "uuid",
+  "courseSlug": "the-course",
+  "courseTitle": "The title when it was issued",
+  "score": 92,
+  "lessonCount": 6,
+  "issuedAt": "2026-11-19T21:00:00.000Z"
+}
+\`\`\`
+
+- \`code\` is 12 characters of Crockford base32 (no I, L, O or U) and is printed in fours, \`7K3M-9QX2-ABCD\`. Anyone with it can check the certificate at \`https://shanejli.com/courses/certificates/<code>\` or \`GET /api/courses/certificates/<code>\`. The page is noindex: the certificate is its holder's to share.
+- \`score\` is the mean of the learner's best first-try score in each lesson.
+- "Finished" means a recorded run (\`PUT /:id/progress/:lessonId\`) for every lesson the course has at the moment of the claim. A lesson added later does not touch certificates already issued.
+- Only the site owner can certify a course for now. Later phases add rigor requirements (recite steps, an exam, a spaced recall check) and an AI review that any author can submit a course to.
 
 ## Private courses
 

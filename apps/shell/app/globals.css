@@ -342,6 +342,43 @@ body::after {
 }
 
 /*
+ * SHAN-720: a course certificate prints alone, on one landscape page, in its
+ * own paper colours (economy colour above would wash the gold out).
+ */
+@page certificate {
+  size: A4 landscape;
+  margin: 0;
+}
+@media print {
+  body:has(.certificate-sheet) :is(header, nav, .certificate-print-hide) {
+    display: none !important;
+  }
+  /* The whole document is on the named page, or the switch to it breaks a
+     blank default page off before and after the sheet. */
+  body:has(.certificate-sheet) {
+    page: certificate;
+  }
+  body:has(.certificate-sheet) main,
+  body:has(.certificate-sheet) main > * {
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .certificate-sheet {
+    width: 297mm !important;
+    /* A hair under the page, so rounding never spills a blank second page. */
+    height: 209mm !important;
+    aspect-ratio: auto !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    break-inside: avoid;
+  }
+}
+
+/*
  * SHAN-577: journal inline notes (components/journal/inline-notes.tsx).
  *
  * The underline is a background gradient, not text-decoration, for two

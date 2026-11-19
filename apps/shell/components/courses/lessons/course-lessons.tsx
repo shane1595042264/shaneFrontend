@@ -24,6 +24,7 @@ import {
 import { isTyping, keysBlocked, pressedKey } from "./exercises";
 import { LessonPlayer, type SaveState } from "./lesson-player";
 import { Kbd, ShortcutSheet } from "./shortcut-sheet";
+import { CertificatePanel } from "./certificate-panel";
 
 // One load per course at a time, so an effect that re-runs while uploads are
 // in flight (auth settling, Strict Mode) waits for them instead of recording
@@ -361,6 +362,14 @@ export function CourseLessons({
           </p>
         )}
       </div>
+
+      <CertificatePanel
+        course={course}
+        user={user}
+        doneCount={doneCount}
+        total={lessons.length}
+        progressKnown={!progressError && hydrated && !authLoading}
+      />
 
       <section ref={pathRef} aria-labelledby="course-lessons-heading" className="mt-12">
         <h2 id="course-lessons-heading" className="sr-only">
