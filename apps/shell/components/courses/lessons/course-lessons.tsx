@@ -157,6 +157,15 @@ export function CourseLessons({
     return m;
   }, [lessons, progress, examBy]);
   const hasExam = lessons.some((l) => l.lesson.exam);
+  // SHAN-722: any finished run moves the recall check's opening.
+  const lastActivity = useMemo(
+    () =>
+      [...progress, ...exams].reduce<string | null>(
+        (latest, r) => (r.updatedAt && (!latest || r.updatedAt > latest) ? r.updatedAt : latest),
+        null,
+      ),
+    [progress, exams],
+  );
   const doneCount = lessons.filter((l) => done.has(l.lesson.id)).length;
   // With the load failed we do not know where the learner is, so nothing is
   // marked as next.
@@ -425,6 +434,7 @@ export function CourseLessons({
         total={lessons.length}
         progressKnown={!progressError && hydrated && !authLoading}
         hasExam={hasExam}
+        lastActivity={lastActivity}
       />
 
       <section ref={pathRef} aria-labelledby="course-lessons-heading" className="mt-12">

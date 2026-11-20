@@ -5,6 +5,7 @@ import type {
   ContentStats,
   CourseContent,
   CourseProgress,
+  CourseStep,
   ExamResult,
   ReciteVerdict,
 } from "@/lib/course-lessons";
@@ -399,3 +400,46 @@ export const claimCertificate = (courseId: string, name?: string) =>
     method: "POST",
     body: JSON.stringify(name ? { name } : {}),
   }).then((r) => r.certificate);
+
+// ---- SHAN-722: the recall check --------------------------------------------
+
+export interface RecallResult {
+  bestScore: number;
+  lastScore: number;
+  attempts: number;
+  passedAt: string | null;
+  updatedAt: string;
+}
+
+export interface RecallCheck {
+  /**
+   * "lessons" until every lesson is done and every exam passed, "waiting" for
+   * a day after the last lesson (or a failed sitting), then "open", "passed".
+   */
+  status: "lessons" | "waiting" | "open" | "passed";
+  passMark: number;
+  questions: number;
+  lessonsLeft: number;
+  /** When it opens; null before the lessons are done and once passed. */
+  unlocksAt: string | null;
+  result: RecallResult | null;
+  /** The cards, answers stripped, only while open. */
+  draw: { id: string; steps: CourseStep[] } | null;
+}
+
+/** On a certified course only; signed in. */
+export const getRecallCheck = (courseId: string) =>
+  api<{ recall: RecallCheck }>(`/api/courses/${courseId}/recall`).then((r) => r.recall);
+
+export interface RecallSubmission extends Omit<ExamSubmission, "result"> {
+  result: RecallResult;
+  /** When the next sitting opens, after a failed one. */
+  unlocksAt: string | null;
+}
+
+/** `answers[i]` answers `draw.steps[i]`; `draw` is the draw's id. */
+export const submitRecall = (courseId: string, draw: string, answers: unknown[]) =>
+  api<RecallSubmission>(`/api/courses/${courseId}/recall`, {
+    method: "POST",
+    body: JSON.stringify({ draw, answers }),
+  });

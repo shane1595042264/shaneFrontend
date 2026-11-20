@@ -1,6 +1,6 @@
 const body = `# Courses API
 
-The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linked slide deck (an external URL with AI-extracted metadata), a set of [interactive lessons](#lessons) played on shanejli.com, or both, plus ratings and comments. Shipped 2026-08-31 (SHAN-437); lessons 2026-11-03 (SHAN-652); [certificates](#certificates) 2026-11-19 (SHAN-720); [recite steps and exams](#recite-steps-and-exams) 2026-11-20 (SHAN-721).
+The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linked slide deck (an external URL with AI-extracted metadata), a set of [interactive lessons](#lessons) played on shanejli.com, or both, plus ratings and comments. Shipped 2026-08-31 (SHAN-437); lessons 2026-11-03 (SHAN-652); [certificates](#certificates) 2026-11-19 (SHAN-720); [recite steps and exams](#recite-steps-and-exams) 2026-11-20 (SHAN-721); the [recall check](#recall-check) 2026-11-20 (SHAN-722).
 
 ## Model
 
@@ -10,7 +10,7 @@ The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linke
 - \`coverUrl\` is null until a cover is uploaded; the site renders a generated cover in that case.
 - \`url\` is the deck; it is null for a course that is only lessons.
 - \`lessonCount\` and \`stepCount\` are 0 for a deck-only course. Anything above 0 means the course has [lessons](#lessons).
-- \`certified\` is true when finishing every lesson and passing the exam earns a [certificate](#certificates).
+- \`certified\` is true when finishing every lesson, passing the exam and then passing the [recall check](#recall-check) a day later earns a [certificate](#certificates).
 
 ## Reads (public, except private courses)
 
@@ -37,11 +37,13 @@ All writes share PAT bucket \`courses-write\` (60/min). Course mutations are own
 | POST | /content/validate | signed in | the lesson document | Dry run, never writes: 200 \`{ok: true, content, stats}\` or 200 \`{ok: false, issues}\`, also for a body that is not JSON. The one non-200 is 413 when \`Content-Length\` is over 1 MB |
 | GET | /:id/progress | signed in | none | Your progress: \`{progress: [{lessonId, bestScore, lastScore, attempts, completedAt, updatedAt}], exams: [{lessonId, bestScore, lastScore, attempts, passedAt, updatedAt}]}\`, empty when you have not started. \`exams\` holds your [exam](#exams) sittings |
 | PUT | /:id/progress/:lessonId | reactions:write | \`{score}\` int 0..100 | Records one finished run and returns \`{progress: {lessonId, bestScore, lastScore, attempts, completedAt, updatedAt}}\` for that lesson. The first sets \`completedAt\`; later ones bump \`attempts\`, keep the best score. 404 for a lesson id the course does not have, or a course with no lessons. 409 for an exam lesson, which is scored only by submitting it |
-| DELETE | /:id/progress | reactions:write | none | 204. Clears your progress and your exam sittings on this course |
+| DELETE | /:id/progress | reactions:write | none | 204. Clears your progress, your exam sittings and your recall check on this course |
 | POST | /:id/lessons/:lessonId/steps/:step/recite | reactions:write | \`{answer, attempt?}\` 1..5000, attempt 1..50 | Grades one [recital](#recite-steps-and-exams) in a practice lesson (\`step\` is its 0-based index). Returns \`{correct, score, feedback, judge}\`; a miss adds \`{hint, hintNumber, hintsTotal}\`, the hint for that attempt. Nothing is stored. 404 when that step is not a recite step, 409 inside an exam, 503 when no grader is reachable. PAT bucket \`courses-recite\` (60/min) |
 | POST | /:id/exams/:lessonId | reactions:write | \`{answers}\`, one entry per step | Grades a whole [exam](#exams) and records the sitting. Returns \`{score, right, graded, passMark, passed, steps: [{index, correct, feedback?}], result}\`, never the right answers. 404 when the lesson is not an exam, 503 (and nothing recorded) when no grader is reachable. PAT bucket \`courses-exam\` (10/min) |
+| GET | /:id/recall | signed in | none | Your [recall check](#recall-check) on a certified course: \`{recall: {status, passMark, questions, lessonsLeft, unlocksAt, result, draw}}\`. \`draw\` is \`{id, steps}\` while \`status\` is \`open\`, else null. 404 on a course that is not certified, or is private |
+| POST | /:id/recall | reactions:write | \`{draw, answers}\` | Grades one recall sitting: \`draw\` is the \`draw.id\` you were served and \`answers[i]\` answers \`draw.steps[i]\`, as in an exam. Returns \`{score, right, graded, passMark, passed, steps, result, unlocksAt}\`, never the right answers; \`unlocksAt\` is when the next sitting opens after a fail. 409 before it opens (\`{error, unlocksAt}\`), while a lesson is unfinished, once passed, or when \`draw\` is out of date (the course was edited or another sitting landed; GET it again). 503 (and nothing recorded) when no grader is reachable. PAT bucket \`courses-exam\` |
 | GET | /:id/certificate | signed in | none | \`{certificate}\` you were issued for this course; 404 before you claim one |
-| POST | /:id/certificate | reactions:write | \`{name?}\` 1..120 | Claims your certificate. 201 \`{certificate}\` when issued, 200 with the same one on any later claim. 409 when the course is not certified (or is private), or while a lesson is unfinished or an exam not passed: \`{error, missing: [lessonId]}\`. \`name\` is printed on it and defaults to your account name (400 when you have none). Clearing progress does not revoke it |
+| POST | /:id/certificate | reactions:write | \`{name?}\` 1..120 | Claims your certificate. 201 \`{certificate}\` when issued, 200 with the same one on any later claim. 409 when the course is not certified (or is private), or while a lesson is unfinished or an exam not passed (\`{error, missing: [lessonId]}\`), or the recall check not passed (\`{error, recall: "pending"}\`). \`name\` is printed on it and defaults to your account name (400 when you have none). Clearing progress does not revoke it |
 | PUT | /:id/certification | entries:write | \`{certified}\` boolean | Site owner only (403 for anyone else). Certifying needs a public course whose lessons include at least one recite step and an exam (400 otherwise, with \`missing\` naming what is lacking). Returns \`{course}\`. Uncertifying stops new certificates; issued ones stay valid |
 | DELETE | /:id | entries:write | none | 204, cascades ratings and comments |
 | PUT | /:id/cover | entries:write | multipart \`file\` | Same image ladder as journal: sniffed png/jpeg/gif/webp, 5MB 413, 415 otherwise |
@@ -148,9 +150,18 @@ A lesson with \`"exam": {"passMark": 80}\` (\`passMark\` 50..100, default 80) is
 - The server grades it with the same rules as practice and records the sitting apart from practice progress: best score, last score, attempts, and \`passedAt\` from the first sitting at or above the pass mark. The response says which steps were wrong, never what was right, so a resit is still a test. Resits are unlimited.
 - \`PUT /:id/progress/:lessonId\` refuses an exam, so its score cannot be self-reported. The recite endpoint refuses an exam's recite steps for the same reason, since its hints would hand the answer out.
 
+## Recall check
+
+Shipped 2026-11-20 (SHAN-722, phase 3 of SHAN-719). Finishing the lessons shows the learner knew the material while it was in front of them. The recall check asks again a day later, with nothing in front of them, so a certificate needs the knowledge to have lasted. Every certified course has one; nothing has to be authored for it.
+
+- **What it asks.** Cards drawn from the exercises of every lesson, exams included (match steps excepted, since a match grades each pair as it is made). One card per lesson first, so every lesson is asked about, then the rest by weight, with a recite step about four times as likely to be drawn as any other card. A sitting holds as many cards as the course has lessons, at least 8 and at most 20, and never more than the course has.
+- **When.** \`GET /:id/recall\` reports \`status\`: \`lessons\` until every practice lesson is finished and every exam passed, then \`waiting\` until \`unlocksAt\`, a day after the learner's last finished run of any lesson or exam sitting, then \`open\`, and \`passed\` for good once a sitting reaches the pass mark (80%). Practising a lesson again moves the opening to a day after that practice, since a check taken an hour after a review measures the review. A failed sitting closes it for a day too.
+- **How.** Served and graded exactly like an [exam](#exams): the cards come without their answers, every card is answered once, the server grades the whole sheet and says only which cards were wrong. Each sitting draws its own cards, keyed by the learner, the course, how many times they have sat it and the version of the lessons; \`draw.id\` names that set, and a submission against any other set is a 409.
+- Sittings are recorded per learner per course (best score, last score, attempts, \`passedAt\`) and come back as \`result\`.
+
 ## Certificates
 
-Shipped 2026-11-19 (SHAN-720, phase 1 of SHAN-719). A certified course issues a certificate, signed by Shane, to every learner who has finished all of its lessons and passed its exam. The certificate is claimed once and never changes: the name and the course title are copied in when it is issued, so renaming the account or the course later does not rewrite one already shared.
+Shipped 2026-11-19 (SHAN-720, phase 1 of SHAN-719). A certified course issues a certificate, signed by Shane, to every learner who has finished all of its lessons, passed its exam and then passed its [recall check](#recall-check). The certificate is claimed once and never changes: the name and the course title are copied in when it is issued, so renaming the account or the course later does not rewrite one already shared.
 
 \`\`\`json
 {
@@ -170,7 +181,8 @@ Shipped 2026-11-19 (SHAN-720, phase 1 of SHAN-719). A certified course issues a 
 - \`score\` is the mean of the learner's best score in each lesson: the first-try score of a practice lesson, the best sitting of an exam.
 - "Finished" means a recorded run (\`PUT /:id/progress/:lessonId\`) for every practice lesson, and a sitting at or above the current pass mark for every exam, as the course stands at the moment of the claim. A lesson added later does not touch certificates already issued.
 - A certified course must contain at least one recite step and an exam (SHAN-721): certifying without them is a 400, and so is a content save that would remove them while the course is certified.
-- Only the site owner can certify a course for now. Later phases add a spaced recall check and an AI review that any author can submit a course to.
+- The recall check has to be passed too (SHAN-722). The certificate's \`score\` is still the lessons' mean; the recall score is not part of it.
+- Only the site owner can certify a course for now. A later phase adds an AI review that any author can submit a course to.
 
 ## Private courses
 

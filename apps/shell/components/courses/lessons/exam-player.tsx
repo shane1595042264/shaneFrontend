@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { humanizeActionError } from "@/lib/humanize-error";
-import { isGraded, type CourseLesson, type CourseStep, type ExamResult } from "@/lib/course-lessons";
+import { isGraded, type CourseLesson, type CourseStep } from "@/lib/course-lessons";
 import type { ExamSubmission } from "@/lib/api/courses";
 import { BlankExercise, ChoiceExercise, OrderExercise, ReciteExercise, isTyping, pressedKey } from "./exercises";
 import { CodeBlock, LessonText } from "./lesson-text";
@@ -21,7 +21,18 @@ import { heading, kicker } from "./lesson-player";
  * No notes, Explain or knowledge terms in here: each is a way to look the
  * answer up. Escape leaves at once, as in a lesson; answers not submitted are
  * not kept.
+ *
+ * SHAN-722: the recall check on a certificate course is the same sitting over
+ * cards drawn from every lesson (`kind="recall"`). It has no "Take it again":
+ * a failed sitting reopens a day later, and the result says when.
  */
+
+/** What the player needs back from a graded sitting, exam or recall check. */
+export type Sitting = Omit<ExamSubmission, "result"> & {
+  result: { bestScore: number };
+  /** The recall check's next opening, after a failed sitting. */
+  unlocksAt?: string | null;
+};
 
 type Answer = number[] | string[] | string;
 type Phase = "intro" | "taking" | "submitting" | "result";
@@ -57,15 +68,19 @@ export function ExamPlayer({
   best,
   onSubmit,
   onExit,
+  kind = "exam",
 }: {
   lesson: CourseLesson;
   unitTitle: string;
   signedIn: boolean;
   /** The best sitting so far, if any. */
-  best: ExamResult | undefined;
-  onSubmit: (answers: unknown[]) => Promise<ExamSubmission>;
+  best: { bestScore: number } | undefined;
+  onSubmit: (answers: unknown[]) => Promise<Sitting>;
   onExit: () => void;
+  kind?: "exam" | "recall";
 }) {
+  const recall = kind === "recall";
+  const label = recall ? "Recall check" : "Exam";
   useScrollLock(true);
   const steps = lesson.steps;
   const passMark = lesson.exam?.passMark ?? 80;
@@ -73,7 +88,7 @@ export function ExamPlayer({
   const [phase, setPhase] = useState<Phase>("intro");
   const [pos, setPos] = useState(0);
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
-  const [result, setResult] = useState<ExamSubmission | null>(null);
+  const [result, setResult] = useState<Sitting | null>(null);
   const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLHeadingElement>(null);
@@ -101,10 +116,12 @@ export function ExamPlayer({
       setResult(await onSubmit(steps.map((_, i) => answers[i] ?? null)));
       setPhase("result");
     } catch (e) {
-      setError(humanizeActionError(e, "Could not submit the exam. Your answers are still here; try again."));
+      setError(
+        humanizeActionError(e, `Could not submit the ${recall ? "recall check" : "exam"}. Your answers are still here; try again.`),
+      );
       setPhase("taking");
     }
-  }, [onSubmit, steps, answers]);
+  }, [onSubmit, steps, answers, recall]);
 
   const next = useCallback(() => {
     if (phase !== "taking") return;
@@ -187,14 +204,14 @@ export function ExamPlayer({
         <button
           type="button"
           onClick={onExit}
-          aria-label="Close exam"
+          aria-label={`Close ${recall ? "recall check" : "exam"}`}
           aria-keyshortcuts="Escape"
           className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-2xl leading-none text-gray-400 transition-colors hover:bg-white/[0.06] hover:text-white"
         >
           <span aria-hidden="true">&times;</span>
         </button>
         <span className="rounded-md border border-amber-300/40 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-200">
-          Exam
+          {label}
         </span>
         {phase === "taking" || phase === "submitting" ? (
           <span className="ml-auto text-sm tabular-nums text-gray-400">
@@ -216,9 +233,13 @@ export function ExamPlayer({
                 <li>
                   {questions} question{questions === 1 ? "" : "s"}. Pass mark {passMark}%.
                 </li>
+                {recall && (
+                  <li>Drawn from every lesson of the course, recitals most of all. Nothing to look at first: this checks what stayed.</li>
+                )}
                 <li>No feedback until you submit, and no second try at a question inside a sitting.</li>
                 <li>Back and Next move freely, so you can change an answer before you submit.</li>
                 <li>Recitals are graded for meaning, so your own words are fine.</li>
+                {recall && <li>Not passed, it opens again a day after this sitting, with new questions.</li>}
               </ul>
               {best && (
                 <p className="mt-6 text-sm text-gray-400">
@@ -232,11 +253,12 @@ export function ExamPlayer({
                   onClick={start}
                   className="mt-8 min-h-12 rounded-xl bg-white px-8 text-[15px] font-semibold text-black transition-[transform,background-color] hover:bg-gray-200 active:translate-y-px"
                 >
-                  {best ? "Take it again" : "Start the exam"}
+                  {recall ? "Start the recall check" : best ? "Take it again" : "Start the exam"}
                 </button>
               ) : (
                 <p className="mt-8 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-300">
-                  Sign in to take this exam. It is graded on the server, and passing it is what a certificate asks for.
+                  Sign in to take this {recall ? "recall check" : "exam"}. It is graded on the server, and passing it is what a
+                  certificate asks for.
                 </p>
               )}
             </section>
@@ -336,18 +358,20 @@ export function ExamPlayer({
                   last ? "bg-amber-200 text-amber-950 hover:bg-amber-100" : "bg-white text-black hover:bg-gray-200"
                 }`}
               >
-                {phase === "submitting" ? "Grading..." : last ? "Submit exam" : "Next"}
+                {phase === "submitting" ? "Grading..." : last ? `Submit ${recall ? "answers" : "exam"}` : "Next"}
               </button>
             )}
             {phase === "result" && (
               <>
-                <button
-                  type="button"
-                  onClick={start}
-                  className="min-h-12 rounded-xl bg-white/[0.08] px-6 text-[15px] text-gray-200 transition-colors hover:bg-white/[0.14]"
-                >
-                  Take it again
-                </button>
+                {!recall && (
+                  <button
+                    type="button"
+                    onClick={start}
+                    className="min-h-12 rounded-xl bg-white/[0.08] px-6 text-[15px] text-gray-200 transition-colors hover:bg-white/[0.14]"
+                  >
+                    Take it again
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={onExit}
@@ -370,7 +394,7 @@ function ExamResultView({
   headRef,
 }: {
   lesson: CourseLesson;
-  result: ExamSubmission;
+  result: Sitting;
   headRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
   const wrong = result.steps.filter((s) => !s.correct);
@@ -395,6 +419,12 @@ function ExamResultView({
       {result.result.bestScore > result.score && (
         <p className="mt-3 text-sm text-gray-400">Your best sitting is still {result.result.bestScore}%.</p>
       )}
+      {!result.passed && result.unlocksAt && (
+        <p className="mt-3 text-sm text-gray-300">
+          The next sitting opens {formatOpening(result.unlocksAt)}, with new questions. Practise the lessons you
+          missed before then; that moves it to a day after your practice.
+        </p>
+      )}
       {wrong.length > 0 && (
         <section className="mt-10">
           <h3 className="text-sm font-semibold text-white">Missed</h3>
@@ -417,4 +447,15 @@ function ExamResultView({
       )}
     </section>
   );
+}
+
+/** "Sat, Nov 21, 3:05 PM", in the reader's own time zone. Client only. */
+export function formatOpening(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
