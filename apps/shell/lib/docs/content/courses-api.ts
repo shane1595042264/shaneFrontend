@@ -1,6 +1,6 @@
 const body = `# Courses API
 
-The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linked slide deck (an external URL with AI-extracted metadata), a set of [interactive lessons](#lessons) played on shanejli.com, or both, plus ratings and comments. Shipped 2026-08-31 (SHAN-437); lessons 2026-11-03 (SHAN-652); [certificates](#certificates) 2026-11-19 (SHAN-720).
+The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linked slide deck (an external URL with AI-extracted metadata), a set of [interactive lessons](#lessons) played on shanejli.com, or both, plus ratings and comments. Shipped 2026-08-31 (SHAN-437); lessons 2026-11-03 (SHAN-652); [certificates](#certificates) 2026-11-19 (SHAN-720); [recite steps and exams](#recite-steps-and-exams) 2026-11-20 (SHAN-721).
 
 ## Model
 
@@ -10,7 +10,7 @@ The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linke
 - \`coverUrl\` is null until a cover is uploaded; the site renders a generated cover in that case.
 - \`url\` is the deck; it is null for a course that is only lessons.
 - \`lessonCount\` and \`stepCount\` are 0 for a deck-only course. Anything above 0 means the course has [lessons](#lessons).
-- \`certified\` is true when finishing every lesson earns a [certificate](#certificates).
+- \`certified\` is true when finishing every lesson and passing the exam earns a [certificate](#certificates).
 
 ## Reads (public, except private courses)
 
@@ -20,7 +20,7 @@ The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linke
 | GET | /:slug | one course, same shape. 404 for a private course you cannot see |
 | GET | /covers/:courseId | cover bytes, public, immutable cache |
 | GET | /:id/comments | comments with author objects. 404 for a private course you cannot see |
-| GET | /:id/content | \`{content, stats, updatedAt}\`: the lesson document. 404 for a deck-only course or a private course you cannot see |
+| GET | /:id/content | \`{content, stats, updatedAt}\`: the lesson document. Exam lessons come without their answers to anyone but the course's author, see [Exams](#exams). 404 for a deck-only course or a private course you cannot see |
 | GET | /certificates/:code | \`{certificate}\`, see [Certificates](#certificates). The code is read as printed: dashes, spaces and case are ignored. 404 for an unknown code or one whose course is now private |
 
 ## Writes
@@ -35,12 +35,14 @@ All writes share PAT bucket \`courses-write\` (60/min). Course mutations are own
 | PUT | /:id/content | entries:write | the lesson document | Replaces the course's lessons. The body is the document itself. 400 \`{error, issues}\` when invalid, including a body that is not JSON; 200 \`{content, stats, updatedAt, course}\` with ids filled in. 413 when \`Content-Length\` is over 1 MB (a document between 512 KB and 1 MB is a 400 issue instead). A lessons-only course's duration follows the lessons |
 | DELETE | /:id/content | entries:write | none | 204. 400 on a lessons-only course (delete the course instead); 404 when the course has no lessons |
 | POST | /content/validate | signed in | the lesson document | Dry run, never writes: 200 \`{ok: true, content, stats}\` or 200 \`{ok: false, issues}\`, also for a body that is not JSON. The one non-200 is 413 when \`Content-Length\` is over 1 MB |
-| GET | /:id/progress | signed in | none | Your progress: \`{progress: [{lessonId, bestScore, lastScore, attempts, completedAt, updatedAt}]}\`, empty when you have not started |
-| PUT | /:id/progress/:lessonId | reactions:write | \`{score}\` int 0..100 | Records one finished run and returns \`{progress: {lessonId, bestScore, lastScore, attempts, completedAt, updatedAt}}\` for that lesson. The first sets \`completedAt\`; later ones bump \`attempts\`, keep the best score. 404 for a lesson id the course does not have, or a course with no lessons |
-| DELETE | /:id/progress | reactions:write | none | 204. Clears your progress on this course |
+| GET | /:id/progress | signed in | none | Your progress: \`{progress: [{lessonId, bestScore, lastScore, attempts, completedAt, updatedAt}], exams: [{lessonId, bestScore, lastScore, attempts, passedAt, updatedAt}]}\`, empty when you have not started. \`exams\` holds your [exam](#exams) sittings |
+| PUT | /:id/progress/:lessonId | reactions:write | \`{score}\` int 0..100 | Records one finished run and returns \`{progress: {lessonId, bestScore, lastScore, attempts, completedAt, updatedAt}}\` for that lesson. The first sets \`completedAt\`; later ones bump \`attempts\`, keep the best score. 404 for a lesson id the course does not have, or a course with no lessons. 409 for an exam lesson, which is scored only by submitting it |
+| DELETE | /:id/progress | reactions:write | none | 204. Clears your progress and your exam sittings on this course |
+| POST | /:id/lessons/:lessonId/steps/:step/recite | reactions:write | \`{answer, attempt?}\` 1..5000, attempt 1..50 | Grades one [recital](#recite-steps-and-exams) in a practice lesson (\`step\` is its 0-based index). Returns \`{correct, score, feedback, judge}\`; a miss adds \`{hint, hintNumber, hintsTotal}\`, the hint for that attempt. Nothing is stored. 404 when that step is not a recite step, 409 inside an exam, 503 when no grader is reachable. PAT bucket \`courses-recite\` (60/min) |
+| POST | /:id/exams/:lessonId | reactions:write | \`{answers}\`, one entry per step | Grades a whole [exam](#exams) and records the sitting. Returns \`{score, right, graded, passMark, passed, steps: [{index, correct, feedback?}], result}\`, never the right answers. 404 when the lesson is not an exam, 503 (and nothing recorded) when no grader is reachable. PAT bucket \`courses-exam\` (10/min) |
 | GET | /:id/certificate | signed in | none | \`{certificate}\` you were issued for this course; 404 before you claim one |
-| POST | /:id/certificate | reactions:write | \`{name?}\` 1..120 | Claims your certificate. 201 \`{certificate}\` when issued, 200 with the same one on any later claim. 409 when the course is not certified (or is private), or while a lesson is unfinished: \`{error, missing: [lessonId]}\`. \`name\` is printed on it and defaults to your account name (400 when you have none). Clearing progress does not revoke it |
-| PUT | /:id/certification | entries:write | \`{certified}\` boolean | Site owner only (403 for anyone else). Certifying needs a public course with lessons (400 otherwise). Returns \`{course}\`. Uncertifying stops new certificates; issued ones stay valid |
+| POST | /:id/certificate | reactions:write | \`{name?}\` 1..120 | Claims your certificate. 201 \`{certificate}\` when issued, 200 with the same one on any later claim. 409 when the course is not certified (or is private), or while a lesson is unfinished or an exam not passed: \`{error, missing: [lessonId]}\`. \`name\` is printed on it and defaults to your account name (400 when you have none). Clearing progress does not revoke it |
+| PUT | /:id/certification | entries:write | \`{certified}\` boolean | Site owner only (403 for anyone else). Certifying needs a public course whose lessons include at least one recite step and an exam (400 otherwise, with \`missing\` naming what is lacking). Returns \`{course}\`. Uncertifying stops new certificates; issued ones stay valid |
 | DELETE | /:id | entries:write | none | 204, cascades ratings and comments |
 | PUT | /:id/cover | entries:write | multipart \`file\` | Same image ladder as journal: sniffed png/jpeg/gif/webp, 5MB 413, 415 otherwise |
 | DELETE | /:id/cover | entries:write | none | back to the generated cover |
@@ -52,7 +54,7 @@ All writes share PAT bucket \`courses-write\` (60/min). Course mutations are own
 
 ## Lessons
 
-Shipped 2026-11-03 (SHAN-652). A course can carry interactive lessons in the style of Duolingo or CodeSignal: one card at a time, the learner answers, checks, and reads why. Anyone signed in can write a course, in the lesson editor on the course page or by sending the document to the API. Nothing is AI: every answer is written by the author and graded by comparison in the browser.
+Shipped 2026-11-03 (SHAN-652). A course can carry interactive lessons in the style of Duolingo or CodeSignal: one card at a time, the learner answers, checks, and reads why. Anyone signed in can write a course, in the lesson editor on the course page or by sending the document to the API. Every answer is written by the author. Practice steps are graded by comparison in the browser; a recite step is graded for meaning on the server, and an exam is graded entirely on the server (see [Recite steps and exams](#recite-steps-and-exams)).
 
 The document is plain JSON. Units hold lessons, lessons hold steps:
 
@@ -98,6 +100,7 @@ The document is plain JSON. Units hold lessons, lessons hold steps:
 | \`blank\` | \`text\` with 1..10 \`[[answer\\|alternative]]\` blanks, \`prompt?\`, \`bank?\` (up to 12 distractors) | types each answer, or with \`bank\` taps tiles (each blank's first answer plus the distractors). Typed answers ignore case, extra spaces, curly quotes and trailing punctuation |
 | \`order\` | \`prompt\`, \`items\` 2..10 in the right order | arranges the shuffled items |
 | \`match\` | \`pairs\` 2..8 of \`[left, right]\`, \`prompt?\` | pairs the two columns; a wrong pair counts as a miss |
+| \`recite\` | \`prompt\` (1000), \`answer\` (2000) | types the answer from memory, in their own words. Graded for meaning, see [Recite steps and exams](#recite-steps-and-exams) |
 
 Every graded step also takes \`code\` (a snippet shown above the answers, the "what does this print?" shape), \`language\` and \`explanation\`.
 
@@ -116,7 +119,7 @@ A teach card without one is a 400 at \`units[i].lessons[j].steps[k].visual\` who
 Rules the validator enforces, each reported with a path such as \`units[0].lessons[2].steps[1].choices\`:
 
 - Unknown keys are errors, so a typo like \`"choises"\` is caught rather than ignored.
-- Every lesson needs at least one graded step. A choice needs a \`correct\` one. Choices, order items and each side of a match must be unique (case-insensitive). A distractor cannot also be an answer.
+- Every lesson needs at least one graded step. A choice needs a \`correct\` one. An exam lesson cannot hold a \`match\` step, and its \`passMark\` is a whole number from 50 to 100. Choices, order items and each side of a match must be unique (case-insensitive). A distractor cannot also be an answer.
 - \`id\` is optional on units and lessons (\`[a-z0-9-]\`, up to 64) and derived from the title when missing. Lesson ids are unique across the course. Progress is keyed by lesson id, so once learners have started, keep a lesson's id when you rename it.
 - Limits: 30 units, 30 lessons a unit, 200 lessons, 40 steps a lesson, 512 KB.
 
@@ -126,9 +129,28 @@ In the player, a missed step goes back to the end of the lesson every time it is
 
 A lesson left halfway is not sent to the API. The player keeps the place (cards answered, first-try results, the missed cards queued for the end) in the browser, one lesson per course, and the course page offers Resume. A run whose lesson steps were edited since is dropped. Everything in the player has a key: each answer, tile, item and match cell shows its key (1 to 9, then 0, then a to z; in a match the right column carries on from the left), Backspace takes back the last pick, Enter checks and continues, Escape leaves. On the course page j and k move between lessons, r resumes, and ? lists every key (SHAN-659). Back (or the Left arrow) shows the cards already done in this run, each locked with the answer given and the feedback seen, so it reviews without changing the score; Next (Right arrow or Enter) returns to the current card as it was (SHAN-660). In a put-in-order card, placed items can be dragged into a new order, or moved with Alt and the up or down arrow (SHAN-665).
 
+## Recite steps and exams
+
+Shipped 2026-11-20 (SHAN-721, phase 2 of SHAN-719). These are what make a certificate mean recall under test rather than clicking through.
+
+### Recite steps
+
+\`{"type": "recite", "prompt": "What does ACID stand for?", "answer": "Atomicity, consistency, isolation and durability"}\`. The learner types the answer from memory, and the server grades it with the same grader as [knowledge recite](/docs/knowledge-api): a near-verbatim answer passes at once, otherwise a small model decides whether the recital carries the answer's central meaning and defining facts (paraphrase, order and typos are fine; a missing or wrong defining fact is not), with local embedding similarity as the fallback when no model answers. So write \`answer\` as the defining facts, not every fact. Feedback on a miss never names what was missing.
+
+In a practice lesson a signed-in learner's recital is graded by \`POST /:id/lessons/:lessonId/steps/:step/recite\`; a miss shows the answer and the step comes back at the end, like any other miss. Signed out, the card shows the answer and the learner says whether they had it. That is practice only: nothing signed out counts toward a certificate.
+
+### Exams
+
+A lesson with \`"exam": {"passMark": 80}\` (\`passMark\` 50..100, default 80) is an exam:
+
+- It is served without its answers to everyone but the course's author: a choice loses \`correct\` and \`why\` and gains \`multi\` (true = select all that apply), a blank's answers become \`[[ ]]\` and a word bank arrives as finished \`tiles\`, order items arrive shuffled, a recite step loses \`answer\`, and every \`explanation\` is dropped.
+- The learner answers every question once, with no feedback in between, then submits the whole sheet to \`POST /:id/exams/:lessonId\` with \`answers[i]\` answering step \`i\`: an array of choice indexes, an array of blank answers, the order items in order, or the recital as a string (teach steps take \`null\`). A malformed or missing answer is a wrong answer, not an error.
+- The server grades it with the same rules as practice and records the sitting apart from practice progress: best score, last score, attempts, and \`passedAt\` from the first sitting at or above the pass mark. The response says which steps were wrong, never what was right, so a resit is still a test. Resits are unlimited.
+- \`PUT /:id/progress/:lessonId\` refuses an exam, so its score cannot be self-reported. The recite endpoint refuses an exam's recite steps for the same reason, since its hints would hand the answer out.
+
 ## Certificates
 
-Shipped 2026-11-19 (SHAN-720, phase 1 of SHAN-719). A certified course issues a certificate, signed by Shane, to every learner who has finished all of its lessons. The certificate is claimed once and never changes: the name and the course title are copied in when it is issued, so renaming the account or the course later does not rewrite one already shared.
+Shipped 2026-11-19 (SHAN-720, phase 1 of SHAN-719). A certified course issues a certificate, signed by Shane, to every learner who has finished all of its lessons and passed its exam. The certificate is claimed once and never changes: the name and the course title are copied in when it is issued, so renaming the account or the course later does not rewrite one already shared.
 
 \`\`\`json
 {
@@ -145,9 +167,10 @@ Shipped 2026-11-19 (SHAN-720, phase 1 of SHAN-719). A certified course issues a 
 \`\`\`
 
 - \`code\` is 12 characters of Crockford base32 (no I, L, O or U) and is printed in fours, \`7K3M-9QX2-ABCD\`. Anyone with it can check the certificate at \`https://shanejli.com/courses/certificates/<code>\` or \`GET /api/courses/certificates/<code>\`. The page is noindex: the certificate is its holder's to share.
-- \`score\` is the mean of the learner's best first-try score in each lesson.
-- "Finished" means a recorded run (\`PUT /:id/progress/:lessonId\`) for every lesson the course has at the moment of the claim. A lesson added later does not touch certificates already issued.
-- Only the site owner can certify a course for now. Later phases add rigor requirements (recite steps, an exam, a spaced recall check) and an AI review that any author can submit a course to.
+- \`score\` is the mean of the learner's best score in each lesson: the first-try score of a practice lesson, the best sitting of an exam.
+- "Finished" means a recorded run (\`PUT /:id/progress/:lessonId\`) for every practice lesson, and a sitting at or above the current pass mark for every exam, as the course stands at the moment of the claim. A lesson added later does not touch certificates already issued.
+- A certified course must contain at least one recite step and an exam (SHAN-721): certifying without them is a 400, and so is a content save that would remove them while the course is certified.
+- Only the site owner can certify a course for now. Later phases add a spaced recall check and an AI review that any author can submit a course to.
 
 ## Private courses
 

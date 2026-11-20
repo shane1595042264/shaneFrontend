@@ -6,7 +6,13 @@
  * the editor sends drafts to POST /api/courses/content/validate rather than
  * re-implementing the rules here. What lives here is what the player needs to
  * grade an answer, and grading is plain comparison against the author's
- * answer. No model is involved anywhere.
+ * answer. The one exception is a recite step (SHAN-721), which the server
+ * grades for meaning with the knowledge recite grader.
+ *
+ * SHAN-721: a lesson with `exam` is graded only on the server. Learners are
+ * sent its steps without answers: a choice keeps `multi` instead of `correct`,
+ * a blank's answers are blanked out (`[[ ]]`) and a word bank arrives as
+ * finished `tiles`, order items arrive shuffled, a recite step has no answer.
  */
 
 /** SHAN-713: what a teach card shows besides its words. */
@@ -38,6 +44,8 @@ export interface ChoiceStep extends Graded {
   type: "choice";
   prompt: string;
   choices: { text: string; correct?: boolean; why?: string }[];
+  /** Exam only: "select all that apply", since `correct` is not sent. */
+  multi?: boolean;
 }
 
 export interface BlankStep extends Graded {
@@ -47,6 +55,8 @@ export interface BlankStep extends Graded {
   text: string;
   /** Present = word-bank mode with these distractors. */
   bank?: string[];
+  /** Exam only: the word bank's tiles, answers and distractors, shuffled. */
+  tiles?: string[];
 }
 
 export interface OrderStep extends Graded {
@@ -62,13 +72,23 @@ export interface MatchStep extends Graded {
   pairs: [string, string][];
 }
 
-export type CourseStep = TeachStep | ChoiceStep | BlankStep | OrderStep | MatchStep;
+/** SHAN-721: the learner types `answer` from memory; the server grades it for meaning. */
+export interface ReciteStep extends Graded {
+  type: "recite";
+  prompt: string;
+  /** Absent in an exam served to a learner. */
+  answer?: string;
+}
+
+export type CourseStep = TeachStep | ChoiceStep | BlankStep | OrderStep | MatchStep | ReciteStep;
 export type GradedStep = Exclude<CourseStep, TeachStep>;
 
 export interface CourseLesson {
   id: string;
   title: string;
   summary?: string;
+  /** SHAN-721: graded on the server in one go, passed at passMark percent. */
+  exam?: { passMark: number };
   steps: CourseStep[];
 }
 
@@ -106,7 +126,34 @@ export interface CourseProgress {
   updatedAt: string;
 }
 
+/** SHAN-721: the best server-graded sitting of one exam. */
+export interface ExamResult {
+  lessonId: string;
+  bestScore: number;
+  lastScore: number;
+  attempts: number;
+  passedAt: string | null;
+  updatedAt: string;
+}
+
+/** What the recite grader says about one recital. */
+export interface ReciteVerdict {
+  correct: boolean;
+  score: number;
+  /** One sentence; never contains the answer. */
+  feedback: string;
+  judge: "match" | "ai" | "similarity";
+}
+
 export const isGraded = (s: CourseStep): s is GradedStep => s.type !== "teach";
+
+/** Several right choices = select all that apply. An exam says so outright. */
+export const isMultiChoice = (s: ChoiceStep): boolean => s.multi ?? s.choices.filter((c) => c.correct).length > 1;
+
+/** An exam counts as done once a sitting reached its pass mark. */
+export function examPassed(lesson: CourseLesson, result: ExamResult | undefined): boolean {
+  return !!lesson.exam && !!result && result.bestScore >= lesson.exam.passMark;
+}
 
 export function exerciseCount(lesson: CourseLesson): number {
   return lesson.steps.filter(isGraded).length;
@@ -284,6 +331,9 @@ export interface LessonCardSnapshot {
   order: string[];
   match: { matched: number[]; mistakes: number };
   streak: number;
+  /** SHAN-721: a recite card's typed answer and what the grader said. */
+  recite?: string;
+  verdict?: ReciteVerdict | null;
 }
 
 export interface LessonRun {

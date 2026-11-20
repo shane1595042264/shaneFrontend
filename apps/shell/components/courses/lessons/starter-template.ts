@@ -122,4 +122,21 @@ export const STEP_SNIPPETS: Record<string, unknown> = {
       ["Left two", "Right two"],
     ],
   },
+  // SHAN-721: graded for meaning, so write the defining facts, not every fact.
+  recite: {
+    type: "recite",
+    prompt: "In your own words, what is it?",
+    answer: "The defining facts a right answer has to carry.",
+  },
+};
+
+/**
+ * SHAN-721: an exam lesson to start from. Graded on the server, answered once
+ * with no feedback, and kept from learners with its answers stripped. No
+ * match steps: a match grades every pair as it is made.
+ */
+export const EXAM_SNIPPET = {
+  title: "Final exam",
+  exam: { passMark: 80 },
+  steps: [STEP_SNIPPETS.choice, STEP_SNIPPETS.recite],
 };

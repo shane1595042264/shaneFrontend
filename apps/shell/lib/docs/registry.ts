@@ -134,10 +134,10 @@ export const DOC_PAGES: DocPage[] = [
     slug: "courses-api",
     title: "Courses API",
     description:
-      "The course catalog: AI classification on create, covers, star ratings, comments, lessons and certificates.",
+      "The course catalog: AI classification on create, covers, star ratings, comments, lessons, recite steps, exams and certificates.",
     body: coursesApi,
-    lastModified: "2026-11-19T15:30:00-06:00",
-    bodyFingerprint: "b259fe47",
+    lastModified: "2026-11-19T21:40:00-06:00",
+    bodyFingerprint: "0014c6cf",
   },
   {
     slug: "scoreboard-api",

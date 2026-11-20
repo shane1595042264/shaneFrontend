@@ -5,10 +5,17 @@ import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
 import { humanizeError } from "@/lib/humanize-error";
 import { LoadError } from "@/components/load-error";
-import { listCourseProgress, recordLessonProgress, type Course } from "@/lib/api/courses";
+import {
+  listCourseProgress,
+  reciteCourseStep,
+  recordLessonProgress,
+  submitExam,
+  type Course,
+} from "@/lib/api/courses";
 import {
   clearLessonRun,
   clearLocalProgress,
+  examPassed,
   exerciseCount,
   flatLessons,
   lessonMinutes,
@@ -18,18 +25,20 @@ import {
   writeLocalProgress,
   type CourseContent,
   type CourseProgress,
+  type ExamResult,
   type LessonRun,
   type SavedLessonRun,
 } from "@/lib/course-lessons";
 import { isTyping, keysBlocked, pressedKey } from "./exercises";
 import { LessonPlayer, type SaveState } from "./lesson-player";
+import { ExamPlayer } from "./exam-player";
 import { Kbd, ShortcutSheet } from "./shortcut-sheet";
 import { CertificatePanel } from "./certificate-panel";
 
 // One load per course at a time, so an effect that re-runs while uploads are
 // in flight (auth settling, Strict Mode) waits for them instead of recording
 // the same lesson a second time.
-const loading = new Map<string, Promise<CourseProgress[]>>();
+const loading = new Map<string, Promise<{ progress: CourseProgress[]; exams: ExamResult[] }>>();
 
 /**
  * SHAN-656. The signed-in progress list, with anything this browser finished
@@ -40,11 +49,14 @@ const loading = new Map<string, Promise<CourseProgress[]>>();
  * every upload has landed. A failed one stays local and stays shown as done,
  * and the next load retries it; lessons that did land are skipped then.
  */
-function loadProgress(courseId: string, lessonIds: Set<string>): Promise<CourseProgress[]> {
+function loadProgress(
+  courseId: string,
+  lessonIds: Set<string>,
+): Promise<{ progress: CourseProgress[]; exams: ExamResult[] }> {
   const inFlight = loading.get(courseId);
   if (inFlight) return inFlight;
   const run = (async () => {
-    const server = await listCourseProgress(courseId);
+    const { progress: server, exams } = await listCourseProgress(courseId);
     const have = new Set(server.map((p) => p.lessonId));
     const pending = readLocalProgress(courseId).filter(
       (p) => lessonIds.has(p.lessonId) && !have.has(p.lessonId),
@@ -58,7 +70,7 @@ function loadProgress(courseId: string, lessonIds: Set<string>): Promise<CourseP
       }
     }
     if (kept.length === 0) clearLocalProgress(courseId);
-    return [...server, ...kept];
+    return { progress: [...server, ...kept], exams };
   })().finally(() => loading.delete(courseId));
   loading.set(courseId, run);
   return run;
@@ -108,6 +120,8 @@ export function CourseLessons({
   const hydrated = useHydrated();
   const user = hydrated ? authUser : null;
   const [progress, setProgress] = useState<CourseProgress[]>([]);
+  // SHAN-721: server-graded exam sittings, kept apart from practice progress.
+  const [exams, setExams] = useState<ExamResult[]>([]);
   // SHAN-654: a failed load is not "nothing done yet". Retry bumps the attempt.
   const [progressError, setProgressError] = useState<string | null>(null);
   const [progressAttempt, setProgressAttempt] = useState(0);
@@ -122,8 +136,27 @@ export function CourseLessons({
 
   const lessons = useMemo(() => flatLessons(content), [content]);
   const byId = useMemo(() => new Map(lessons.map((l) => [l.lesson.id, l])), [lessons]);
-  const lessonIds = useMemo(() => new Set(byId.keys()), [byId]);
-  const done = useMemo(() => new Map(progress.map((p) => [p.lessonId, p])), [progress]);
+  // Practice lessons only: an exam's place in the list is its pass, below.
+  const lessonIds = useMemo(
+    () => new Set(lessons.filter((l) => !l.lesson.exam).map((l) => l.lesson.id)),
+    [lessons],
+  );
+  const examBy = useMemo(() => new Map(exams.map((e) => [e.lessonId, e])), [exams]);
+  // A practice lesson is done once finished; an exam once passed.
+  const done = useMemo(() => {
+    const m = new Map<string, { bestScore: number }>();
+    for (const { lesson } of lessons) {
+      if (lesson.exam) {
+        const r = examBy.get(lesson.id);
+        if (r && examPassed(lesson, r)) m.set(lesson.id, r);
+      } else {
+        const p = progress.find((x) => x.lessonId === lesson.id);
+        if (p) m.set(lesson.id, p);
+      }
+    }
+    return m;
+  }, [lessons, progress, examBy]);
+  const hasExam = lessons.some((l) => l.lesson.exam);
   const doneCount = lessons.filter((l) => done.has(l.lesson.id)).length;
   // With the load failed we do not know where the learner is, so nothing is
   // marked as next.
@@ -138,11 +171,14 @@ export function CourseLessons({
     setProgressError(null);
     if (!authUser) {
       setProgress(readLocalProgress(course.id));
+      setExams([]);
       return;
     }
     loadProgress(course.id, lessonIds)
       .then((p) => {
-        if (!cancelled) setProgress(p);
+        if (cancelled) return;
+        setProgress(p.progress);
+        setExams(p.exams);
       })
       .catch((e) => {
         if (!cancelled) setProgressError(humanizeError(e, "Could not load your progress."));
@@ -226,6 +262,25 @@ export function CourseLessons({
       return "saved";
     },
     [current, authUser, course.id, progressError],
+  );
+
+  const gradeRecite = useMemo(
+    () =>
+      authUser && current
+        ? (step: number, answer: string, attempt: number) =>
+            reciteCourseStep(course.id, current.lesson.id, step, answer, attempt)
+        : undefined,
+    [authUser, current, course.id],
+  );
+
+  const takeExam = useCallback(
+    async (answers: unknown[]) => {
+      if (!current) throw new Error("No exam is open");
+      const out = await submitExam(course.id, current.lesson.id, answers);
+      setExams((all) => [...all.filter((e) => e.lessonId !== out.result.lessonId), out.result]);
+      return out;
+    },
+    [current, course.id],
   );
 
   const allDone = doneCount === lessons.length && lessons.length > 0;
@@ -369,6 +424,7 @@ export function CourseLessons({
         doneCount={doneCount}
         total={lessons.length}
         progressKnown={!progressError && hydrated && !authLoading}
+        hasExam={hasExam}
       />
 
       <section ref={pathRef} aria-labelledby="course-lessons-heading" className="mt-12">
@@ -393,6 +449,7 @@ export function CourseLessons({
                 {unit.lessons.map((lesson) => {
                   const entry = byId.get(lesson.id);
                   const p = done.get(lesson.id);
+                  const sat = lesson.exam ? examBy.get(lesson.id) : undefined;
                   const isNext = nextUp?.lesson.id === lesson.id;
                   const inProgress = saved?.lessonId === lesson.id;
                   const n = (entry?.index ?? 0) + 1;
@@ -417,11 +474,20 @@ export function CourseLessons({
                           {p ? "✓" : n}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium text-gray-100 group-hover:text-white">
-                            {lesson.title}
+                          <span className="flex items-center gap-2">
+                            <span className="truncate font-medium text-gray-100 group-hover:text-white">
+                              {lesson.title}
+                            </span>
+                            {lesson.exam && (
+                              <span className="shrink-0 rounded-md border border-amber-300/40 px-1.5 py-px text-[11px] font-semibold uppercase tracking-wide text-amber-200">
+                                Exam
+                              </span>
+                            )}
                           </span>
                           <span className="mt-0.5 block text-sm text-gray-400">
-                            {exerciseCount(lesson)} exercises, about {lessonMinutes(lesson)} min
+                            {lesson.exam
+                              ? `${exerciseCount(lesson)} questions, pass mark ${lesson.exam.passMark}%`
+                              : `${exerciseCount(lesson)} exercises, about ${lessonMinutes(lesson)} min`}
                           </span>
                         </span>
                         {inProgress && saved ? (
@@ -430,8 +496,13 @@ export function CourseLessons({
                           </span>
                         ) : p ? (
                           <span className="shrink-0 text-sm tabular-nums text-teal-300">
-                            <span className="sr-only">Done, best score </span>
+                            <span className="sr-only">{lesson.exam ? "Passed, best score " : "Done, best score "}</span>
                             {p.bestScore}%
+                          </span>
+                        ) : sat ? (
+                          <span className="shrink-0 text-sm tabular-nums text-rose-300">
+                            <span className="sr-only">Not passed yet, </span>
+                            best {sat.bestScore}%
                           </span>
                         ) : isNext ? (
                           <span className="shrink-0 rounded-lg bg-white/[0.08] px-3 py-1.5 text-sm text-white">
@@ -455,7 +526,17 @@ export function CourseLessons({
 
       {sheet && <ShortcutSheet scope="course" onClose={() => setSheet(false)} />}
 
-      {current && (
+      {current?.lesson.exam ? (
+        <ExamPlayer
+          key={`${current.lesson.id}-${run}`}
+          lesson={current.lesson}
+          unitTitle={current.unit.title}
+          signedIn={!!user}
+          best={examBy.get(current.lesson.id)}
+          onSubmit={takeExam}
+          onExit={close}
+        />
+      ) : current && (
         <LessonPlayer
           key={`${current.lesson.id}-${run}`}
           lesson={current.lesson}
@@ -468,6 +549,7 @@ export function CourseLessons({
           resume={saved?.lessonId === current.lesson.id ? saved.run : null}
           onProgress={keepPlace}
           onRestart={restart}
+          gradeRecite={gradeRecite}
         />
       )}
     </>

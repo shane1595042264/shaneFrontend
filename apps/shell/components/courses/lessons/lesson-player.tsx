@@ -9,16 +9,20 @@ import {
   gradeChoice,
   gradeOrder,
   isGraded,
+  isMultiChoice,
   type CourseLesson,
   type CourseStep,
   type LessonCardSnapshot,
   type LessonRun,
+  type ReciteVerdict,
 } from "@/lib/course-lessons";
+import { humanizeError } from "@/lib/humanize-error";
 import {
   BlankExercise,
   ChoiceExercise,
   MatchExercise,
   OrderExercise,
+  ReciteExercise,
   isTyping,
   pressedKey,
   type ExerciseStatus,
@@ -45,6 +49,11 @@ import { Kbd, ShortcutSheet } from "./shortcut-sheet";
  * score is first-try accuracy and a second go would only inflate it. The live
  * card is never touched while looking back, so Next (Right arrow or Enter)
  * returns to it exactly as it was, half-picked answers included.
+ *
+ * SHAN-721: a recite card is graded for meaning by the server through
+ * `gradeRecite`. Without one (signed out, or the editor's preview) the card
+ * shows the answer and the learner says whether they had it: practice only,
+ * since nothing signed out counts toward a certificate.
  */
 
 export type SaveState = "saving" | "saved" | "local" | "preview" | "failed";
@@ -64,6 +73,8 @@ interface Props {
   onProgress?: (run: LessonRun) => void;
   /** Throw the saved place away and start the lesson from card one. */
   onRestart?: () => void;
+  /** SHAN-721: grade a recital on the server; absent = the learner grades it. */
+  gradeRecite?: (stepIndex: number, answer: string, attempt: number) => Promise<ReciteVerdict>;
 }
 
 const EMPTY_MATCH: MatchValue = { matched: [], mistakes: 0 };
@@ -71,27 +82,30 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const ease = [0.16, 1, 0.3, 1] as const;
 
-function kicker(step: CourseStep): string {
+export function kicker(step: CourseStep): string {
   switch (step.type) {
     case "teach":
       return "Read this";
     case "choice":
-      return step.choices.filter((c) => c.correct).length > 1 ? "Choose every right answer" : "Choose the answer";
+      return isMultiChoice(step) ? "Choose every right answer" : "Choose the answer";
     case "blank":
       return step.bank ? "Complete the sentence" : "Type the missing words";
     case "order":
       return "Put these in order";
     case "match":
       return "Match the pairs";
+    case "recite":
+      return "Recite from memory";
   }
 }
 
-function heading(step: CourseStep): string | null {
+export function heading(step: CourseStep): string | null {
   switch (step.type) {
     case "teach":
       return step.title ?? null;
     case "choice":
     case "order":
+    case "recite":
       return step.prompt;
     case "blank":
     case "match":
@@ -125,6 +139,7 @@ export function LessonPlayer({
   resume,
   onProgress,
   onRestart,
+  gradeRecite,
 }: Props) {
   useScrollLock(true);
   const reduce = useReducedMotion() ?? false;
@@ -139,6 +154,12 @@ export function LessonPlayer({
   const [blankResults, setBlankResults] = useState<boolean[] | null>(null);
   const [order, setOrder] = useState<string[]>([]);
   const [match, setMatch] = useState<MatchValue>(EMPTY_MATCH);
+  const [recite, setRecite] = useState("");
+  const [verdict, setVerdict] = useState<ReciteVerdict | null>(null);
+  const [grading, setGrading] = useState(false);
+  const [gradeError, setGradeError] = useState<string | null>(null);
+  // No grader: the answer is shown and the learner says whether they had it.
+  const [selfCheck, setSelfCheck] = useState(false);
   const [firstTry, setFirstTry] = useState<Record<number, boolean>>(() => resume?.firstTry ?? {});
   const [requeued, setRequeued] = useState<Set<number>>(() => new Set(resume?.requeued ?? []));
   const [resolved, setResolved] = useState(resume?.resolved ?? 0);
@@ -155,6 +176,7 @@ export function LessonPlayer({
   const promptRef = useRef<HTMLHeadingElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const continueRef = useRef<HTMLButtonElement>(null);
+  const selfCheckRef = useRef<HTMLButtonElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Its own focus trap rather than FocusTrappedDiv, which focuses the first
@@ -182,6 +204,8 @@ export function LessonPlayer({
         return order.length === step.items.length;
       case "match":
         return match.matched.length === step.pairs.length;
+      case "recite":
+        return recite.trim().length > 0 && !grading && !selfCheck;
     }
   })();
 
@@ -198,8 +222,43 @@ export function LessonPlayer({
     [graded, onFinish],
   );
 
+  const resolve = useCallback(
+    (correct: boolean) => {
+      setFirstTry((f) => (idx in f ? f : { ...f, [idx]: correct }));
+      setStatus(correct ? "correct" : "wrong");
+      setStreak((s) => (correct ? s + 1 : 0));
+      if (correct) setResolved((r) => r + 1);
+      else {
+        // Every miss, not just the first: the step is only resolved by a right
+        // answer, so the bar does not move and the lesson cannot finish without it.
+        setRequeued((q) => (q.has(idx) ? q : new Set(q).add(idx)));
+        setQueue((q) => [...q, idx]);
+      }
+    },
+    [idx],
+  );
+
+  // Which try at this step the live card is, for the grader's hint ladder.
+  const liveTry = queue.slice(0, pos).filter((i) => i === idx).length + 1;
+
   const check = useCallback(() => {
     if (!step || step.type === "teach" || status !== "idle" || !ready) return;
+    if (step.type === "recite") {
+      setGradeError(null);
+      if (!gradeRecite) {
+        setSelfCheck(true);
+        return;
+      }
+      setGrading(true);
+      gradeRecite(idx, recite.trim(), liveTry)
+        .then((v) => {
+          setVerdict(v);
+          resolve(v.correct);
+        })
+        .catch((e) => setGradeError(humanizeError(e, "Could not grade that. Try again.")))
+        .finally(() => setGrading(false));
+      return;
+    }
     let correct = false;
     if (step.type === "choice") correct = gradeChoice(step, choice);
     else if (step.type === "blank") {
@@ -208,18 +267,18 @@ export function LessonPlayer({
       correct = r.every(Boolean);
     } else if (step.type === "order") correct = gradeOrder(step, order);
     else if (step.type === "match") correct = match.mistakes === 0;
+    resolve(correct);
+  }, [step, status, ready, choice, blank, order, match, idx, recite, gradeRecite, liveTry, resolve]);
 
-    setFirstTry((f) => (idx in f ? f : { ...f, [idx]: correct }));
-    setStatus(correct ? "correct" : "wrong");
-    setStreak((s) => (correct ? s + 1 : 0));
-    if (correct) setResolved((r) => r + 1);
-    else {
-      // Every miss, not just the first: the step is only resolved by a right
-      // answer, so the bar does not move and the lesson cannot finish without it.
-      setRequeued((q) => (q.has(idx) ? q : new Set(q).add(idx)));
-      setQueue((q) => [...q, idx]);
-    }
-  }, [step, status, ready, choice, blank, order, match, idx]);
+  // The learner's own verdict on a recital they could not have graded.
+  const selfGrade = useCallback(
+    (correct: boolean) => {
+      if (!selfCheck || status !== "idle") return;
+      setSelfCheck(false);
+      resolve(correct);
+    },
+    [selfCheck, status, resolve],
+  );
 
   const advance = useCallback(() => {
     if (!step) return;
@@ -228,7 +287,7 @@ export function LessonPlayer({
       finish(firstTry);
       return;
     }
-    const left: LessonCardSnapshot = { status, choice, blank, blankResults, order, match, streak };
+    const left: LessonCardSnapshot = { status, choice, blank, blankResults, order, match, streak, recite, verdict };
     setHistory((h) => {
       const next = h.slice(0, pos);
       next[pos] = left;
@@ -242,7 +301,11 @@ export function LessonPlayer({
     setBlankResults(null);
     setOrder([]);
     setMatch(EMPTY_MATCH);
-  }, [step, pos, queue.length, finish, firstTry, status, choice, blank, blankResults, order, match, streak]);
+    setRecite("");
+    setVerdict(null);
+    setGradeError(null);
+    setSelfCheck(false);
+  }, [step, pos, queue.length, finish, firstTry, status, choice, blank, blankResults, order, match, streak, recite, verdict]);
 
   // Looking back. Only cards with a snapshot can be shown, so a run resumed
   // from before history was kept stops at the card it resumed on.
@@ -277,7 +340,7 @@ export function LessonPlayer({
     // A checked card is saved as done, so its snapshot goes with it: Back
     // after a resume can still reach it.
     const kept = history.slice(0, pos);
-    if (status !== "idle") kept[pos] = { status, choice, blank, blankResults, order, match, streak };
+    if (status !== "idle") kept[pos] = { status, choice, blank, blankResults, order, match, streak, recite, verdict };
     progressRef.current?.({
       queue,
       pos: at,
@@ -288,7 +351,7 @@ export function LessonPlayer({
       elapsedMs: Date.now() - startedAt.current,
       history: kept,
     });
-  }, [finished, status, pos, queue, firstTry, requeued, resolved, streak, history, choice, blank, blankResults, order, match]);
+  }, [finished, status, pos, queue, firstTry, requeued, resolved, streak, history, choice, blank, blankResults, order, match, recite, verdict]);
 
   // Each new card starts at the top. Focus moves in StepCard's own mount
   // effect, which runs on the new card while the old one is still fading out
@@ -301,6 +364,10 @@ export function LessonPlayer({
   useEffect(() => {
     if (status !== "idle") continueRef.current?.focus({ preventScroll: true });
   }, [status]);
+
+  useEffect(() => {
+    if (selfCheck) selfCheckRef.current?.focus({ preventScroll: true });
+  }, [selfCheck]);
 
   const onKey = useCallback(
     (e: KeyboardEvent) => {
@@ -409,7 +476,7 @@ export function LessonPlayer({
   // before SHAN-709, so a saved run looks back on the same layouts.
   const cTry = queue.slice(0, shown).filter((i) => i === cIdx).length + 1;
   const cSeed = `${lesson.id}:${cIdx}:${cTry === 1 ? "a" : cTry === 2 ? "r" : `r${cTry}`}`;
-  const c: LessonCardSnapshot = snap ?? { status, choice, blank, blankResults, order, match, streak };
+  const c: LessonCardSnapshot = snap ?? { status, choice, blank, blankResults, order, match, streak, recite, verdict };
   const picked = cStep?.type === "choice" && c.choice.length === 1 ? cStep.choices[c.choice[0]] : null;
   const noop = () => {};
 
@@ -570,6 +637,14 @@ export function LessonPlayer({
                             seed={cSeed}
                           />
                         )}
+                        {cStep.type === "recite" && (
+                          <ReciteExercise
+                            step={cStep}
+                            value={c.recite ?? ""}
+                            onChange={snap ? noop : setRecite}
+                            locked={!!snap || c.status !== "idle" || grading || selfCheck}
+                          />
+                        )}
                       </motion.div>
                     </StepCard>
                   )}
@@ -598,10 +673,26 @@ export function LessonPlayer({
                     picked={picked?.why ? { index: c.choice[0], why: picked.why } : null}
                     comesBack={c.status === "wrong" && queue.lastIndexOf(cIdx) > shown}
                     misses={cStep.type === "match" ? c.match.mistakes : 0}
+                    verdict={c.verdict ?? null}
                   />
                 )}
                 {snap && c.status === "idle" && <ReviewHint />}
-                {!snap && status === "idle" && step && (
+                {!snap && selfCheck && step?.type === "recite" && (
+                  <div className="text-sm text-gray-200">
+                    <p className="text-lg font-semibold text-white">Did you have it?</p>
+                    <p className="mt-1 max-w-[68ch]">
+                      <span className="text-gray-400">Answer: </span>
+                      {step.answer}
+                    </p>
+                    <p className="mt-1.5 text-xs text-gray-400">Sign in and recitals are graded for you.</p>
+                  </div>
+                )}
+                {!snap && gradeError && (
+                  <p role="alert" className="text-sm text-rose-300">
+                    {gradeError}
+                  </p>
+                )}
+                {!snap && status === "idle" && !selfCheck && !gradeError && step && (
                   <KeyHint step={step} resumedHere={resumedAt.current === pos} canBack={canBack} />
                 )}
               </div>
@@ -627,6 +718,24 @@ export function LessonPlayer({
                     {view !== null && view + 1 >= pos ? "Back to my card" : "Next"}
                     <span aria-hidden="true"> &rarr;</span>
                   </button>
+                ) : selfCheck ? (
+                  <>
+                    <button
+                      ref={selfCheckRef}
+                      type="button"
+                      onClick={() => selfGrade(false)}
+                      className="min-h-12 flex-1 rounded-xl bg-white/[0.07] px-6 text-[15px] text-gray-100 transition-[transform,background-color] hover:bg-white/[0.13] active:translate-y-px md:flex-none"
+                    >
+                      Not yet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => selfGrade(true)}
+                      className="min-h-12 flex-1 rounded-xl bg-white px-6 text-[15px] font-semibold text-black transition-[transform,background-color] hover:bg-gray-200 active:translate-y-px md:flex-none"
+                    >
+                      I had it
+                    </button>
+                  </>
                 ) : step?.type === "teach" || status !== "idle" ? (
                   <button
                     ref={continueRef}
@@ -649,7 +758,7 @@ export function LessonPlayer({
                     disabled={!ready || step?.type === "match"}
                     className="min-h-12 flex-1 rounded-xl bg-white px-8 text-[15px] font-semibold text-black transition-[transform,background-color,opacity] hover:bg-gray-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-gray-400 md:min-w-40 md:flex-none"
                   >
-                    {step?.type === "match" ? "Match every pair" : "Check"}
+                    {step?.type === "match" ? "Match every pair" : grading ? "Grading..." : "Check"}
                   </button>
                 )}
               </div>
@@ -715,6 +824,13 @@ function KeyHint({ step, resumedHere, canBack }: { step: CourseStep; resumedHere
     case "match":
       hint = <>Press a key on each side to pair them</>;
       break;
+    case "recite":
+      hint = (
+        <>
+          Type it in your own words, <Kbd>Enter</Kbd> to check, <Kbd>Shift</Kbd>+<Kbd>Enter</Kbd> for a new line
+        </>
+      );
+      break;
   }
   return (
     <p className="hidden text-sm leading-7 text-gray-400 [@media(pointer:fine)]:block">
@@ -760,8 +876,10 @@ function StepCard({
   const isRetry = attempt > 1;
   // A screen reader announces each card as it arrives. A typed blank keeps
   // focus in its first input instead, so the learner can just type.
+  // A recital types straight away too (ReciteExercise focuses itself).
+  const typesFirst = (step.type === "blank" && !step.bank && !step.tiles) || step.type === "recite";
   useEffect(() => {
-    if (review || !(step.type === "blank" && !step.bank)) promptRef.current?.focus({ preventScroll: true });
+    if (review || !typesFirst) promptRef.current?.focus({ preventScroll: true });
     // Mount only: StepCard is keyed per card.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -819,6 +937,7 @@ function Feedback({
   picked,
   comesBack,
   misses,
+  verdict,
 }: {
   step: Exclude<CourseStep, { type: "teach" }>;
   noteKey: string;
@@ -827,6 +946,8 @@ function Feedback({
   picked: { index: number; why: string } | null;
   comesBack: boolean;
   misses: number;
+  /** A graded recital's one-line feedback; null when the learner graded it. */
+  verdict: ReciteVerdict | null;
 }) {
   let answer: React.ReactNode = null;
   if (!correct) {
@@ -841,6 +962,7 @@ function Feedback({
         </ol>
       );
     else if (step.type === "match") answer = `All pairs placed, with ${misses} miss${misses === 1 ? "" : "es"} on the way.`;
+    else if (step.type === "recite") answer = step.answer ?? null;
   }
   const why = [
     picked && { target: `${noteKey}.y${picked.index}`, text: picked.why },
@@ -851,6 +973,7 @@ function Feedback({
       <p className={`text-lg font-semibold ${correct ? "text-teal-200" : "text-rose-200"}`}>
         {correct ? (streak >= 3 ? `Correct. ${streak} in a row.` : "Correct") : "Not quite"}
       </p>
+      {verdict && <p className="mt-0.5 text-sm text-white/80">{verdict.feedback}</p>}
       {answer && (
         <div className="mt-1 text-sm">
           <span className="text-rose-200/80">{step.type === "match" ? "" : "Answer: "}</span>
@@ -974,6 +1097,7 @@ function FinishScreen({
                     {s.type === "blank" && filledSentence(s.text)}
                     {s.type === "order" && s.items.join(", then ")}
                     {s.type === "match" && s.pairs.map((p) => `${p[0]}: ${p[1]}`).join("; ")}
+                    {s.type === "recite" && s.answer}
                   </p>
                 </li>
               ))}

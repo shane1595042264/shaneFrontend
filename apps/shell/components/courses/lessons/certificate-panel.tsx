@@ -15,6 +15,9 @@ import {
  * SHAN-720. On a certified course: what it takes to earn the certificate, the
  * claim once every lesson is done, and a link to it afterwards. The server
  * checks completion again on claim; this only decides what to offer.
+ *
+ * SHAN-721: a certificate course carries an exam, and `doneCount` counts it
+ * only once passed.
  */
 export function CertificatePanel({
   course,
@@ -22,6 +25,7 @@ export function CertificatePanel({
   doneCount,
   total,
   progressKnown,
+  hasExam,
 }: {
   course: Course;
   /** Null while signed out or before hydration. */
@@ -30,6 +34,7 @@ export function CertificatePanel({
   total: number;
   /** False while progress is loading or failed to load. */
   progressKnown: boolean;
+  hasExam: boolean;
 }) {
   const [cert, setCert] = useState<CourseCertificate | null>(null);
   const [checked, setChecked] = useState(false);
@@ -79,6 +84,7 @@ export function CertificatePanel({
 
   const allDone = progressKnown && total > 0 && doneCount === total;
   const left = total - doneCount;
+  const andExam = hasExam ? " and pass the exam" : "";
 
   return (
     <section
@@ -97,11 +103,11 @@ export function CertificatePanel({
         </p>
       ) : !signedIn ? (
         <p className="mt-1 text-sm text-gray-300">
-          Finish every lesson to earn a certificate signed by Shane. Sign in to claim it.
+          Finish every lesson{andExam} to earn a certificate signed by Shane. Sign in to claim it.
         </p>
       ) : !allDone ? (
         <p className="mt-1 text-sm text-gray-300">
-          Finish all {total} lessons to earn a certificate signed by Shane
+          Finish all {total} lessons{andExam} to earn a certificate signed by Shane
           {progressKnown && doneCount > 0 ? (
             <span className="tabular-nums">
               {" "}
@@ -113,7 +119,8 @@ export function CertificatePanel({
       ) : checked ? (
         <form onSubmit={claim} className="mt-2 flex flex-wrap items-end gap-3">
           <p className="w-full text-sm text-gray-300">
-            Every lesson is done. Choose the name to print on your certificate; it cannot be changed later.
+            Every lesson is done{hasExam ? " and the exam is passed" : ""}. Choose the name to print on your
+            certificate; it cannot be changed later.
           </p>
           <label className="flex min-w-[16rem] flex-1 flex-col gap-1 text-sm text-gray-400">
             Name on the certificate

@@ -4,12 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Reorder } from "framer-motion";
 import {
   blankAnswers,
+  isMultiChoice,
   parseBlankText,
   seededShuffle,
   type BlankStep,
   type ChoiceStep,
   type MatchStep,
   type OrderStep,
+  type ReciteStep,
 } from "@/lib/course-lessons";
 
 /**
@@ -131,7 +133,7 @@ export function ChoiceExercise({
   onChange: (v: number[]) => void;
   status: ExerciseStatus;
 }) {
-  const multi = step.choices.filter((c) => c.correct).length > 1;
+  const multi = isMultiChoice(step);
   const locked = status !== "idle";
 
   const toggle = (i: number) => {
@@ -204,12 +206,14 @@ export function BlankExercise({
   const parts = useMemo(() => parseBlankText(step.text), [step.text]);
   const answers = useMemo(() => blankAnswers(step), [step]);
   const locked = status !== "idle";
+  // An exam's word bank arrives as finished tiles, with no answers to mix in.
+  const bankMode = !!step.bank || !!step.tiles;
 
   // Word bank: each blank's first answer plus the distractors, shuffled once.
   // Tiles are tracked by index so two blanks with the same answer still work.
   const tiles = useMemo(
-    () => (step.bank ? seededShuffle([...answers.map((a) => a[0]), ...step.bank], seed) : []),
-    [answers, step.bank, seed],
+    () => step.tiles ?? (step.bank ? seededShuffle([...answers.map((a) => a[0]), ...step.bank], seed) : []),
+    [answers, step.tiles, step.bank, seed],
   );
   // Seeded from `value`, because the player remounts a card on Back and Next
   // (SHAN-660) and the tiles must come back where they were (SHAN-661). Each
@@ -226,8 +230,8 @@ export function BlankExercise({
   const firstInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!step.bank) firstInput.current?.focus({ preventScroll: true });
-  }, [step.bank]);
+    if (!bankMode) firstInput.current?.focus({ preventScroll: true });
+  }, [bankMode]);
 
   const setSlots = (next: (number | null)[]) => {
     setSlotTile(next);
@@ -251,7 +255,7 @@ export function BlankExercise({
   // A tile's key places it; pressing it again once placed takes it back out.
   // Backspace empties the last filled blank.
   useAnswerKeys(
-    !locked && !!step.bank,
+    !locked && bankMode,
     tiles.length,
     (t) => {
       const at = slotTile.indexOf(t);
@@ -274,8 +278,9 @@ export function BlankExercise({
         {parts.map((p, k) => {
           if (p.kind === "text") return <span key={k}>{p.value}</span>;
           const i = p.index;
-          const longest = Math.max(...(answers[i] ?? [""]).map((a) => a.length), 3);
-          if (!step.bank) {
+          // An exam's blanks carry no answer to size them by.
+          const longest = answers[i]?.length ? Math.max(...answers[i].map((a) => a.length), 3) : 12;
+          if (!bankMode) {
             return (
               <input
                 key={k}
@@ -316,7 +321,7 @@ export function BlankExercise({
         })}
       </p>
 
-      {step.bank && (
+      {bankMode && (
         <div className="flex flex-wrap gap-2.5" aria-label="Word bank">
           {tiles.map((tile, t) => {
             const used = slotTile.includes(t);
@@ -342,6 +347,51 @@ export function BlankExercise({
         </div>
       )}
     </div>
+  );
+}
+
+// ---- recite (SHAN-721) ------------------------------------------------------
+
+/**
+ * Type the answer from memory. Graded for meaning on the server, so wording
+ * is free; Enter checks (the player owns it) and Shift+Enter starts a line.
+ */
+export function ReciteExercise({
+  step,
+  value,
+  onChange,
+  locked,
+}: {
+  step: ReciteStep;
+  value: string;
+  onChange: (v: string) => void;
+  /** Read-only once checked, and while it is being graded. */
+  locked: boolean;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    ref.current?.focus({ preventScroll: true });
+  }, [step]);
+  return (
+    <label className="block">
+      <span className="text-sm text-gray-400">From memory, in your own words</span>
+      <textarea
+        ref={ref}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          // Shift+Enter is the one way to a new line; plain Enter checks.
+          if (e.key === "Enter" && !e.shiftKey) e.preventDefault();
+        }}
+        readOnly={locked}
+        rows={4}
+        maxLength={5000}
+        autoComplete="off"
+        spellCheck={false}
+        className="mt-2 block w-full resize-y rounded-xl border border-white/15 bg-white/[0.03] px-4 py-3 text-[17px] leading-relaxed text-white outline-none transition-colors placeholder:text-gray-400 focus:border-teal-300/70"
+        placeholder="Type the answer"
+      />
+    </label>
   );
 }
 

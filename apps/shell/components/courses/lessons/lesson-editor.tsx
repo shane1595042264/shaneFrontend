@@ -19,7 +19,7 @@ import {
 } from "@/lib/course-lessons";
 import { LessonPlayer } from "./lesson-player";
 import { uploadImage } from "@/lib/api/images";
-import { STARTER_CONTENT, STEP_SNIPPETS } from "./starter-template";
+import { EXAM_SNIPPET, STARTER_CONTENT, STEP_SNIPPETS } from "./starter-template";
 
 /**
  * SHAN-652. Where an author writes a course's lessons: the JSON document on
@@ -640,6 +640,7 @@ export function LessonEditor({
                           ["bank", "Word bank"],
                           ["order", "Put in order"],
                           ["match", "Match pairs"],
+                          ["recite", "Recite from memory"],
                         ].map(([k, label]) => (
                           <button
                             key={k}
@@ -706,7 +707,24 @@ export function LessonEditor({
                       >
                         Add a unit
                       </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          mutate((doc) => {
+                            const u = doc.units[lessonsForAdd[addTo]?.ui ?? doc.units.length - 1];
+                            u?.lessons.push(structuredClone(EXAM_SNIPPET));
+                          })
+                        }
+                        className="min-h-10 rounded-lg bg-white/[0.07] px-3 text-sm text-gray-100 hover:bg-white/[0.14]"
+                      >
+                        Add an exam
+                      </button>
                     </div>
+                    <p className="text-xs leading-relaxed text-gray-400">
+                      An exam (<code className="font-mono">&quot;exam&quot;: {"{"} &quot;passMark&quot;: 80 {"}"}</code>) is
+                      graded on the server in one go and sent to learners without its answers. A certificate course
+                      needs one, and at least one recite step.
+                    </p>
                     <p className="text-xs leading-relaxed text-gray-400">
                       Ids are filled in from titles when you save. Once learners have started, keep a lesson&apos;s id
                       when you rename it, or their progress on it is dropped.

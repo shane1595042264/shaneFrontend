@@ -89,6 +89,30 @@ export function CourseInteractive({
     };
   }, [hasLessons, content, course.id, contentAttempt]);
 
+  // SHAN-721: learners are sent an exam without its answers, and the server
+  // render is signed out, so the author's copy of any exam is stripped too.
+  // The editor needs the real document, so the author fetches it again with
+  // their token, and the editor waits for it.
+  const hasExam = !!content?.units.some((u) => u.lessons.some((l) => l.exam));
+  const [authorCopyFor, setAuthorCopyFor] = useState<string | null>(null);
+  const needsAuthorCopy = isOwner && hasExam && authorCopyFor !== course.id;
+  useEffect(() => {
+    if (!needsAuthorCopy) return;
+    let cancelled = false;
+    getCourseContent(course.id)
+      .then((c) => {
+        if (cancelled) return;
+        if (c) setContent(c.content);
+        setAuthorCopyFor(course.id);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) flash(humanizeError(e, "Could not load your exam answers to edit. Reload to try again."));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [needsAuthorCopy, course.id]);
+
   // A new lessons course lands here with ?edit=lessons, straight in the editor.
   useEffect(() => {
     if (!isOwner) return;
@@ -431,7 +455,7 @@ export function CourseInteractive({
         {/* Comments (thread renders its own heading with a live count) */}
         <CourseCommentsThread courseId={course.id} courseOwnerId={course.ownerId} />
 
-        {showEditor && (hasLessons ? content !== undefined : true) && (
+        {showEditor && (hasLessons ? content !== undefined : true) && !needsAuthorCopy && (
           <LessonEditor
             course={course}
             initial={content ?? null}

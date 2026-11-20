@@ -1,6 +1,13 @@
 import { getAuthHeaders } from "@/lib/auth-api";
 import { API_URL } from "@/lib/api-url";
-import type { ContentIssue, ContentStats, CourseContent, CourseProgress } from "@/lib/course-lessons";
+import type {
+  ContentIssue,
+  ContentStats,
+  CourseContent,
+  CourseProgress,
+  ExamResult,
+  ReciteVerdict,
+} from "@/lib/course-lessons";
 
 export type CourseDifficulty = "intro" | "intermediate" | "advanced";
 
@@ -302,8 +309,12 @@ export async function saveCourseContent(
   return { ...out, course: absolutize(out.course) };
 }
 
+/** Practice progress, plus (SHAN-721) the learner's exam results. */
 export const listCourseProgress = (courseId: string) =>
-  api<{ progress: CourseProgress[] }>(`/api/courses/${courseId}/progress`).then((r) => r.progress);
+  api<{ progress: CourseProgress[]; exams?: ExamResult[] }>(`/api/courses/${courseId}/progress`).then((r) => ({
+    progress: r.progress,
+    exams: r.exams ?? [],
+  }));
 
 export const recordLessonProgress = (courseId: string, lessonId: string, score: number) =>
   api<{ progress: CourseProgress }>(
@@ -313,6 +324,39 @@ export const recordLessonProgress = (courseId: string, lessonId: string, score: 
 
 export const resetCourseProgress = (courseId: string) =>
   api<void>(`/api/courses/${courseId}/progress`, { method: "DELETE" });
+
+// ---- SHAN-721: recite steps and exams -------------------------------------
+
+/** Grade one recital in a practice lesson. Signed in only. */
+export const reciteCourseStep = (
+  courseId: string,
+  lessonId: string,
+  step: number,
+  answer: string,
+  attempt: number,
+) =>
+  api<ReciteVerdict>(
+    `/api/courses/${courseId}/lessons/${encodeURIComponent(lessonId)}/steps/${step}/recite`,
+    { method: "POST", body: JSON.stringify({ answer, attempt }) },
+  );
+
+export interface ExamSubmission {
+  score: number;
+  right: number;
+  graded: number;
+  passMark: number;
+  passed: boolean;
+  /** One per graded step. Says whether it was right, never what was. */
+  steps: { index: number; correct: boolean; feedback?: string }[];
+  result: ExamResult;
+}
+
+/** `answers[i]` answers step i: choice indexes, blank strings, the order, or a recital. */
+export const submitExam = (courseId: string, lessonId: string, answers: unknown[]) =>
+  api<ExamSubmission>(`/api/courses/${courseId}/exams/${encodeURIComponent(lessonId)}`, {
+    method: "POST",
+    body: JSON.stringify({ answers }),
+  });
 
 // ---- SHAN-720: certificates ------------------------------------------------
 
