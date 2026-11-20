@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "@/components/transition-link";
 import { useTransitionRouter as useRouter } from "@/lib/view-transition";
 import { useAuth } from "@/lib/auth-context";
@@ -143,6 +143,17 @@ export function CourseInteractive({
   // write already committed and `course` above is already correct locally, so
   // a revalidation failure must not surface to the author as a failed edit.
   const bustServerCache = () => revalidateCourse(course.slug).catch(() => {});
+
+  // SHAN-723: the certification review lands while the editor is open. Stable,
+  // because the review panel refetches whenever it changes.
+  const slug = course.slug;
+  const onCertifiedChange = useCallback(
+    (certified: boolean) => {
+      setCourse((c) => ({ ...c, certified }));
+      revalidateCourse(slug).catch(() => {});
+    },
+    [slug],
+  );
 
   const handleRate = async (stars: number) => {
     if (!user || ratingBusy) return;
@@ -465,6 +476,7 @@ export function CourseInteractive({
               setCourse(updated);
               bustServerCache();
             }}
+            onCertifiedChange={onCertifiedChange}
           />
         )}
 

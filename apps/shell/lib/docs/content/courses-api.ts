@@ -1,6 +1,6 @@
 const body = `# Courses API
 
-The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linked slide deck (an external URL with AI-extracted metadata), a set of [interactive lessons](#lessons) played on shanejli.com, or both, plus ratings and comments. Shipped 2026-08-31 (SHAN-437); lessons 2026-11-03 (SHAN-652); [certificates](#certificates) 2026-11-19 (SHAN-720); [recite steps and exams](#recite-steps-and-exams) 2026-11-20 (SHAN-721); the [recall check](#recall-check) 2026-11-20 (SHAN-722).
+The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linked slide deck (an external URL with AI-extracted metadata), a set of [interactive lessons](#lessons) played on shanejli.com, or both, plus ratings and comments. Shipped 2026-08-31 (SHAN-437); lessons 2026-11-03 (SHAN-652); [certificates](#certificates) 2026-11-19 (SHAN-720); [recite steps and exams](#recite-steps-and-exams) 2026-11-20 (SHAN-721); the [recall check](#recall-check) 2026-11-20 (SHAN-722); [certification review](#certification-review) 2026-11-20 (SHAN-723).
 
 ## Model
 
@@ -10,7 +10,7 @@ The course catalog at /courses. Mounted at \`/api/courses\`. A course is a linke
 - \`coverUrl\` is null until a cover is uploaded; the site renders a generated cover in that case.
 - \`url\` is the deck; it is null for a course that is only lessons.
 - \`lessonCount\` and \`stepCount\` are 0 for a deck-only course. Anything above 0 means the course has [lessons](#lessons).
-- \`certified\` is true when finishing every lesson, passing the exam and then passing the [recall check](#recall-check) a day later earns a [certificate](#certificates).
+- \`certified\` is true when finishing every lesson, passing the exam and then passing the [recall check](#recall-check) a day later earns a [certificate](#certificates). Only a [certification review](#certification-review) sets it.
 
 ## Reads (public, except private courses)
 
@@ -32,7 +32,7 @@ All writes share PAT bucket \`courses-write\` (60/min). Course mutations are own
 | POST | / | entries:write | \`{url?, content?, title?, description?, category?, difficulty?, durationMinutes?, tags?, visibility?}\` | Needs \`url\`, \`content\` or both. With \`content\` and no \`url\` it is a lessons course: \`title\` is required, nothing is fetched and no model is called; category defaults to \`other\`, difficulty to \`intro\`, duration to the lessons' estimate. A bad \`content\` is a 400 with \`issues\` and creates nothing. With \`url\` it fetches the page server-side and classifies it with an LLM. \`url\` must be http or https (400 otherwise). 502 if the URL is unreachable or resolves to a private, loopback or link-local address (redirects are checked hop by hop, 10s timeout); classification failure falls back to safe defaults (never blocks). 409 duplicate url. Slug generated from title, stable forever (never \`private\` or \`covers\`). \`visibility\` defaults to \`public\`; anything but \`public\`/\`private\` is a 400 |
 | PATCH | /:id | entries:write | any of title, description, category, difficulty, durationMinutes, tags (max 8), url, visibility | url must be http or https (400 otherwise). 409 on url clash. \`url: null\` removes the deck, allowed only when the course has lessons (400 otherwise) |
 | POST | /:id/reclassify | entries:write | none | Re-runs the AI; overwrites description/category/difficulty/duration/tags but PRESERVES title and slug. 400 for a course with no deck URL |
-| PUT | /:id/content | entries:write | the lesson document | Replaces the course's lessons. The body is the document itself. 400 \`{error, issues}\` when invalid, including a body that is not JSON; 200 \`{content, stats, updatedAt, course}\` with ids filled in. 413 when \`Content-Length\` is over 1 MB (a document between 512 KB and 1 MB is a 400 issue instead). A lessons-only course's duration follows the lessons |
+| PUT | /:id/content | entries:write | the lesson document | Replaces the course's lessons. The body is the document itself. 400 \`{error, issues}\` when invalid, including a body that is not JSON; 200 \`{content, stats, updatedAt, course}\` with ids filled in. 413 when \`Content-Length\` is over 1 MB (a document between 512 KB and 1 MB is a 400 issue instead). A lessons-only course's duration follows the lessons. When the lessons actually change on a certified course, or one whose [review](#certification-review) is pending, the course stops issuing certificates and the new version is queued for review; the response then carries that \`review\` |
 | DELETE | /:id/content | entries:write | none | 204. 400 on a lessons-only course (delete the course instead); 404 when the course has no lessons |
 | POST | /content/validate | signed in | the lesson document | Dry run, never writes: 200 \`{ok: true, content, stats}\` or 200 \`{ok: false, issues}\`, also for a body that is not JSON. The one non-200 is 413 when \`Content-Length\` is over 1 MB |
 | GET | /:id/progress | signed in | none | Your progress: \`{progress: [{lessonId, bestScore, lastScore, attempts, completedAt, updatedAt}], exams: [{lessonId, bestScore, lastScore, attempts, passedAt, updatedAt}]}\`, empty when you have not started. \`exams\` holds your [exam](#exams) sittings |
@@ -44,7 +44,9 @@ All writes share PAT bucket \`courses-write\` (60/min). Course mutations are own
 | POST | /:id/recall | reactions:write | \`{draw, answers}\` | Grades one recall sitting: \`draw\` is the \`draw.id\` you were served and \`answers[i]\` answers \`draw.steps[i]\`, as in an exam. Returns \`{score, right, graded, passMark, passed, steps, result, unlocksAt}\`, never the right answers; \`unlocksAt\` is when the next sitting opens after a fail. 409 before it opens (\`{error, unlocksAt}\`), while a lesson is unfinished, once passed, or when \`draw\` is out of date (the course was edited or another sitting landed; GET it again). 503 (and nothing recorded) when no grader is reachable. PAT bucket \`courses-exam\` |
 | GET | /:id/certificate | signed in | none | \`{certificate}\` you were issued for this course; 404 before you claim one |
 | POST | /:id/certificate | reactions:write | \`{name?}\` 1..120 | Claims your certificate. 201 \`{certificate}\` when issued, 200 with the same one on any later claim. 409 when the course is not certified (or is private), or while a lesson is unfinished or an exam not passed (\`{error, missing: [lessonId]}\`), or the recall check not passed (\`{error, recall: "pending"}\`). \`name\` is printed on it and defaults to your account name (400 when you have none). Clearing progress does not revoke it |
-| PUT | /:id/certification | entries:write | \`{certified}\` boolean | Site owner only (403 for anyone else). Certifying needs a public course whose lessons include at least one recite step and an exam (400 otherwise, with \`missing\` naming what is lacking). Returns \`{course}\`. Uncertifying stops new certificates; issued ones stay valid |
+| POST | /:id/review | entries:write | none | The course's author submits it for [certification review](#certification-review). 202 \`{review}\` with \`status: "pending"\`; the verdict lands a minute or so later. Needs a public course whose lessons include at least one recite step and an exam (400 otherwise, with \`missing\` naming what is lacking). Submitting a version that is still pending retries it and answers 202 with the same review; a version already approved answers 200; a version already rejected, or one whose certification the site owner withdrew, is a 409 until the lessons change. 404 for anyone but the author. PAT bucket \`courses-review\` (5/min) |
+| GET | /:id/review | signed in | none | \`{review, certified}\`: the course's newest review, or null when it was never submitted. The author and the site owner only (404 for anyone else) |
+| PUT | /:id/certification | entries:write | \`{certified: false}\` | Site owner only (403 for anyone else): withdraws a course's certification. \`true\` is a 409, since only a [review](#certification-review) certifies. Returns \`{course}\`. Issued certificates stay valid |
 | DELETE | /:id | entries:write | none | 204, cascades ratings and comments |
 | PUT | /:id/cover | entries:write | multipart \`file\` | Same image ladder as journal: sniffed png/jpeg/gif/webp, 5MB 413, 415 otherwise |
 | DELETE | /:id/cover | entries:write | none | back to the generated cover |
@@ -180,9 +182,33 @@ Shipped 2026-11-19 (SHAN-720, phase 1 of SHAN-719). A certified course issues a 
 - \`code\` is 12 characters of Crockford base32 (no I, L, O or U) and is printed in fours, \`7K3M-9QX2-ABCD\`. Anyone with it can check the certificate at \`https://shanejli.com/courses/certificates/<code>\` or \`GET /api/courses/certificates/<code>\`. The page is noindex: the certificate is its holder's to share.
 - \`score\` is the mean of the learner's best score in each lesson: the first-try score of a practice lesson, the best sitting of an exam.
 - "Finished" means a recorded run (\`PUT /:id/progress/:lessonId\`) for every practice lesson, and a sitting at or above the current pass mark for every exam, as the course stands at the moment of the claim. A lesson added later does not touch certificates already issued.
-- A certified course must contain at least one recite step and an exam (SHAN-721): certifying without them is a 400, and so is a content save that would remove them while the course is certified.
+- A certified course must contain at least one recite step and an exam (SHAN-721): submitting one for review without them is a 400, and so is a content save that would remove them while the course is certified.
 - The recall check has to be passed too (SHAN-722). The certificate's \`score\` is still the lessons' mean; the recall score is not part of it.
-- Only the site owner can certify a course for now. A later phase adds an AI review that any author can submit a course to.
+- A course is certified by [review](#certification-review), which any author can submit a public course to.
+
+## Certification review
+
+Shipped 2026-11-20 (SHAN-723, phase 4 of SHAN-719). A certificate is issued in Shane's name, so a course earns one by passing a review rather than a switch. The author submits it (\`POST /:id/review\`, or the Certificate tab in the lesson editor); a model reads the whole course, every teach card, exercise, answer, recite step and exam question, and answers one question: could someone who finishes this course call themselves top 1% in its topic? Yes certifies it. No rejects it with concrete changes to make.
+
+\`\`\`json
+{
+  "id": "uuid",
+  "status": "rejected",
+  "summary": "A solid introduction, but it stops where the hard part begins.",
+  "feedback": ["Add a lesson on branch cuts and an exam question that needs one", "..."],
+  "attempts": 1,
+  "submittedAt": "2026-11-20T15:00:00.000Z",
+  "reviewedAt": "2026-11-20T15:01:10.000Z",
+  "current": true
+}
+\`\`\`
+
+- \`status\` is \`pending\` until the reviewer answers, then \`approved\` (the course is certified) or \`rejected\` (\`feedback\` lists what to change). \`superseded\` means the lessons changed before the reviewer got to that version; the change queued a review of its own.
+- \`current\` is false once the lessons have changed since the version that was reviewed.
+- The review uses the site's LLM fallback chain. When no model is reachable the submission stays \`pending\` and is retried every ten minutes or so (\`attempts\` counts the tries); an outage never rejects a course. Submitting the same version again retries it straight away.
+- Editing an approved course's lessons sends it back: it stops issuing certificates until the new version is approved. Learners keep certificates already issued. A save that does not change the lessons changes nothing.
+- A rejected version is not reviewed twice. Change the lessons using the feedback, then submit again.
+- The site owner can still withdraw a certification (\`PUT /:id/certification\` with \`{certified: false}\`); only a new, changed version can be certified again.
 
 ## Private courses
 

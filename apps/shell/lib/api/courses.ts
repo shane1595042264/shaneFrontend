@@ -295,7 +295,7 @@ export class ContentInvalidError extends Error {
 export async function saveCourseContent(
   courseId: string,
   body: string,
-): Promise<CourseContentResponse & { course: Course }> {
+): Promise<CourseContentResponse & { course: Course; review?: CourseReview }> {
   const res = await fetch(`${API_URL}/api/courses/${courseId}/content`, {
     method: "PUT",
     headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
@@ -306,7 +306,7 @@ export async function saveCourseContent(
     throw new ContentInvalidError((data as { issues: ContentIssue[] }).issues);
   }
   if (!res.ok) throw new Error((data as { error?: string }).error ?? "");
-  const out = data as CourseContentResponse & { course: Course };
+  const out = data as CourseContentResponse & { course: Course; review?: CourseReview };
   return { ...out, course: absolutize(out.course) };
 }
 
@@ -400,6 +400,38 @@ export const claimCertificate = (courseId: string, name?: string) =>
     method: "POST",
     body: JSON.stringify(name ? { name } : {}),
   }).then((r) => r.certificate);
+
+// ---- SHAN-723: certification review ----------------------------------------
+
+export interface CourseReview {
+  id: string;
+  /** "superseded": the lessons changed before the reviewer read that version. */
+  status: "pending" | "approved" | "rejected" | "superseded";
+  summary: string | null;
+  /** What to change to be approved; empty unless rejected. */
+  feedback: string[];
+  /** Tries so far; above 1 while pending means the models were unavailable. */
+  attempts: number;
+  submittedAt: string;
+  reviewedAt: string | null;
+  /** False once the lessons have changed since this version was reviewed. */
+  current: boolean;
+}
+
+/** The newest review; the author and the site owner only. */
+export const getCourseReview = (courseId: string) =>
+  api<{ review: CourseReview | null; certified: boolean }>(`/api/courses/${courseId}/review`);
+
+/** Queues a review (202). A 409 still carries the review it is about. */
+export async function submitCourseReview(courseId: string): Promise<CourseReview> {
+  const res = await fetch(`${API_URL}/api/courses/${courseId}/review`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  const data = (await res.json().catch(() => ({}))) as { review?: CourseReview; error?: string };
+  if (!res.ok || !data.review) throw new Error(data.error ?? "");
+  return data.review;
+}
 
 // ---- SHAN-722: the recall check --------------------------------------------
 

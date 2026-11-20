@@ -136,8 +136,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The course catalog: AI classification on create, covers, star ratings, comments, lessons, recite steps, exams, the recall check and certificates.",
     body: coursesApi,
-    lastModified: "2026-11-20T03:15:00-06:00",
-    bodyFingerprint: "5351602c",
+    lastModified: "2026-11-20T09:10:00-06:00",
+    bodyFingerprint: "37977a96",
   },
   {
     slug: "scoreboard-api",

@@ -9,6 +9,7 @@ import {
   saveCourseContent,
   validateContent,
   type Course,
+  type CourseReview,
 } from "@/lib/api/courses";
 import {
   exerciseCount,
@@ -20,6 +21,7 @@ import {
 import { LessonPlayer } from "./lesson-player";
 import { uploadImage } from "@/lib/api/images";
 import { EXAM_SNIPPET, STARTER_CONTENT, STEP_SNIPPETS } from "./starter-template";
+import { CertificationReview } from "./certification-review";
 
 /**
  * SHAN-652. Where an author writes a course's lessons: the JSON document on
@@ -37,7 +39,7 @@ type Check =
   | { kind: "invalid"; issues: ContentIssue[] }
   | { kind: "error"; message: string };
 
-type Tab = "outline" | "issues" | "add" | "api";
+type Tab = "outline" | "issues" | "add" | "certificate" | "api";
 
 const DRAFT_KEY = (courseId: string) => `shane:course-draft:${courseId}`;
 const LINE_HEIGHT = 24;
@@ -176,11 +178,14 @@ export function LessonEditor({
   initial,
   onClose,
   onSaved,
+  onCertifiedChange,
 }: {
   course: Course;
   initial: CourseContent | null;
   onClose: () => void;
   onSaved: (content: CourseContent, course: Course) => void;
+  /** SHAN-723: a certification review landed while the editor was open. */
+  onCertifiedChange: (certified: boolean) => void;
 }) {
   useScrollLock(true);
   const baseline = useMemo(() => pretty(initial ?? STARTER_CONTENT), [initial]);
@@ -196,6 +201,7 @@ export function LessonEditor({
   const [preview, setPreview] = useState<{ lesson: CourseLesson; unit: string; index: number; total: number; run: number } | null>(null);
   const [addTo, setAddTo] = useState(0);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [queuedReview, setQueuedReview] = useState<CourseReview | null>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -268,6 +274,7 @@ export function LessonEditor({
       setRestored(false);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2200);
+      if (res.review) setQueuedReview(res.review);
       onSaved(res.content, res.course);
     } catch (e: unknown) {
       if (e instanceof ContentInvalidError) {
@@ -377,6 +384,7 @@ export function LessonEditor({
     { id: "outline", label: "Outline" },
     { id: "issues", label: issues.length ? `Issues ${issues.length}` : "Issues" },
     { id: "add", label: "Add" },
+    { id: "certificate", label: "Certificate" },
     { id: "api", label: "API" },
   ];
 
@@ -732,6 +740,15 @@ export function LessonEditor({
                   </>
                 )}
               </div>
+            )}
+
+            {tab === "certificate" && (
+              <CertificationReview
+                course={course}
+                dirty={dirty}
+                latest={queuedReview}
+                onCertifiedChange={onCertifiedChange}
+              />
             )}
 
             {tab === "api" && (
