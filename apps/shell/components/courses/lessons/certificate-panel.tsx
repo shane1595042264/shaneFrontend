@@ -103,14 +103,29 @@ export function CertificatePanel({
     };
   }, [wantRecall, sitting, course.id, lastActivity, recallAttempt]);
 
-  // A waiting check opens by itself while the page is up.
-  const opensAt = recall?.status === "waiting" && recall.unlocksAt ? Date.parse(recall.unlocksAt) : null;
+  // A waiting check opens by itself while the page is up. Keyed on the fetched
+  // check, not the opening time (SHAN-725): a clock running ahead of the
+  // server's gets "waiting" back with the same opening, and has to ask again.
+  // A timer can also sleep through the opening with the laptop, so coming back
+  // to the tab checks too.
   useEffect(() => {
-    if (opensAt === null) return;
+    const opensAt = recall?.status === "waiting" && recall.unlocksAt ? Date.parse(recall.unlocksAt) : null;
+    if (opensAt === null || Number.isNaN(opensAt)) return;
+    const recheck = () => setRecallAttempt((n) => n + 1);
+    const due = opensAt - Date.now();
     // setTimeout overflows past ~24.8 days; nothing waits that long.
-    const t = window.setTimeout(() => setRecallAttempt((n) => n + 1), Math.max(0, opensAt - Date.now()) + 1000);
-    return () => window.clearTimeout(t);
-  }, [opensAt]);
+    const t = window.setTimeout(recheck, due > 0 ? due + 1000 : 15_000);
+    const onWake = () => {
+      if (document.visibilityState === "visible" && Date.now() >= opensAt) recheck();
+    };
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("focus", onWake);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("focus", onWake);
+    };
+  }, [recall]);
 
   const recallLesson = useMemo<CourseLesson | null>(
     () =>
