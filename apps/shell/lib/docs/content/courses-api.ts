@@ -123,7 +123,7 @@ A teach card without one is a 400 at \`units[i].lessons[j].steps[k].visual\` who
 Rules the validator enforces, each reported with a path such as \`units[0].lessons[2].steps[1].choices\`:
 
 - Unknown keys are errors, so a typo like \`"choises"\` is caught rather than ignored.
-- Every lesson needs at least one graded step. A choice needs a \`correct\` one. An exam lesson cannot hold a \`match\` step, and its \`passMark\` is a whole number from 50 to 100. Choices, order items and each side of a match must be unique (case-insensitive). A distractor cannot also be an answer.
+- Every lesson needs at least one graded step. A choice needs a \`correct\` one. An exam lesson cannot hold a \`match\` step, and its \`passMark\` is a whole number from 50 to 100. Choices, order items and each side of a match must be unique (case-insensitive). Distractors must be unique and cannot match any of a blank's answers, alternatives included, compared the way typed answers are graded (so \`Paris.\` beside \`[[Paris]]\` is refused).
 - \`id\` is optional on units and lessons (\`[a-z0-9-]\`, up to 64) and derived from the title when missing. Lesson ids are unique across the course. Progress is keyed by lesson id, so once learners have started, keep a lesson's id when you rename it.
 - Limits: 30 units, 30 lessons a unit, 200 lessons, 40 steps a lesson, 512 KB.
 
