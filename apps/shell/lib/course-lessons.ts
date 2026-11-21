@@ -134,6 +134,8 @@ export interface ExamResult {
   attempts: number;
   passedAt: string | null;
   updatedAt: string;
+  /** SHAN-726: when the next sitting opens; null for the course's author. */
+  resitAt?: string | null;
 }
 
 /** What the recite grader says about one recital. */

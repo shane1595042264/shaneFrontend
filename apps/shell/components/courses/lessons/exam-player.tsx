@@ -16,7 +16,8 @@ import { heading, kicker } from "./lesson-player";
  * answered once with no feedback in between, and the server grades the whole
  * sheet on Submit. Back and Next move freely until then, so an answer can be
  * changed before it counts. The result says which questions were wrong but
- * never what was right, so a resit is still a test.
+ * never what was right, and (SHAN-726) the next sitting waits a day, so a
+ * resit is still a test and not a way to try the other answers.
  *
  * No notes, Explain or knowledge terms in here: each is a way to look the
  * answer up. Escape leaves at once, as in a lesson; answers not submitted are
@@ -29,10 +30,15 @@ import { heading, kicker } from "./lesson-player";
 
 /** What the player needs back from a graded sitting, exam or recall check. */
 export type Sitting = Omit<ExamSubmission, "result"> & {
-  result: { bestScore: number };
+  result: { bestScore: number; resitAt?: string | null };
   /** The recall check's next opening, after a failed sitting. */
   unlocksAt?: string | null;
 };
+
+/** An exam's next sitting, while it is still in the future. */
+function waitUntil(resitAt: string | null | undefined): string | null {
+  return resitAt && new Date(resitAt).getTime() > Date.now() ? resitAt : null;
+}
 
 type Answer = number[] | string[] | string;
 type Phase = "intro" | "taking" | "submitting" | "result";
@@ -74,7 +80,7 @@ export function ExamPlayer({
   unitTitle: string;
   signedIn: boolean;
   /** The best sitting so far, if any. */
-  best: { bestScore: number } | undefined;
+  best: { bestScore: number; resitAt?: string | null } | undefined;
   onSubmit: (answers: unknown[]) => Promise<Sitting>;
   onExit: () => void;
   kind?: "exam" | "recall";
@@ -95,8 +101,10 @@ export function ExamPlayer({
   const [returnTo] = useState(() => document.activeElement as HTMLElement | null);
   useEffect(() => () => returnTo?.focus?.({ preventScroll: true }), [returnTo]);
 
+  // The recall check keeps its own opening; this is the exam's.
+  const resitWait = recall ? null : waitUntil(result?.result.resitAt ?? best?.resitAt);
   const step = steps[pos];
-  const done = steps.filter((s, i) => isGraded(s) && answered(s, answers[i])).length;
+  const done =steps.filter((s, i) => isGraded(s) && answered(s, answers[i])).length;
   const last = pos === steps.length - 1;
 
   const set = (v: Answer) => setAnswers((a) => ({ ...a, [pos]: v }));
@@ -239,7 +247,11 @@ export function ExamPlayer({
                 <li>No feedback until you submit, and no second try at a question inside a sitting.</li>
                 <li>Back and Next move freely, so you can change an answer before you submit.</li>
                 <li>Recitals are graded for meaning, so your own words are fine.</li>
-                {recall && <li>Not passed, it opens again a day after this sitting, with new questions.</li>}
+                {recall ? (
+                  <li>Not passed, it opens again a day after this sitting, with new questions.</li>
+                ) : (
+                  <li>Each sitting closes the exam for a day, so take it when you are ready.</li>
+                )}
               </ul>
               {best && (
                 <p className="mt-6 text-sm text-gray-400">
@@ -247,7 +259,11 @@ export function ExamPlayer({
                   {best.bestScore >= passMark ? ", passed." : ", not passed yet."}
                 </p>
               )}
-              {signedIn ? (
+              {signedIn && resitWait ? (
+                <p className="mt-8 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-300">
+                  Your next sitting opens {formatOpening(resitWait)}. Practise the lessons until then.
+                </p>
+              ) : signedIn ? (
                 <button
                   type="button"
                   onClick={start}
@@ -363,7 +379,7 @@ export function ExamPlayer({
             )}
             {phase === "result" && (
               <>
-                {!recall && (
+                {!recall && !resitWait && (
                   <button
                     type="button"
                     onClick={start}
@@ -423,6 +439,12 @@ function ExamResultView({
         <p className="mt-3 text-sm text-gray-300">
           The next sitting opens {formatOpening(result.unlocksAt)}, with new questions. Practise the lessons you
           missed before then; that moves it to a day after your practice.
+        </p>
+      )}
+      {!result.passed && !result.unlocksAt && result.result.resitAt && (
+        <p className="mt-3 text-sm text-gray-300">
+          You can sit it again {formatOpening(result.result.resitAt)}. Practise the lessons behind the questions you
+          missed before then.
         </p>
       )}
       {wrong.length > 0 && (
