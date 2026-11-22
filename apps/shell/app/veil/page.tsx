@@ -80,7 +80,7 @@ export default function VeilPage() {
         <p className={styles.sectionLabel}>START IN A MINUTE</p>
         <h2 id="veil-setup">No developer console. No client ID. No secret.</h2>
         <div className={styles.steps}>
-          <article><span>1</span><h3>Install Veil</h3><p>Download the signed Windows installer and open the control room.</p></article>
+          <article><span>1</span><h3>Install Veil</h3><p>Download the Windows installer and open the control room.</p></article>
           <article><span>2</span><h3>Continue with Twitch</h3><p>Your browser handles Twitch sign-in using the account method you already trust.</p></article>
           <article><span>3</span><h3>Choose a channel</h3><p>Connect, place the overlay once, and keep playing.</p></article>
         </div>
