@@ -88,8 +88,8 @@ export function Certificate({ certificate }: { certificate: CourseCertificate })
           {certificate.courseTitle}
         </p>
         <p className="mt-[1.2cqw] text-[clamp(11px,1.35cqw,14px)] tabular-nums max-sm:mt-3" style={{ color: MUTED }}>
-          {certificate.lessonCount} lesson{certificate.lessonCount === 1 ? "" : "s"} &middot; average first-try
-          score {certificate.score}%
+          {certificate.lessonCount} lesson{certificate.lessonCount === 1 ? "" : "s"} &middot; graded score{" "}
+          {certificate.score}%
         </p>
 
         <div className="mt-auto grid w-full grid-cols-[1fr_auto_1fr] items-end gap-[3cqw] pt-[3cqw] max-sm:mt-10 max-sm:grid-cols-1 max-sm:justify-items-center max-sm:gap-6">

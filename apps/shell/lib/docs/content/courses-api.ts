@@ -180,10 +180,10 @@ Shipped 2026-11-19 (SHAN-720, phase 1 of SHAN-719). A certified course issues a 
 \`\`\`
 
 - \`code\` is 12 characters of Crockford base32 (no I, L, O or U) and is printed in fours, \`7K3M-9QX2-ABCD\`. Anyone with it can check the certificate at \`https://shanejli.com/courses/certificates/<code>\` or \`GET /api/courses/certificates/<code>\`. The page is noindex: the certificate is its holder's to share.
-- \`score\` is the mean of the learner's best score in each lesson: the first-try score of a practice lesson, the best sitting of an exam.
+- \`score\` counts only what the server graded (SHAN-729): the mean of the best sitting of each exam and the best sitting of the recall check. A practice lesson's score is self-reported (\`PUT /:id/progress/:lessonId\` takes any 0 to 100), so finishing it is required but its score is not part of the certificate.
 - "Finished" means a recorded run (\`PUT /:id/progress/:lessonId\`) for every practice lesson, and a sitting at or above the current pass mark for every exam, as the course stands at the moment of the claim. A lesson added later does not touch certificates already issued.
 - A certified course must contain at least one recite step and an exam (SHAN-721): submitting one for review without them is a 400, and so is a content save that would remove them while the course is certified.
-- The recall check has to be passed too (SHAN-722). The certificate's \`score\` is still the lessons' mean; the recall score is not part of it.
+- The recall check has to be passed too (SHAN-722), and its best sitting counts toward the certificate's \`score\`.
 - A course is certified by [review](#certification-review), which any author can submit a public course to.
 
 ## Certification review
