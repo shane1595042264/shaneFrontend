@@ -90,6 +90,28 @@ function formatAmount(amount: number, currency: string): string {
   }
 }
 
+// JPY, KRW and the other zero-decimal currencies have no cents, and
+// formatAmount shows them rounded to whole units, so a fraction on one would
+// be saved as typed and displayed as something else. Same rule the backend
+// enforces (SHAN-730); checked here so the message shows inline.
+function amountFitsCurrency(amount: string, currency: string): boolean {
+  let decimals = 2;
+  try {
+    decimals = Math.min(
+      2,
+      new Intl.NumberFormat("en-US", { style: "currency", currency }).resolvedOptions()
+        .maximumFractionDigits ?? 2
+    );
+  } catch {
+    // Unknown to this browser's Intl: keep the ledger's 2.
+  }
+  return (amount.split(".")[1] ?? "").replace(/0+$/, "").length <= decimals;
+}
+
+function wholeAmountMessage(currency: string): string {
+  return `${currency} has no cents, so the amount must be a whole number.`;
+}
+
 function WhoOwesMeContent() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<LoanEntry[]>([]);
@@ -174,6 +196,10 @@ function WhoOwesMeContent() {
     // user gets a clear message instead of a raw validation error.
     if (!AMOUNT_PATTERN.test(trimmedAmount)) {
       setError("Amount must be a non-negative number with up to 2 decimals.");
+      return;
+    }
+    if (!amountFitsCurrency(trimmedAmount, currency)) {
+      setError(wholeAmountMessage(currency));
       return;
     }
     setSubmitting(true);
@@ -604,6 +630,12 @@ function LoanRowEdit({
     if (currency !== entry.currency) patch.currency = currency;
     if (trimmedDesc !== currentDesc) patch.description = trimmedDesc.length > 0 ? trimmedDesc : null;
     if (direction !== entry.direction) patch.direction = direction;
+    // Only when one of them changes, like the backend: a description-only edit
+    // never trips over the amount the row already has.
+    if ((patch.amount !== undefined || patch.currency !== undefined) && !amountFitsCurrency(trimmedAmount, currency)) {
+      setLocalError(wholeAmountMessage(currency));
+      return;
+    }
 
     if (Object.keys(patch).length === 0) {
       onCancel();
