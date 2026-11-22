@@ -89,7 +89,7 @@ const API_FACTS: Record<string, ApiFacts> = {
   },
   "rng-capitalist": {
     mount: "/api/rng",
-    auth: "authed (any PAT), no scope; Plaid bank linking is browser-session only",
+    auth: "PATs need entries:write; Plaid bank linking is browser-session only",
     what: "AI purchase-decision roulette; evaluate costs an LLM call, 10/min",
   },
   "who-owes-me": {

@@ -82,8 +82,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "JWTs vs personal access tokens, minting, scopes, rate limits, and identifying yourself.",
     body: auth,
-    lastModified: "2026-11-13T09:10:00-06:00",
-    bodyFingerprint: "f91c24a9",
+    lastModified: "2026-11-22T15:20:00-06:00",
+    bodyFingerprint: "5efd9a28",
   },
   {
     slug: "conventions",
@@ -199,8 +199,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Every element on the periodic table with its route, backend mount, and auth model.",
     body: elementsDirectory,
-    lastModified: "2026-11-22T13:45:21-06:00",
-    bodyFingerprint: "dfc988ca",
+    lastModified: "2026-11-22T15:20:00-06:00",
+    bodyFingerprint: "f6586b99",
   },
 ];
 

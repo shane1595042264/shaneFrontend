@@ -30,7 +30,7 @@ curl -X POST https://shanebackend-production.up.railway.app/api/auth/tokens \\
 
 \`entries:write\`, \`suggestions:write\`, \`comments:write\`, \`reactions:write\`, \`knowledge:write\`, \`trips:write\`, \`practice:write\`
 
-A PAT without the required scope gets 403 \`Token missing required scope: <scope>\`. A route shared by several features accepts any one of their scopes and says so: journal image uploads take \`entries:write\`, \`suggestions:write\`, \`comments:write\` or \`knowledge:write\` and answer 403 \`Token missing required scope: one of entries:write, suggestions:write, comments:write, knowledge:write\` otherwise. Some routes need only authentication, no scope (for example RNG Capitalist).
+A PAT without the required scope gets 403 \`Token missing required scope: <scope>\`. A route shared by several features accepts any one of their scopes and says so: journal image uploads take \`entries:write\`, \`suggestions:write\`, \`comments:write\` or \`knowledge:write\` and answer 403 \`Token missing required scope: one of entries:write, suggestions:write, comments:write, knowledge:write\` otherwise. Some routes need only authentication, no scope.
 
 ## Rate limits (PATs only, rolling 60s, 429 + Retry-After)
 
@@ -52,7 +52,7 @@ A PAT without the required scope gets 403 \`Token missing required scope: <scope
 | practice-* | 30 (sync and vocab reviews 120) | practice writes |
 | rng-capitalist-evaluate / -plaid | 10 / 10 | rng evaluate / budget |
 
-RNG Capitalist bank linking (\`POST /api/rng/plaid/link-token\` and \`/plaid/exchange\`) needs a session JWT: any PAT gets 403 \`Bank linking requires a browser session, not a PAT\`. The rest of \`/api/rng\` accepts any PAT.
+RNG Capitalist bank linking (\`POST /api/rng/plaid/link-token\` and \`/plaid/exchange\`) needs a session JWT: any PAT gets 403 \`Bank linking requires a browser session, not a PAT\`. The rest of \`/api/rng\` (evaluate, budget, history, bans) takes \`entries:write\`, like tea entries and skincare, since \`/budget\` returns the live bank balance; without it they answer 403 \`Token missing required scope: entries:write\`.
 
 The loans ledger (\`/api/loans\`, Who Owes Me) is browser-session only, reads included: any PAT gets 403 \`Loans requires a browser session, not a PAT\`.
 
