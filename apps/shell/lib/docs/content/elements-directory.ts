@@ -47,6 +47,11 @@ const API_FACTS: Record<string, ApiFacts> = {
     auth: "fully public",
     what: "these docs; /llms.txt, /llms-full.txt",
   },
+  veil: {
+    mount: "(frontend plus external signed installer)",
+    auth: "landing page public; Twitch authorization happens in the desktop app",
+    what: "transparent Twitch chat overlay for Windows with signed automatic updates",
+  },
   courses: {
     mount: "/api/courses",
     auth: "public reads; scoped writes",

@@ -94,6 +94,7 @@ const NAV_ORDER = [
   // stranger who liked the homepage is most likely to want next, and because
   // the ordering below already runs roughly newest-interest to most-niche.
   "/blog",
+  "/veil",
   "/courses",
   "/docs",
   "/knowledge",
