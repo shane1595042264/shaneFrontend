@@ -15,6 +15,7 @@ A public HTML pastebin for trip itineraries at /trips. Mounted at \`/api/trips\`
 Gotchas:
 
 - Title precedence on create: body title, then the html \`<title>\` tag, then first h1, then cleaned filename. A body title is trimmed, and an empty or whitespace-only one counts as not sent, so it falls through to the next source on POST and is \`Nothing to update\` (400) on a PATCH that carries nothing else.
+- An itinerary that is empty or only whitespace is a 400 at \`html\` on POST and PATCH, JSON or multipart, so a zero-byte file can neither publish a blank trip nor erase a stored one. The html is stored as sent; only the check trims.
 - \`trips:write\` only gates PATs; browser JWTs and anonymous callers pass the scope check. The real protection is per-trip ownership.
 - Anonymous means no Authorization header. A PAT that does not resolve (revoked, mistyped) is a 401 \`Invalid or revoked token\` on every write, never a silent anonymous upload: an ownerless trip is editable and deletable by anyone, so falling back would publish your itinerary unprotected. An invalid browser JWT still uploads anonymously.
 - Slug is kebab-cased from the title (max 60 chars) with a random suffix on collision.
