@@ -203,7 +203,7 @@ Shipped 2026-11-20 (SHAN-723, phase 4 of SHAN-719). A certificate is issued in S
 }
 \`\`\`
 
-- \`status\` is \`pending\` until the reviewer answers, then \`approved\` (the course is certified) or \`rejected\` (\`feedback\` lists what to change). \`superseded\` means the lessons changed before the reviewer got to that version; the change queued a review of its own.
+- \`status\` is \`pending\` until the reviewer answers, then \`approved\` (the course is certified) or \`rejected\` (\`feedback\` lists what to change). \`superseded\` means the lessons changed before the reviewer got to that version; the change queued a review of its own. Making the course private, or changing a private course's lessons, also supersedes a pending review but queues none: a private course is never certified, so submit again once it is public.
 - \`current\` is false once the lessons have changed since the version that was reviewed.
 - The review uses the site's LLM fallback chain. When no model is reachable the submission stays \`pending\` and is retried every ten minutes or so (\`attempts\` counts the tries); an outage never rejects a course. Submitting the same version again retries it straight away.
 - Editing an approved course's lessons sends it back: it stops issuing certificates until the new version is approved. Learners keep certificates already issued. A save that does not change the lessons changes nothing.
