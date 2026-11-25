@@ -163,8 +163,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Free-text note ingest with AI classification, plus knowledge entries, vocabulary, and comments.",
     body: knowledgeApi,
-    lastModified: "2026-11-19T09:04:04-06:00",
-    bodyFingerprint: "a3ddc861",
+    lastModified: "2026-11-25T15:06:00-06:00",
+    bodyFingerprint: "0b608778",
   },
   {
     slug: "ai-api",
@@ -181,8 +181,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The word list and its typed connection graph: filters, enrichment, ownership rules, and how it differs from the Knowledge API.",
     body: vocabularyApi,
-    lastModified: "2026-11-13T03:07:44-06:00",
-    bodyFingerprint: "4fbe13ed",
+    lastModified: "2026-11-25T15:06:00-06:00",
+    bodyFingerprint: "74defd10",
   },
   {
     slug: "training-plans-api",
