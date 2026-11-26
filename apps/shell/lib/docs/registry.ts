@@ -172,8 +172,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Bring-your-own-key Explain: key detection and checks, the fixed explain prompt, usage, and private inline notes on blog posts and knowledge cards.",
     body: aiApi,
-    lastModified: "2026-11-17T10:50:00-06:00",
-    bodyFingerprint: "9b58214e",
+    lastModified: "2026-11-25T21:10:00-06:00",
+    bodyFingerprint: "c73bff77",
   },
   {
     slug: "vocabulary-api",

@@ -43,6 +43,8 @@ Inline notes on blog posts, knowledge cards and courses, private to the reader w
 
 A note needs \`anchor\` (\`{target, quote, prefix?, suffix?}\`, the same shape as journal inline notes, with \`target\` naming the part of the page: \`body\` on a post, \`definition\` or \`example\` on a card, \`description\` on a course page, and \`<lesson id>.<step index>.<part>\` inside a lesson, where part is \`h\` the heading, \`b\` a teach card's body, \`x\` the explanation and \`y<n>\` the why of choice n). A reply sets \`parentId\` to one of your own top-level notes on the same resource and carries no anchor or meta. \`meta\` is \`{kind: "ai", provider, model}\` on an Explain answer.
 
+The resource must be a page you can read: a knowledge card that exists, a blog post that is not trashed (a draft only if it is yours), a public course, or a private one you created. Anything else, note or reply, is a 404 \`Not found\`, the same answer for a page that does not exist, so a private course or someone's draft cannot be confirmed to exist this way.
+
 ## Notes become knowledge cards
 
 A new note, typed or explained, on any of these surfaces is also handed to the knowledge classifier, which turns it into a card the same way \`POST /api/knowledge/notes\` does. Only the selected words and the note text go in, never the text around them: cards are public and a journal is not. A note on a private course or a blog draft is not filed at all, since its quote would be public on the card. A post flipped back to draft stops filing new notes from that moment. Replies are not filed. Turn it off with \`PATCH /api/ai/settings {notesToKnowledge: false}\`.
