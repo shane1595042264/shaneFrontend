@@ -146,12 +146,14 @@ export interface TripItinerarySuggestion {
 
 /**
  * Owner result carries `itinerary` (direct write); non-owner member result
- * carries `suggestion` (pending owner approval) — SHAN-273.
+ * carries `suggestion` (pending owner approval) — SHAN-273. A member draft
+ * identical to the stored itinerary files nothing: `unchanged` (SHAN-745).
  */
 export async function consolidateItinerary(slug: string): Promise<{
   itinerary?: TripItinerary;
   itineraryGeneratedAt?: string;
-  suggestion?: TripItinerarySuggestion;
+  suggestion?: TripItinerarySuggestion | null;
+  unchanged?: boolean;
 }> {
   const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary/consolidate`, {
     method: "POST",
@@ -268,6 +270,8 @@ export async function unsplashFill(slug: string): Promise<{
  * `base` is the itinerary the edit started from (SHAN-565): the server
  * applies only the days that differ from it, so days another member changed
  * after this tab loaded are kept. The owner result is the merged itinerary.
+ * A member edit that differs from `base` nowhere files nothing and comes
+ * back `unchanged` (SHAN-745).
  */
 export async function updateItinerary(
   slug: string,
@@ -276,7 +280,8 @@ export async function updateItinerary(
 ): Promise<{
   itinerary?: TripItinerary;
   itineraryGeneratedAt?: string;
-  suggestion?: TripItinerarySuggestion;
+  suggestion?: TripItinerarySuggestion | null;
+  unchanged?: boolean;
 }> {
   const res = await fetch(`${API_URL}/api/trip-groups/${slug}/itinerary`, {
     method: "PUT",

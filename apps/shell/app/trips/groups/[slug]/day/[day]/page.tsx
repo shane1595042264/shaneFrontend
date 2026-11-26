@@ -169,6 +169,8 @@ function DayDetail() {
       } else {
         if (result.suggestion) {
           setNotice("Edit submitted as a suggestion — the group owner can approve it on the group page.");
+        } else if (result.unchanged) {
+          setNotice("Nothing changed, so no suggestion was sent.");
         }
         setEditing(null);
       }

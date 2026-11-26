@@ -562,6 +562,8 @@ function GroupDetail() {
         // Member path: pending suggestion awaiting owner approval.
         setConsolidateNotice("Suggestion submitted — the group owner can approve it below.");
         await refetchSuggestions();
+      } else if (result.unchanged) {
+        setConsolidateNotice("The draft matches the current itinerary, so no suggestion was sent.");
       }
       void refetchPhotos();
     } catch (err) {
@@ -623,6 +625,8 @@ function GroupDetail() {
       } else if (result.suggestion) {
         setConsolidateNotice("Edit submitted as a suggestion — the group owner can approve it below.");
         await refetchSuggestions();
+      } else if (result.unchanged) {
+        setConsolidateNotice("Nothing changed, so no suggestion was sent.");
       }
       void refetchPhotos();
     } catch (err) {
@@ -680,6 +684,8 @@ function GroupDetail() {
       } else if (result.suggestion) {
         setConsolidateNotice("Edit submitted as a suggestion — the group owner can approve it below.");
         await refetchSuggestions();
+      } else if (result.unchanged) {
+        setConsolidateNotice("Nothing changed, so no suggestion was sent.");
       }
       setDraft(null);
     } catch (err) {
