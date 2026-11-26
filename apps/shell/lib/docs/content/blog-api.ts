@@ -85,7 +85,7 @@ Both live under the post they belong to, and both resolve that post through the 
 |---|---|---|---|
 | GET | /posts/:slug/comments | none | \`{comments}\`, oldest first, each with an \`author\` object |
 | POST | /posts/:slug/comments | \`comments:write\` | \`{content}\`, 1..10k markdown. 201 with \`{comment}\` |
-| PATCH | /comments/:id | \`comments:write\` | \`{content}\`. Comment author only; anyone else gets a 404 |
+| PATCH | /comments/:id | \`comments:write\` | \`{content}\`. Comment author only, and only while you can still read the post: once it goes back to draft or is trashed, the thread is frozen. Anything else is a 404 |
 | DELETE | /comments/:id | \`comments:write\` | 204. Comment author **or** the post's author, so the author can moderate their own page |
 | GET | /posts/:slug/reactions | none | \`{summary, mine}\`. \`summary\` is \`[{emoji, count}]\`; \`mine\` is empty for an anonymous caller |
 | POST | /posts/:slug/reactions | \`reactions:write\` | \`{emoji}\`, toggles. Returns \`{result: "added" \| "removed"}\` |
