@@ -109,8 +109,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The full collaborative journal write surface: entries, appends, versions, suggestions, comments, reactions.",
     body: journalApi,
-    lastModified: "2026-10-19T08:48:33-05:00",
-    bodyFingerprint: "df958acb",
+    lastModified: "2026-11-27T15:10:00-06:00",
+    bodyFingerprint: "29409237",
   },
   {
     slug: "blog-api",
@@ -118,8 +118,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The public blog: slug-keyed posts, versioned titles and bodies, drafts, tags, and revert.",
     body: blogApi,
-    lastModified: "2026-11-26T09:10:00-06:00",
-    bodyFingerprint: "f4769dfe",
+    lastModified: "2026-11-27T15:10:00-06:00",
+    bodyFingerprint: "adafcc61",
   },
   {
     slug: "images-api",
@@ -136,8 +136,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "The course catalog: AI classification on create, covers, star ratings, comments, lessons, recite steps, exams, the recall check and certificates.",
     body: coursesApi,
-    lastModified: "2026-11-25T09:15:00-06:00",
-    bodyFingerprint: "a8a16b50",
+    lastModified: "2026-11-27T15:10:00-06:00",
+    bodyFingerprint: "9c1de2fd",
   },
   {
     slug: "scoreboard-api",
@@ -163,8 +163,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "Free-text note ingest with AI classification, plus knowledge entries, vocabulary, and comments.",
     body: knowledgeApi,
-    lastModified: "2026-11-25T15:06:00-06:00",
-    bodyFingerprint: "0b608778",
+    lastModified: "2026-11-27T15:10:00-06:00",
+    bodyFingerprint: "ed69bc93",
   },
   {
     slug: "ai-api",

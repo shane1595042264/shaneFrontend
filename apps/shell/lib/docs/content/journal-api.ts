@@ -49,7 +49,7 @@ Writes:
 |---|---|---|---|---|
 | POST | /entries | entries:write | \`{date, content}\` (content trimmed 1..100k) | 409 date taken |
 | POST | /entries/:date/appends | entries:write | \`{content}\` 1..100k | 403 not author |
-| PATCH | /entries/:date/appends/:id | entries:write | \`{content}\` 1..100k | 404 unless you authored that append on that entry |
+| PATCH | /entries/:date/appends/:id | entries:write | \`{content}\` 1..100k | 404 unless you authored that append on that entry. Saving the text it already has is a 200 that keeps \`editedAt\` and logs no activity |
 | DELETE | /entries/:date/appends/:id | entries:write | none | soft delete; 204. Repeat delete 404s |
 | POST | /entries/:date/revert | entries:write + If-Match | \`{target_version_num}\` | 428/400/409 If-Match; 403 not author; 404 when target_version_num is not a version this entry has (SHAN-530) |
 | DELETE | /entries/:date | entries:write | none | 404 not author; irreversible |
@@ -59,7 +59,7 @@ Writes:
 | PATCH | /suggestions/:id/withdraw | suggestions:write | none | 404 no such suggestion; 403 not the proposer; 409 \`{currentStatus}\` if the author decided it since you read it (SHAN-536) |
 | GET | /inbox | auth only | none | pending suggestions on entries you author |
 | POST | /entries/:date/comments | comments:write | \`{content, parent_comment_id?, anchor?}\` 1..10k | one reply level; the parent must be a top-level comment on this entry, else 400. \`anchor\` makes it an inline note (below) |
-| PATCH | /comments/:id | comments:write | \`{content}\` | author only; an anchor cannot be changed |
+| PATCH | /comments/:id | comments:write | \`{content}\` | author only; an anchor cannot be changed. Saving the text it already has (after trimming) is a 200 that keeps \`editedAt\`, so no "edited" tag, and logs no activity |
 | DELETE | /comments/:id | comments:write | none | comment author or entry author; 204. Its replies are kept and become top-level comments, except under an inline note: there the earliest reply becomes the note, inheriting its anchor, and the rest reply to it |
 | POST | /entries/:date/reactions | reactions:write | \`{emoji}\` | toggle; shortcodes only |
 | POST | /comments/:id/reactions | reactions:write | \`{emoji}\` | toggle |
