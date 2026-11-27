@@ -82,8 +82,8 @@ export const DOC_PAGES: DocPage[] = [
     description:
       "JWTs vs personal access tokens, minting, scopes, rate limits, and identifying yourself.",
     body: auth,
-    lastModified: "2026-11-22T15:20:00-06:00",
-    bodyFingerprint: "5efd9a28",
+    lastModified: "2026-11-26T21:10:00-06:00",
+    bodyFingerprint: "4f558a40",
   },
   {
     slug: "conventions",

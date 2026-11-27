@@ -22,7 +22,8 @@ curl -X POST https://shanebackend-production.up.railway.app/api/auth/tokens \\
 # 201 {"id":"<uuid>","token":"pat_..."}   raw token shown exactly once
 \`\`\`
 
-- List: \`GET /api/auth/tokens\`. Revoke: \`DELETE /api/auth/tokens/:id\` (204). Both need a session JWT, with one exception: a PAT may revoke itself (its own id). Any other PAT call gets 403.
+- List: \`GET /api/auth/tokens\`, newest first. Revoke: \`DELETE /api/auth/tokens/:id\` (204). Both need a session JWT, with one exception: a PAT may revoke itself (its own id). Any other PAT call gets 403.
+- Revoking a token that is already revoked is a no-op 204: \`revokedAt\` keeps the time of the first revoke.
 - PATs never expire; revocation is the only kill switch.
 - Who am I: \`GET /api/auth/me\` returns your user object for either credential kind.
 
